@@ -43,6 +43,20 @@ router.get("/", async (req, res) => {
   return res.json(listings);
 });
 
+router.get("/search/query", async (req, res) => {
+  const term = (req.query.q as string) || "";
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const listings = await listingRepository
+    .createQueryBuilder("listing")
+    .leftJoinAndSelect("listing.owner", "owner")
+    .leftJoinAndSelect("listing.category", "category")
+    .where("listing.title ILIKE :term", { term: `%${term}%` })
+    .orWhere("listing.description ILIKE :term", { term: `%${term}%` })
+    .orderBy("listing.created_at", "DESC")
+    .getMany();
+  return res.json(listings);
+});
+
 router.get("/:id", async (req, res) => {
   const listingRepository = AppDataSource.getRepository(Listing);
   const listing = await listingRepository.findOne({ where: { id: req.params.id } });
@@ -108,20 +122,6 @@ router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => 
   }
   await listingRepository.remove(listing);
   return res.status(204).send();
-});
-
-router.get("/search/query", async (req, res) => {
-  const term = (req.query.q as string) || "";
-  const listingRepository = AppDataSource.getRepository(Listing);
-  const listings = await listingRepository
-    .createQueryBuilder("listing")
-    .leftJoinAndSelect("listing.owner", "owner")
-    .leftJoinAndSelect("listing.category", "category")
-    .where("listing.title ILIKE :term", { term: `%${term}%` })
-    .orWhere("listing.description ILIKE :term", { term: `%${term}%` })
-    .orderBy("listing.created_at", "DESC")
-    .getMany();
-  return res.json(listings);
 });
 
 export default router;
