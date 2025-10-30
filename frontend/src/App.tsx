@@ -13,6 +13,7 @@ import CreateListing from './pages/CreateListing'
 import Messages from './pages/Messages'
 import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
+import AdminDashboard from './pages/admin/AdminDashboard'
 import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
 
@@ -36,6 +37,38 @@ const RequireAuth = ({ children }: { children: ReactElement }) => {
         state={{
           from: location.pathname,
           message: 'Please sign in to continue.',
+        }}
+      />
+    )
+  }
+
+  return children
+}
+
+const RequireAdmin = ({ children }: { children: ReactElement }) => {
+  const location = useLocation()
+  const { token, isAdmin } = useAuth()
+
+  if (!token) {
+    return (
+      <Navigate
+        to="/auth"
+        replace
+        state={{
+          from: location.pathname,
+          message: 'Please sign in to continue.',
+        }}
+      />
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <Navigate
+        to="/"
+        replace
+        state={{
+          message: 'You do not have permission to access this page.',
         }}
       />
     )
@@ -107,6 +140,20 @@ const App = () => {
                   {label}
                 </NavLink>
               ))}
+              {isAdmin && (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `rounded-full px-3 py-1 transition-colors ${
+                      isActive
+                        ? 'bg-primary text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`
+                  }
+                >
+                  Admin
+                </NavLink>
+              )}
               {!isHydrated ? (
                 <span className="text-slate-400">Loading...</span>
               ) : user ? (
@@ -164,6 +211,14 @@ const App = () => {
             />
             <Route path="/profile" element={<Profile />} />
             <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <AdminDashboard />
+                </RequireAdmin>
+              }
+            />
             <Route
               path="/conversations"
               element={
