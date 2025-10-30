@@ -7,107 +7,48 @@ import PreferenceToggleList from '../components/profile/PreferenceToggleList'
 import ProfileHeader from '../components/profile/ProfileHeader'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
 import { useAuth } from '../context/useAuth'
-import type {
-  ProfileAccountInfo,
-  ProfileListingSummary,
-  ProfileMetric,
-  ProfilePreferenceToggle,
-  ProfileSavedItemSummary,
-} from '../types/profile'
-
-const account: ProfileAccountInfo = {
-  name: 'Jamie Lawson',
-  email: 'jamie.lawson@example.com',
-  location: 'Seattle, WA',
-  memberSince: 'January 2021',
-  bio: 'Weekend warrior and outdoor gear collector. I list items that still have plenty of adventures left in them.',
-}
-
-const metrics: ProfileMetric[] = [
-  { label: 'Active Listings', value: 6 },
-  { label: 'Items Sold', value: 42 },
-  { label: 'Response Rate', value: '98%' },
-  { label: 'Avg. Rating', value: '4.9/5' },
-]
-
-const activeListings: ProfileListingSummary[] = [
-  {
-    id: 'listing-1',
-    title: 'Carbon Road Bike - Medium Frame',
-    category: 'Cycling',
-    price: 1450,
-    currency: '$',
-    status: 'active',
-    updatedAt: '2 days ago',
-  },
-  {
-    id: 'listing-2',
-    title: 'Climbing Protection Set (12 pcs)',
-    category: 'Climbing',
-    price: 260,
-    currency: '$',
-    status: 'active',
-    updatedAt: '5 days ago',
-  },
-  {
-    id: 'listing-3',
-    title: 'Camping Cookware Kit',
-    category: 'Camping',
-    price: 75,
-    currency: '$',
-    status: 'draft',
-    updatedAt: '1 hour ago',
-  },
-]
-
-const savedItems: ProfileSavedItemSummary[] = [
-  {
-    id: 'saved-1',
-    title: 'Trail Running Backpack',
-    category: 'Running',
-    price: 95,
-    currency: '$',
-    favoritedAt: '3 days ago',
-  },
-  {
-    id: 'saved-2',
-    title: 'Inflatable Paddle Board',
-    category: 'Water Sports',
-    price: 320,
-    currency: '$',
-    favoritedAt: '1 week ago',
-  },
-]
-
-const preferenceToggles: ProfilePreferenceToggle[] = [
-  {
-    id: 'notifications-email',
-    label: 'Email Updates',
-    description: 'Receive a summary of new messages, offers, and shipping updates via email.',
-    enabled: true,
-  },
-  {
-    id: 'notifications-sms',
-    label: 'SMS Alerts',
-    description: 'Get a text message when buyers send new offers or questions.',
-    enabled: false,
-  },
-  {
-    id: 'notifications-push',
-    label: 'Push Notifications',
-    description: 'Be alerted instantly when an item sells or requires your attention.',
-    enabled: true,
-  },
-]
+import useProfile from '../hooks/useProfile'
+import type { ProfileAccountInfo } from '../types/profile'
 
 const Profile = () => {
   const { user, isHydrated } = useAuth()
+  const {
+    account: profileAccount,
+    metrics,
+    activeListings,
+    savedItems,
+    preferences,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useProfile({ enabled: Boolean(user) })
 
-  const accountDetails = useMemo<ProfileAccountInfo>(() => ({
-    ...account,
-    name: user?.name ?? account.name,
-    email: user?.email ?? account.email,
-  }), [user])
+  const accountDetails = useMemo<ProfileAccountInfo | undefined>(() => {
+    if (!user && !profileAccount) {
+      return undefined
+    }
+
+    if (!user) {
+      return profileAccount ?? undefined
+    }
+
+    const baseAccount: ProfileAccountInfo = {
+      name: user.name,
+      email: user.email,
+    }
+
+    if (!profileAccount) {
+      return baseAccount
+    }
+
+    return {
+      ...baseAccount,
+      ...profileAccount,
+      name: profileAccount.name ?? baseAccount.name,
+      email: profileAccount.email ?? baseAccount.email,
+    }
+  }, [profileAccount, user])
 
   if (!isHydrated) {
     return (
@@ -139,6 +80,7 @@ const Profile = () => {
       <ProfileHeader
         account={accountDetails}
         metrics={metrics}
+        isLoading={isLoading}
         actions={
           <button
             type="button"
@@ -148,18 +90,35 @@ const Profile = () => {
           </button>
         }
       />
+      {isError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <p>We couldn&apos;t load your profile details right now.</p>
+          {error?.message ? (
+            <p className="mt-1 text-xs text-red-600">{error.message}</p>
+          ) : null}
+          <button
+            type="button"
+            onClick={refetch}
+            className="mt-3 inline-flex items-center justify-center rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isLoading}
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-6">
-          <AccountInfoCard account={accountDetails} />
+          <AccountInfoCard account={accountDetails} isLoading={isLoading} />
           <ListingTable
             listings={activeListings}
             title="Active Listings"
             emptyMessage="You do not have any listings yet. Start by creating your first listing."
+            isLoading={isLoading}
           />
         </div>
         <div className="flex flex-col gap-6">
-          <SavedItemsCard items={savedItems} />
-          <PreferenceToggleList preferences={preferenceToggles} />
+          <SavedItemsCard items={savedItems} isLoading={isLoading} />
+          <PreferenceToggleList preferences={preferences} isLoading={isLoading} />
         </div>
       </div>
     </section>

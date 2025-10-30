@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ProfilePreferenceToggle } from '../../types/profile'
 
 type PreferenceToggleListProps = {
   preferences: ProfilePreferenceToggle[]
+  isLoading?: boolean
 }
 
-const PreferenceToggleList = ({ preferences }: PreferenceToggleListProps) => {
+const PreferenceToggleList = ({ preferences, isLoading = false }: PreferenceToggleListProps) => {
   const [toggles, setToggles] = useState(preferences)
   const [isOpen, setIsOpen] = useState(true)
   const itemClasses =
@@ -14,6 +15,10 @@ const PreferenceToggleList = ({ preferences }: PreferenceToggleListProps) => {
     'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
   const indicatorBaseClasses =
     'inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200'
+
+  useEffect(() => {
+    setToggles(preferences)
+  }, [preferences])
 
   const handleToggle = (id: string) => {
     setToggles((current) =>
@@ -46,33 +51,41 @@ const PreferenceToggleList = ({ preferences }: PreferenceToggleListProps) => {
       <p className={`${isOpen ? 'mt-2' : 'hidden'} text-sm text-slate-500 md:mt-2 md:block`}>
         Choose how you want to receive alerts and updates from the marketplace.
       </p>
-      <ul className={contentClasses}>
-        {toggles.map((toggle) => (
-          <li
-            key={toggle.id}
-            className={itemClasses}
-          >
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{toggle.label}</p>
-              {toggle.description ? (
-                <p className="text-sm text-slate-600">{toggle.description}</p>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              onClick={() => handleToggle(toggle.id)}
-              className={`${toggle.enabled ? 'bg-primary' : 'bg-slate-300'} ${toggleBaseClasses}`}
-              aria-pressed={toggle.enabled}
+      {toggles.length > 0 ? (
+        <ul className={contentClasses}>
+          {toggles.map((toggle) => (
+            <li
+              key={toggle.id}
+              className={itemClasses}
             >
-              <span className="sr-only">Toggle {toggle.label}</span>
-              <span
-                aria-hidden="true"
-                className={`${toggle.enabled ? 'translate-x-5' : 'translate-x-0'} ${indicatorBaseClasses}`}
-              />
-            </button>
-          </li>
-        ))}
-      </ul>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{toggle.label}</p>
+                {toggle.description ? (
+                  <p className="text-sm text-slate-600">{toggle.description}</p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggle(toggle.id)}
+                className={`${toggle.enabled ? 'bg-primary' : 'bg-slate-300'} ${toggleBaseClasses}`}
+                aria-pressed={toggle.enabled}
+              >
+                <span className="sr-only">Toggle {toggle.label}</span>
+                <span
+                  aria-hidden="true"
+                  className={`${toggle.enabled ? 'translate-x-5' : 'translate-x-0'} ${indicatorBaseClasses}`}
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={`${isOpen ? 'mt-4' : 'hidden'} text-sm text-slate-500 md:mt-4 md:block`}>
+          {isLoading
+            ? 'Loading your communication preferences…'
+            : 'You have not configured any communication preferences yet.'}
+        </p>
+      )}
     </section>
   )
 }

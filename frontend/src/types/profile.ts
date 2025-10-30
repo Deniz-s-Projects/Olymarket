@@ -1,8 +1,8 @@
 export interface ProfileAccountInfo {
-  name: string
-  email: string
+  name?: string
+  email?: string
   location?: string
-  memberSince: string
+  memberSince?: string
   bio?: string
 }
 
