@@ -31,15 +31,24 @@ router.post(
       isActive: req.body.isActive ?? true,
       owner: req.user!,
       category,
+      images: Array.isArray(req.body.images) ? req.body.images : [],
+      moderationStatus: "approved",
     });
     await listingRepository.save(listing);
     return res.status(201).json(listing);
   }
 );
 
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   const listingRepository = AppDataSource.getRepository(Listing);
-  const listings = await listingRepository.find({ order: { createdAt: "DESC" } });
+  const listings = await listingRepository
+    .createQueryBuilder("listing")
+    .leftJoinAndSelect("listing.owner", "owner")
+    .leftJoinAndSelect("listing.category", "category")
+    .where("listing.moderation_status = :status", { status: "approved" })
+    .andWhere("owner.is_banned = false")
+    .orderBy("listing.created_at", "DESC")
+    .getMany();
   return res.json(listings);
 });
 
@@ -50,8 +59,9 @@ router.get("/search/query", async (req, res) => {
     .createQueryBuilder("listing")
     .leftJoinAndSelect("listing.owner", "owner")
     .leftJoinAndSelect("listing.category", "category")
-    .where("listing.title ILIKE :term", { term: `%${term}%` })
-    .orWhere("listing.description ILIKE :term", { term: `%${term}%` })
+    .where("listing.moderation_status = :status", { status: "approved" })
+    .andWhere("owner.is_banned = false")
+    .andWhere("(listing.title ILIKE :term OR listing.description ILIKE :term)", { term: `%${term}%` })
     .orderBy("listing.created_at", "DESC")
     .getMany();
   return res.json(listings);
@@ -80,7 +90,7 @@ router.put(
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
     }
-    if (listing.owner.id !== req.user!.id) {
+    if (listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
       return res.status(403).json({ message: "Not allowed" });
     }
 
@@ -102,6 +112,9 @@ router.put(
     listing.price = req.body.price;
     listing.isActive = req.body.isActive ?? listing.isActive;
     listing.category = category ?? null;
+    if (Array.isArray(req.body.images)) {
+      listing.images = req.body.images;
+    }
 
     const saved = await listingRepository.save(listing);
     return res.json(saved);
@@ -117,7 +130,7 @@ router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => 
   if (!listing) {
     return res.status(404).json({ message: "Listing not found" });
   }
-  if (listing.owner.id !== req.user!.id) {
+  if (listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
     return res.status(403).json({ message: "Not allowed" });
   }
   await listingRepository.remove(listing);

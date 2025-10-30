@@ -16,6 +16,28 @@ export class User extends BaseModel {
   @Column({ length: 150 })
   name!: string;
 
+  @Column({ type: "varchar", length: 255, nullable: true })
+  location!: string | null;
+
+  @Column({ type: "text", nullable: true })
+  bio!: string | null;
+
+  @Column({
+    type: "enum",
+    enum: ["user", "admin"],
+    default: "user",
+  })
+  role!: "user" | "admin";
+
+  @Column({ name: "is_banned", type: "boolean", default: false })
+  isBanned!: boolean;
+
+  @Column({ name: "banned_at", type: "timestamp", nullable: true })
+  bannedAt!: Date | null;
+
+  @Column({ name: "ban_reason", type: "text", nullable: true })
+  banReason!: string | null;
+
   @OneToMany(() => Listing, (listing) => listing.owner)
   listings!: Listing[];
 

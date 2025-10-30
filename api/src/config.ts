@@ -20,6 +20,7 @@ export const AppDataSource = new DataSource({
 export async function initializeDataSource() {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
+    await AppDataSource.runMigrations();
   }
   return AppDataSource;
 }

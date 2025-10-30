@@ -25,9 +25,23 @@ export const authMiddleware: RequestHandler = async (req: AuthenticatedRequest, 
       return res.status(401).json({ message: "Invalid token" });
     }
 
+    if (user.isBanned) {
+      return res.status(403).json({ message: "Account is banned" });
+    }
+
     req.user = user;
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid token" });
   }
+};
+
+export const requireAdmin: RequestHandler = (req: AuthenticatedRequest, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin privileges required" });
+  }
+  return next();
 };

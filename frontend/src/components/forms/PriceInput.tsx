@@ -19,7 +19,7 @@ const PriceInput = ({
   onChange,
   onBlur,
   error,
-  currency = "USD",
+  currency = "EUR",
   description,
   placeholder,
   required,
@@ -43,7 +43,7 @@ const PriceInput = ({
       ) : null}
       <div className="relative">
         <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm font-semibold text-slate-500">
-          {currencyLabel === "USD" ? "$" : currencyLabel}
+          {currencyLabel === "EUR" ? "$" : currencyLabel}
         </span>
         <input
           {...rest}

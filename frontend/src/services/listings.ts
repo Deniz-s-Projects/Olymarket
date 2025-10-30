@@ -22,6 +22,7 @@ export type Listing = {
   updatedAt: string
   owner: ListingOwner
   category: ListingCategory | null
+  images?: string[] | null
 }
 
 export const fetchListings = async () => {
@@ -44,6 +45,7 @@ export type ListingPayload = {
   price: string
   isActive?: boolean
   categoryId?: string | null
+  images?: string[]
 }
 
 const normalizeListingPayload = (payload: ListingPayload) => {

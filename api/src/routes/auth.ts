@@ -29,6 +29,10 @@ router.post("/register", validationMiddleware(RegisterDto), async (req, res) => 
       id: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
+      isBanned: user.isBanned,
+      bannedAt: user.bannedAt,
+      banReason: user.banReason,
     },
     token: signToken(user.id),
   });
@@ -50,11 +54,19 @@ router.post("/login", validationMiddleware(LoginDto), async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  if (user.isBanned) {
+    return res.status(403).json({ message: "Account is banned" });
+  }
+
   return res.json({
     user: {
       id: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
+      isBanned: user.isBanned,
+      bannedAt: user.bannedAt,
+      banReason: user.banReason,
     },
     token: signToken(user.id),
   });
@@ -70,6 +82,10 @@ router.get("/me", authMiddleware, (req: AuthenticatedRequest, res) => {
       id: req.user.id,
       email: req.user.email,
       name: req.user.name,
+      role: req.user.role,
+      isBanned: req.user.isBanned,
+      bannedAt: req.user.bannedAt,
+      banReason: req.user.banReason,
     },
   });
 });

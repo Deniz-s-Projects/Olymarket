@@ -52,6 +52,7 @@ const CreateListing = () => {
   const [values, setValues] = useState<ListingFormValues>(INITIAL_VALUES)
   const [errors, setErrors] = useState<ListingFormErrors>({})
   const [photos, setPhotos] = useState<PhotoPreview[]>([])
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [categories, setCategories] = useState<ListingCategory[]>([])
   const [categoriesStatus, setCategoriesStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -169,6 +170,19 @@ const CreateListing = () => {
     return error
   }
 
+  const readFilesAsDataUrls = async (files: File[]): Promise<string[]> => {
+    const readers = files.map(
+      (file) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(String(reader.result))
+          reader.onerror = () => reject(new Error('Failed to read file'))
+          reader.readAsDataURL(file)
+        })
+    )
+    return Promise.all(readers)
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const nextErrors = (Object.keys(values) as Array<keyof ListingFormValues>).reduce<ListingFormErrors>(
@@ -197,21 +211,17 @@ const CreateListing = () => {
       setIsSubmitting(true)
 
       try {
+        const images = await readFilesAsDataUrls(photoFiles.slice(0, MAX_PHOTOS))
         const listing = await createListing({
           title: values.title.trim(),
           description: values.description.trim(),
           price: values.price.trim(),
           isActive: values.active,
           categoryId: values.category || undefined,
+          images,
         })
 
-        navigate("/profile", {
-          replace: true,
-          state: {
-            message: "Your listing has been created.",
-            listingId: listing.id,
-          },
-        })
+        navigate("/listings/" + listing.id)
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
           navigate("/auth", {
@@ -244,8 +254,11 @@ const CreateListing = () => {
   const handlePhotoSelection = (files: FileList | null) => {
     if (!files?.length) return
 
+    const filesArr = Array.from(files)
+    setPhotoFiles((prev) => [...prev, ...filesArr].slice(0, MAX_PHOTOS))
+
     setPhotos((prev) => {
-      const newPreviews = Array.from(files).map<PhotoPreview>((file) => ({
+      const newPreviews = filesArr.map<PhotoPreview>((file) => ({
         id: `${file.name}-${file.lastModified}-${
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? crypto.randomUUID()
@@ -267,6 +280,7 @@ const CreateListing = () => {
       }
       return prev.filter((preview) => preview.id !== id)
     })
+    setPhotoFiles((prev) => prev.filter((file) => !id.startsWith(file.name + '-' + file.lastModified)))
   }
 
   return (

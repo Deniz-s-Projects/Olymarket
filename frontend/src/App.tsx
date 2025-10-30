@@ -14,6 +14,7 @@ import Messages from './pages/Messages'
 import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
 import { useAuth } from './context/useAuth'
+import ListingDetails from './pages/ListingDetails'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
@@ -112,6 +113,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Marketplace />} />
             <Route path="/listings/new" element={<CreateListing />} />
+            <Route path="/listings/:id" element={<ListingDetails />} />
             <Route
               path="/messages"
               element={
