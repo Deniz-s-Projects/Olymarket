@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import PriceInput from "../components/forms/PriceInput"
-import TextArea from "../components/forms/TextArea"
-import TextInput from "../components/forms/TextInput"
-import ToggleSwitch from "../components/forms/ToggleSwitch"
 import PhotoUploadField, {
   type PhotoPreview,
 } from "../components/forms/PhotoUploadField"
@@ -15,18 +11,15 @@ import {
   fetchListingCategories,
   type ListingCategory,
 } from "../services/listings"
-
-type ListingFormValues = {
-  title: string
-  description: string
-  price: string
-  category: string
-  availability: string
-  contactPreference: string
-  active: boolean
-}
-
-type ListingFormErrors = Partial<Record<keyof ListingFormValues, string>>
+import ListingDetailsForm from "../components/listings/ListingDetailsForm"
+import {
+  createListingValidators,
+  validateListingField,
+  validateListingValues,
+  type ListingFormErrors,
+  type ListingFormValues,
+} from "../lib/listingForm"
+import { CONTACT_OPTIONS } from "../constants/listings"
 
 const INITIAL_VALUES: ListingFormValues = {
   title: "",
@@ -36,14 +29,11 @@ const INITIAL_VALUES: ListingFormValues = {
   availability: "",
   contactPreference: "",
   active: true,
+  moderationStatus: undefined,
+  moderationNotes: "",
 }
 
-const CONTACT_OPTIONS = ["Email", "Phone", "In-app messaging"]
 const MAX_PHOTOS = 6
-
-type ValidatorMap = {
-  [Field in keyof ListingFormValues]: (value: ListingFormValues[Field]) => string
-}
 
 const CreateListing = () => {
   const navigate = useNavigate()
@@ -111,42 +101,7 @@ const CreateListing = () => {
     loadCategories()
   }, [loadCategories])
 
-  const validators = useMemo<ValidatorMap>(
-    () => ({
-      title: (value: string) => {
-        if (!value.trim()) return "A title is required."
-        if (value.trim().length < 5) return "Titles should be at least 5 characters long."
-        return ""
-      },
-      description: (value: string) => {
-        if (!value.trim()) return "Describe your listing so buyers know what to expect."
-        if (value.trim().length < 20)
-          return "Please provide a bit more detail (minimum 20 characters)."
-        return ""
-      },
-      price: (value: string) => {
-        if (!value.trim()) return "Set a price for the listing."
-        const numeric = Number(value)
-        if (Number.isNaN(numeric) || numeric <= 0) return "Price must be a positive number."
-        return ""
-      },
-      category: (value: string) => {
-        if (!value) return ""
-        const exists = categories.some((category) => category.id === value)
-        return exists ? "" : "Select a valid category."
-      },
-      availability: (value: string) => {
-        if (!value.trim()) return "Let buyers know when this listing is available."
-        return ""
-      },
-      contactPreference: (value: string) => {
-        if (!value) return "Choose how you prefer to be contacted."
-        return ""
-      },
-      active: () => "",
-    }),
-    [categories]
-  )
+  const validators = useMemo(() => createListingValidators(categories), [categories])
 
   useEffect(() => {
     return () => {
@@ -154,18 +109,18 @@ const CreateListing = () => {
     }
   }, [photos])
 
-  const runValidator = <Field extends keyof ListingFormValues>(field: Field, value: ListingFormValues[Field]) =>
-    validators[field](value)
-
   const updateValue = <Field extends keyof ListingFormValues>(field: Field, value: ListingFormValues[Field]) => {
     setValues((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: runValidator(field, value) }))
+      setErrors((prev) => ({
+        ...prev,
+        [field]: validateListingField(field, value, { ...values, [field]: value }, validators),
+      }))
     }
   }
 
   const validateField = <Field extends keyof ListingFormValues>(field: Field) => {
-    const error = runValidator(field, values[field])
+    const error = validators[field](values)
     setErrors((prev) => ({ ...prev, [field]: error }))
     return error
   }
@@ -185,14 +140,7 @@ const CreateListing = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const nextErrors = (Object.keys(values) as Array<keyof ListingFormValues>).reduce<ListingFormErrors>(
-      (acc, field) => {
-        const error = runValidator(field, values[field])
-        if (error) acc[field] = error
-        return acc
-      },
-      {}
-    )
+    const nextErrors = validateListingValues(values, validators)
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length === 0) {
@@ -293,145 +241,17 @@ const CreateListing = () => {
       </header>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-10">
-        <section className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Basic information</h2>
-            <p className="text-sm text-slate-500">This information appears at the top of your listing.</p>
-          </div>
-          <TextInput
-            label="Title"
-            name="title"
-            placeholder="e.g., Premium rowing machine rental"
-            value={values.title}
-            onChange={(value) => updateValue("title", value)}
-            onBlur={() => validateField("title")}
-            error={errors.title}
-            required
-          />
-          <TextArea
-            label="Description"
-            name="description"
-            placeholder="Describe the condition, what&apos;s included, and any other relevant details."
-            value={values.description}
-            onChange={(value) => updateValue("description", value)}
-            onBlur={() => validateField("description")}
-            error={errors.description}
-            required
-            rows={6}
-          />
-        </section>
-
-        <section className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Pricing &amp; discovery</h2>
-            <p className="text-sm text-slate-500">Help buyers understand the cost and how to find your listing.</p>
-          </div>
-          <PriceInput
-            label="Price"
-            name="price"
-            placeholder="0.00"
-            value={values.price}
-            onChange={(value) => updateValue("price", value)}
-            onBlur={() => validateField("price")}
-            error={errors.price}
-            required
-          />
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            <span>
-              Category<span className="ml-1 text-xs font-normal text-slate-500">(optional)</span>
-            </span>
-            <select
-              name="category"
-              value={values.category}
-              onChange={(event) => updateValue("category", event.target.value)}
-              onBlur={() => validateField("category")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-base text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-invalid={Boolean(errors.category)}
-              disabled={categoriesStatus === "loading"}
-            >
-              <option value="">
-                {categoriesStatus === "loading"
-                  ? "Loading categories..."
-                  : "No category"}
-              </option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            {errors.category ? (
-              <span className="text-xs font-normal text-red-600">{errors.category}</span>
-            ) : null}
-            {categoriesStatus === "error" && categoriesError ? (
-              <div className="flex items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                <span>{categoriesError}</span>
-                <button
-                  type="button"
-                  onClick={loadCategories}
-                  className="rounded-full border border-amber-400 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : null}
-            {categoriesStatus === "success" && categories.length === 0 ? (
-              <span className="text-xs font-normal text-slate-500">
-                Categories aren&apos;t available yet. You can still create your listing without one.
-              </span>
-            ) : null}
-          </label>
-        </section>
-
-        <section className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Availability &amp; preferences</h2>
-            <p className="text-sm text-slate-500">Let buyers know when you&apos;re available and the best way to reach you.</p>
-          </div>
-          <TextInput
-            label="Availability details"
-            name="availability"
-            placeholder="e.g., Weekdays after 5pm"
-            value={values.availability}
-            onChange={(value) => updateValue("availability", value)}
-            onBlur={() => validateField("availability")}
-            error={errors.availability}
-            required
-          />
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            <span>
-              Contact preference<span className="ml-1 text-red-500">*</span>
-            </span>
-            <select
-              name="contactPreference"
-              value={values.contactPreference}
-              onChange={(event) => updateValue("contactPreference", event.target.value)}
-              onBlur={() => validateField("contactPreference")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-base text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              aria-invalid={Boolean(errors.contactPreference)}
-            >
-              <option value="" disabled>
-                Select a contact method
-              </option>
-              {CONTACT_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {errors.contactPreference ? (
-              <span className="text-xs font-normal text-red-600">{errors.contactPreference}</span>
-            ) : null}
-          </label>
-          <ToggleSwitch
-            label="Active listing"
-            name="active"
-            description="Disable this to hide the listing from buyers without deleting it."
-            hint="You can update this status at any time."
-            checked={values.active}
-            onChange={(checked) => updateValue("active", checked)}
-          />
-        </section>
+        <ListingDetailsForm
+          values={values}
+          errors={errors}
+          categories={categories}
+          categoriesStatus={categoriesStatus}
+          categoriesError={categoriesError}
+          onRetryCategories={loadCategories}
+          onChange={updateValue}
+          onBlur={validateField}
+          contactOptions={CONTACT_OPTIONS}
+        />
 
         <section className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>

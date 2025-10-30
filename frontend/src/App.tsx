@@ -15,6 +15,7 @@ import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
 import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
+import AdminDashboard from './pages/admin/AdminDashboard'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
@@ -36,6 +37,39 @@ const RequireAuth = ({ children }: { children: ReactElement }) => {
         state={{
           from: location.pathname,
           message: 'Please sign in to continue.',
+        }}
+      />
+    )
+  }
+
+  return children
+}
+
+const RequireAdmin = ({ children }: { children: ReactElement }) => {
+  const location = useLocation()
+  const { token, isAdmin } = useAuth()
+
+  if (!token) {
+    return (
+      <Navigate
+        to="/auth"
+        replace
+        state={{
+          from: location.pathname,
+          message: 'Please sign in to continue.',
+        }}
+      />
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <Navigate
+        to="/"
+        replace
+        state={{
+          from: location.pathname,
+          message: 'You need administrator access to view that page.',
         }}
       />
     )
@@ -107,6 +141,20 @@ const App = () => {
                   {label}
                 </NavLink>
               ))}
+              {isAdmin ? (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `rounded-full px-3 py-1 transition-colors ${
+                      isActive
+                        ? 'bg-primary text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`
+                  }
+                >
+                  Admin
+                </NavLink>
+              ) : null}
               {!isHydrated ? (
                 <span className="text-slate-400">Loading...</span>
               ) : user ? (
@@ -172,6 +220,14 @@ const App = () => {
                     Conversations coming soon.
                   </div>
                 </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <AdminDashboard />
+                </RequireAdmin>
               }
             />
           </Routes>
