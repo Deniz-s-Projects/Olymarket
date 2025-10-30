@@ -4,7 +4,6 @@ import { Listing } from "./Listing";
 import { ConversationParticipant } from "./ConversationParticipant";
 import { Message } from "./Message";
 import { UserProfile } from "./UserProfile";
-import { dateTimeColumnType } from "../utils/database";
 
 @Entity({ name: "users" })
 @Unique(["email"])
@@ -26,7 +25,7 @@ export class User extends BaseModel {
 
   @Column({
     name: "verification_code_expires_at",
-    type: dateTimeColumnType,
+    type: "timestamp",
     nullable: true,
   })
   verificationCodeExpiresAt!: Date | null;
