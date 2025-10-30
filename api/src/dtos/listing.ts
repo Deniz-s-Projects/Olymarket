@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsNumberString, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsArray, IsBoolean, IsNumberString, IsOptional, IsString, MaxLength, ArrayMaxSize, ValidateNested } from "class-validator";
 
 export class ListingDto {
   @IsString()
@@ -18,4 +18,10 @@ export class ListingDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  images?: string[];
 }

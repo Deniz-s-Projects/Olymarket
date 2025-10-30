@@ -17,6 +17,27 @@ export class Listing extends BaseModel {
   @Column({ name: "is_active", default: true })
   isActive!: boolean;
 
+  @Column({ type: "text", array: true, nullable: true, default: () => "ARRAY[]::text[]" })
+  images!: string[] | null;
+
+  @Column({
+    name: "moderation_status",
+    type: "enum",
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+  })
+  moderationStatus!: "pending" | "approved" | "rejected";
+
+  @Column({ name: "moderation_notes", type: "text", nullable: true })
+  moderationNotes!: string | null;
+
+  @Column({ name: "reviewed_at", type: "timestamp", nullable: true })
+  reviewedAt!: Date | null;
+
+  @ManyToOne(() => User, { nullable: true, eager: true })
+  @JoinColumn({ name: "reviewer_id" })
+  reviewer!: User | null;
+
   @ManyToOne(() => User, (user) => user.listings, { eager: true })
   @JoinColumn({ name: "owner_id" })
   owner!: User;

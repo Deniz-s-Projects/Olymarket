@@ -1,4 +1,5 @@
 import type { FC } from 'react'
+import { Link } from 'react-router-dom'
 
 import type { Listing } from '../services/listings'
 
@@ -6,7 +7,7 @@ type ListingWithMedia = Listing & { imageUrl?: string | null }
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'EUR',
   maximumFractionDigits: 0,
 })
 
@@ -52,8 +53,8 @@ type ListingCardProps = {
 }
 
 const ListingCard: FC<ListingCardProps> = ({ listing }) => {
-  const { title, description, price, owner, category, createdAt } = listing
-  const imageUrl = 'imageUrl' in listing ? listing.imageUrl : null
+  const { id, title, description, price, owner, category, createdAt, images } = listing
+  const imageUrl = images?.[0] ?? ('imageUrl' in listing ? listing.imageUrl : null)
   const categoryLabel = category?.name ?? 'Uncategorized'
   const ownerName = owner?.name ?? 'Marketplace partner'
 
@@ -85,12 +86,12 @@ const ListingCard: FC<ListingCardProps> = ({ listing }) => {
         <p className="text-sm text-slate-600 line-clamp-3">{description}</p>
         <div className="mt-auto flex items-center justify-between pt-3">
           <span className="text-lg font-semibold text-primary">{formatPrice(price)}</span>
-          <button
-            type="button"
+          <Link
+            to={`/listings/${id}`}
             className="btn-primary hidden rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/80 sm:inline-flex"
           >
             View details
-          </button>
+          </Link>
         </div>
       </div>
     </article>
