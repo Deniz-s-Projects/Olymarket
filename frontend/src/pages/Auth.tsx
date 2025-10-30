@@ -1,6 +1,9 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react"
+import { type FormEvent, useMemo, useState } from "react"
 
 import { useFormValidation } from "../hooks/useFormValidation"
+import { useAuth } from "../context/AuthContext"
+import { login as loginRequest, register as registerRequest } from "../services/auth"
+import { type AuthServiceError } from "../services/auth"
 
 type ActiveForm = "login" | "register"
 
@@ -123,6 +126,7 @@ const Auth = () => {
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] =
     useState(false)
+  const { login: setAuth } = useAuth()
 
   const loginForm = useFormValidation(
     { email: "", password: "" },
@@ -151,16 +155,6 @@ const Auth = () => {
     )
   )
 
-  const loginTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const registerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (loginTimerRef.current) clearTimeout(loginTimerRef.current)
-      if (registerTimerRef.current) clearTimeout(registerTimerRef.current)
-    }
-  }, [])
-
   const displayMessage = (
     form: typeof loginForm,
     fallback: string
@@ -180,7 +174,7 @@ const Auth = () => {
     return { text: fallback, tone: "muted" }
   }
 
-  const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     if (!loginForm.validateForm()) {
@@ -191,17 +185,33 @@ const Auth = () => {
       return
     }
 
-    loginForm.setStatus("loading", "Preparing to submit credentials...")
-    if (loginTimerRef.current) clearTimeout(loginTimerRef.current)
-    loginTimerRef.current = setTimeout(() => {
-      loginForm.setStatus(
-        "success",
-        "Ready to authenticate once API integration is connected."
-      )
-    }, 900)
+    loginForm.setStatus("loading", "Signing you in...")
+
+    try {
+      const response = await loginRequest({
+        email: loginEmailField.value,
+        password: loginPasswordField.value,
+      })
+
+      setAuth(response)
+      loginForm.setStatus("success", "Welcome back! Redirecting you shortly.")
+    } catch (error) {
+      const authError = error as AuthServiceError
+      if (authError.status === 401) {
+        loginForm.setStatus(
+          "error",
+          "We couldn't verify those credentials. Please try again."
+        )
+      } else {
+        loginForm.setStatus(
+          "error",
+          "Something went wrong while signing you in. Please try again later."
+        )
+      }
+    }
   }
 
-  const handleRegisterSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleRegisterSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     if (!registerForm.validateForm()) {
@@ -212,14 +222,31 @@ const Auth = () => {
       return
     }
 
-    registerForm.setStatus("loading", "Validating your details...")
-    if (registerTimerRef.current) clearTimeout(registerTimerRef.current)
-    registerTimerRef.current = setTimeout(() => {
-      registerForm.setStatus(
-        "success",
-        "Account creation will be processed once the API is ready."
-      )
-    }, 1200)
+    registerForm.setStatus("loading", "Creating your account...")
+
+    try {
+      const response = await registerRequest({
+        name: registerNameField.value,
+        email: registerEmailField.value,
+        password: registerPasswordField.value,
+      })
+
+      setAuth(response)
+      registerForm.setStatus("success", "Account created! You're all set.")
+    } catch (error) {
+      const authError = error as AuthServiceError
+      if (authError.status === 409) {
+        registerForm.setStatus(
+          "error",
+          "An account with this email already exists. Try signing in instead."
+        )
+      } else {
+        registerForm.setStatus(
+          "error",
+          "We ran into a problem creating your account. Please try again later."
+        )
+      }
+    }
   }
 
   const renderHelperText = (

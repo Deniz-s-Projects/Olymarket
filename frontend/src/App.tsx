@@ -20,7 +20,7 @@ const navigation = [
   { to: '/listings/new', label: 'Create Listing' },
   { to: '/messages', label: 'Messages' },
   { to: '/profile', label: 'Profile' },
-  { to: '/auth', label: 'Sign In' },
+  { to: '/conversations', label: 'Conversations' },
 ]
 
 const RequireAuth = ({ children }: { children: ReactElement }) => {
@@ -47,6 +47,8 @@ const RequireAuth = ({ children }: { children: ReactElement }) => {
 }
 
 const App = () => {
+  const { user, logout } = useAuth()
+
   return (
     <BrowserRouter>
       <div className="flex min-h-screen flex-col bg-slate-100 text-slate-900">
@@ -71,6 +73,28 @@ const App = () => {
                   {label}
                 </NavLink>
               ))}
+              {user ? (
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-full px-3 py-1 text-slate-600 transition-colors hover:bg-slate-100"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <NavLink
+                  to="/auth"
+                  className={({ isActive }) =>
+                    `rounded-full px-3 py-1 transition-colors ${
+                      isActive
+                        ? 'bg-primary text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`
+                  }
+                >
+                  Sign In
+                </NavLink>
+              )}
             </nav>
           </div>
         </header>
@@ -89,6 +113,16 @@ const App = () => {
             />
             <Route path="/profile" element={<Profile />} />
             <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/conversations"
+              element={
+                <ProtectedRoute>
+                  <div className="mx-auto max-w-3xl px-4 py-10 text-center text-slate-600">
+                    Conversations coming soon.
+                  </div>
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </main>
 
