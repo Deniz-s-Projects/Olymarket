@@ -1,8 +1,12 @@
+import { useMemo } from 'react'
+import { NavLink } from 'react-router-dom'
+
 import AccountInfoCard from '../components/profile/AccountInfoCard'
 import ListingTable from '../components/profile/ListingTable'
 import PreferenceToggleList from '../components/profile/PreferenceToggleList'
 import ProfileHeader from '../components/profile/ProfileHeader'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
+import { useAuth } from '../context/AuthContext'
 import type {
   ProfileAccountInfo,
   ProfileListingSummary,
@@ -97,10 +101,43 @@ const preferenceToggles: ProfilePreferenceToggle[] = [
 ]
 
 const Profile = () => {
+  const { user, isHydrated } = useAuth()
+
+  const accountDetails = useMemo<ProfileAccountInfo>(() => ({
+    ...account,
+    name: user?.name ?? account.name,
+    email: user?.email ?? account.email,
+  }), [user])
+
+  if (!isHydrated) {
+    return (
+      <section className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-24 text-slate-500">
+        Checking your profile...
+      </section>
+    )
+  }
+
+  if (!user) {
+    return (
+      <section className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center gap-4 px-4 py-24 text-center">
+        <h1 className="text-2xl font-semibold text-slate-900">You're not signed in</h1>
+        <p className="max-w-md text-sm text-slate-600">
+          Sign in to access your profile dashboard, manage listings, and review your saved items.
+        </p>
+        <NavLink
+          to="/auth"
+          className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
+        >
+          Go to sign in
+        </NavLink>
+      </section>
+    )
+  }
+
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 lg:px-0">
       <ProfileHeader
-        account={account}
+        account={accountDetails}
         metrics={metrics}
         actions={
           <button
@@ -113,7 +150,7 @@ const Profile = () => {
       />
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-6">
-          <AccountInfoCard account={account} />
+          <AccountInfoCard account={accountDetails} />
           <ListingTable
             listings={activeListings}
             title="Active Listings"

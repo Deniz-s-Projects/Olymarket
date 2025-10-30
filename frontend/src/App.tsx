@@ -44,7 +44,8 @@ const RequireAuth = ({ children }: { children: ReactElement }) => {
 }
 
 const App = () => {
-  const { user, logout } = useAuth()
+  const { user, logout, isHydrated } = useAuth()
+  const userInitial = (user?.name || user?.email || '').charAt(0).toUpperCase()
 
   return (
     <BrowserRouter>
@@ -70,14 +71,25 @@ const App = () => {
                   {label}
                 </NavLink>
               ))}
-              {user ? (
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="rounded-full px-3 py-1 text-slate-600 transition-colors hover:bg-slate-100"
-                >
-                  Sign Out
-                </button>
+              {!isHydrated ? (
+                <span className="text-slate-400">Loading...</span>
+              ) : user ? (
+                <div className="flex items-center gap-3">
+                  <NavLink to="/profile" className="group flex items-center gap-2">
+                    <span className="sr-only">View profile</span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary transition group-hover:bg-primary group-hover:text-white">
+                      {userInitial || '?'}
+                    </span>
+                    <span className="text-slate-700 group-hover:text-primary">{user.name}</span>
+                  </NavLink>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="rounded-full px-3 py-1 text-slate-600 transition-colors hover:bg-slate-100"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               ) : (
                 <NavLink
                   to="/auth"

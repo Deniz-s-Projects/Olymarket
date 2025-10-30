@@ -1,9 +1,10 @@
 import { AUTH_TOKEN_STORAGE_KEY } from '../constants/auth'
+import { emitUnauthorized } from './authEvents'
 
 const normalizeBaseUrl = (value: string) => value.replace(/\/$/, '')
 
 const defaultBaseUrl = normalizeBaseUrl(
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000',
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000',
 )
 
 const buildUrl = (path: string, params?: Record<string, string | number | boolean | undefined>) => {
@@ -111,6 +112,10 @@ export async function apiClient<T>(path: string, options: ApiRequestOptions = {}
       } catch (error) {
         console.error('Failed to parse error response', error)
       }
+    }
+
+    if (response.status === 401) {
+      emitUnauthorized()
     }
 
     throw new ApiError(message, response.status)

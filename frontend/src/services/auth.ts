@@ -1,7 +1,9 @@
+import { apiClient } from "../lib/apiClient"
 import type {
   AuthResponse,
   AuthCredentials,
   RegisterPayload,
+  AuthUser,
 } from "../types/auth"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"
@@ -55,5 +57,15 @@ export const login = async (payload: AuthCredentials): Promise<AuthResponse> => 
   })
 
   return handleResponse(response)
+}
+
+export const refreshSessionRequest = async (): Promise<AuthUser> => {
+  const response = await apiClient<{ user?: AuthUser }>("/auth/me")
+
+  if (!response?.user) {
+    throw new AuthServiceError("Malformed authentication response")
+  }
+
+  return response.user
 }
 
