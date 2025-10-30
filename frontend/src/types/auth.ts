@@ -1,8 +1,7 @@
 export type AuthUser = {
-  id: string
+  id: number
   email: string
   name: string
-  isVerified: boolean
 }
 
 export type AuthResponse = {
@@ -17,13 +16,4 @@ export type AuthCredentials = {
 
 export type RegisterPayload = AuthCredentials & {
   name: string
-}
-
-export type RegisterResponse = {
-  message: string
-}
-
-export type VerifyEmailPayload = {
-  email: string
-  code: string
 }

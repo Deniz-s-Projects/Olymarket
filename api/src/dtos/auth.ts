@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, Length, Matches, MinLength } from "class-validator";
+import { IsEmail, IsNotEmpty, MinLength } from "class-validator";
 
 export class RegisterDto {
   @IsEmail()
@@ -17,13 +17,4 @@ export class LoginDto {
 
   @IsNotEmpty()
   password!: string;
-}
-
-export class VerifyEmailDto {
-  @IsEmail()
-  email!: string;
-
-  @Length(6, 6)
-  @Matches(/^\d+$/, { message: "Verification code must be numeric" })
-  code!: string;
 }
