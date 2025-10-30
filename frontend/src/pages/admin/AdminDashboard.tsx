@@ -116,7 +116,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingListing, setEditingListing] = useState<AdminListing | null>(null)
-  const [deletingListing, setDeleteingListing] = useState<AdminListing | null>(null)
+  const [deletingListing, setDeletingListing] = useState<AdminListing | null>(null)
   const [operationInProgress, setOperationInProgress] = useState(false)
 
   useEffect(() => {
@@ -224,7 +224,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
     try {
       await deleteAdminListing(deletingListing.id)
       await loadListings()
-      setDeleteingListing(null)
+      setDeletingListing(null)
       addToast('Listing deleted successfully', 'success')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete listing'
@@ -356,7 +356,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDeleteingListing(listing)}
+                          onClick={() => setDeletingListing(listing)}
                           disabled={operationInProgress}
                           className="rounded bg-slate-600 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
                         >
@@ -414,7 +414,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
         <DeleteConfirmationModal
           listing={deletingListing}
           onConfirm={handleDelete}
-          onClose={() => setDeleteingListing(null)}
+          onClose={() => setDeletingListing(null)}
           isDeleting={operationInProgress}
         />
       )}
