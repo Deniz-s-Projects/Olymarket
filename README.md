@@ -32,7 +32,7 @@ This is a suggested technology stack for building a modern web application for O
 | Component | Suggested Technology | Rationale |
 | :--- | :--- | :--- |
 | **Frontend** | React, Vue.js, or Svelte | Provides a fast, modern, and component-based user interface. |
-| **Backend & Database** | Firebase (Firestore & Authentication) | Ideal for rapid development, managed authentication (crucial for a private community), and real-time data synchronization. |
+| **Backend & Database** | Node.js (Express) + TypeORM + PostgreSQL | Provides a self-hosted, extensible API with relational data integrity and strong typing. |
 | **Styling** | Tailwind CSS or equivalent utility-first CSS framework | Enables rapid, responsive design with minimal custom CSS. |
 | **Deployment** | Vercel or Netlify | Simple, continuous deployment for static frontends and serverless functions. |
 
@@ -55,25 +55,34 @@ Follow these steps to get a development environment up and running locally.
     git clone [your-repository-url]
     cd olymarket
     ```
-2.  **Install dependencies:**
+2.  **Start the database:**
     ```bash
-    npm install
-    # or yarn install
+    docker compose up -d db
     ```
-3.  **Configure Environment Variables:**
-    * Create a file named `.env` in the root directory.
-    * Add your configuration keys, such as Firebase credentials, which are necessary for connecting the app to your services:
-        ```
-        # Example for Firebase
-        REACT_APP_FIREBASE_API_KEY=your_key_here
-        REACT_APP_FIREBASE_AUTH_DOMAIN=your_domain
-        # ... other necessary keys
-        ```
-4.  **Start the local development server:**
+    A PostgreSQL instance will be available at `localhost:5432` with the credentials defined in `docker-compose.yml`.
+3.  **Configure API environment variables:**
     ```bash
+    cp api/.env.example api/.env
+    ```
+    Adjust the values as needed. The defaults match the Docker database service.
+4.  **Install dependencies and run migrations:**
+    ```bash
+    cd api
+    npm install
+    npm run migration:run
+    ```
+5.  **Start the API server:**
+    ```bash
+    npm run dev
+    ```
+    The API will listen on `http://localhost:4000`.
+6.  **Run the frontend (optional):**
+    ```bash
+    cd ../frontend
+    npm install
     npm run start
     ```
-    The application should now be running and accessible in your web browser, typically at `http://localhost:3000`.
+    The frontend development server remains available at `http://localhost:3000`.
 
 ---
 

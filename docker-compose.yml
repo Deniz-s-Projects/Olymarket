@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: olymarket
+      POSTGRES_PASSWORD: olymarket
+      POSTGRES_DB: olymarket
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U olymarket"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+volumes:
+  db_data:
