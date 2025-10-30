@@ -106,13 +106,13 @@ type PanelProps = {
 }
 
 const ListingsPanel = ({ addToast }: PanelProps) => {
-  const isMountedRef = useRef(true)
+  const isMountedRef = useRef(false)
   const [listings, setListings] = useState<AdminListing[]>([])
   const [categories, setCategories] = useState<ListingCategory[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [limit] = useState(20)
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<'' | 'pending' | 'approved' | 'rejected'>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingListing, setEditingListing] = useState<AdminListing | null>(null)
@@ -120,6 +120,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
   const [operationInProgress, setOperationInProgress] = useState(false)
 
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
       isMountedRef.current = false
     }
@@ -172,7 +173,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
     loadListings()
   }, [loadListings])
 
-  const handleStatusChange = (status: string) => {
+  const handleStatusChange = (status: '' | 'pending' | 'approved' | 'rejected') => {
     setStatusFilter(status)
     setPage(1)
   }
@@ -244,7 +245,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
           Status:
           <select
             value={statusFilter}
-            onChange={(e) => handleStatusChange(e.target.value)}
+            onChange={(e) => handleStatusChange(e.target.value as '' | 'pending' | 'approved' | 'rejected')}
             className="rounded-md border border-slate-300 px-3 py-1 text-sm"
           >
             <option value="">All</option>
@@ -373,7 +374,7 @@ const ListingsPanel = ({ addToast }: PanelProps) => {
           {/* Pagination */}
           <div className="flex items-center justify-between text-sm text-slate-600">
             <div>
-              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}{' '}
+              Showing {total > 0 ? (page - 1) * limit + 1 : 0} to {Math.min(page * limit, total)} of {total}{' '}
               listings
             </div>
             <div className="flex gap-2">
@@ -615,7 +616,7 @@ const DeleteConfirmationModal = ({
 }
 
 const UsersPanel = ({ addToast }: PanelProps) => {
-  const isMountedRef = useRef(true)
+  const isMountedRef = useRef(false)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -624,6 +625,7 @@ const UsersPanel = ({ addToast }: PanelProps) => {
   const [banReason, setBanReason] = useState('')
 
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
       isMountedRef.current = false
     }

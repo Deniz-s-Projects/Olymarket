@@ -46,7 +46,7 @@ export type BanUserPayload = {
 
 // Fetch all listings with optional filters for admin
 export const fetchAdminListings = async (params?: {
-  status?: string
+  status?: 'pending' | 'approved' | 'rejected'
   owner?: string
   from?: string
   to?: string
