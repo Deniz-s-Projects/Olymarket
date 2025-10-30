@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
 import {
   fetchProfileAccount,
-  fetchProfileActiveListings,
+  fetchProfileListings,
   fetchProfileMetrics,
   fetchProfilePreferences,
   fetchProfileSavedItems,
@@ -12,7 +12,7 @@ import {
 import type {
   ProfileAccountInfo,
   ProfileAccountUpdateInput,
-  ProfileListingSummary,
+  ProfileListingsOverview,
   ProfileMetric,
   ProfilePreferenceToggle,
   ProfileSavedItemSummary,
@@ -21,7 +21,7 @@ import type {
 type ProfileData = {
   account: ProfileAccountInfo | null
   metrics: ProfileMetric[]
-  activeListings: ProfileListingSummary[]
+  listings: ProfileListingsOverview
   savedItems: ProfileSavedItemSummary[]
   preferences: ProfilePreferenceToggle[]
 }
@@ -43,7 +43,7 @@ type UseProfileState = ProfileData & {
 const EMPTY_PROFILE_DATA: ProfileData = {
   account: null,
   metrics: [],
-  activeListings: [],
+  listings: { groups: [], createListingUrl: undefined },
   savedItems: [],
   preferences: [],
 }
@@ -84,10 +84,13 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
     setError(null)
 
     try {
-      const [account, metrics, activeListings, savedItems, preferences] = await Promise.all([
+      const [account, metrics, listings, savedItems, preferences] = await Promise.all([
         resolveOrFallback<ProfileAccountInfo | null>(fetchProfileAccount, null),
         resolveOrFallback<ProfileMetric[]>(fetchProfileMetrics, []),
-        resolveOrFallback<ProfileListingSummary[]>(fetchProfileActiveListings, []),
+        resolveOrFallback<ProfileListingsOverview>(fetchProfileListings, {
+          groups: [],
+          createListingUrl: undefined,
+        }),
         resolveOrFallback<ProfileSavedItemSummary[]>(fetchProfileSavedItems, []),
         resolveOrFallback<ProfilePreferenceToggle[]>(fetchProfilePreferences, []),
       ])
@@ -95,7 +98,7 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       setData({
         account,
         metrics,
-        activeListings,
+        listings,
         savedItems,
         preferences,
       })
