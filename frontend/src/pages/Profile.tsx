@@ -6,7 +6,7 @@ import ListingTable from '../components/profile/ListingTable'
 import PreferenceToggleList from '../components/profile/PreferenceToggleList'
 import ProfileHeader from '../components/profile/ProfileHeader'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import type {
   ProfileAccountInfo,
   ProfileListingSummary,

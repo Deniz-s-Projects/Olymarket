@@ -9,7 +9,7 @@ import PhotoUploadField, {
   type PhotoPreview,
 } from "../components/forms/PhotoUploadField"
 import { ApiError } from "../lib/apiClient"
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/useAuth"
 import {
   createListing,
   fetchListingCategories,

@@ -1,7 +1,7 @@
 import { type FormEvent, useMemo, useState } from "react"
 
 import { useFormValidation } from "../hooks/useFormValidation"
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/useAuth"
 import { login as loginRequest, register as registerRequest } from "../services/auth"
 import { type AuthServiceError } from "../services/auth"
 

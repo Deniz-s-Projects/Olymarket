@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -9,61 +7,11 @@ import {
   type ReactNode,
 } from "react"
 
-import { AUTH_TOKEN_STORAGE_KEY } from "../constants/auth"
 import { subscribeToUnauthorized, unsubscribeFromUnauthorized } from "../lib/authEvents"
 import { refreshSessionRequest } from "../services/auth"
 import { type AuthResponse, type AuthUser } from "../types/auth"
-
-type AuthContextValue = {
-  user: AuthUser | null
-  token: string | null
-  isHydrated: boolean
-  login: (auth: AuthResponse) => void
-  logout: () => void
-  refreshSession: () => Promise<AuthUser | null>
-}
-
-const STORAGE_KEY = "olymarket.auth"
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
-
-type StoredAuth = AuthResponse
-
-export const readStoredAuth = (): StoredAuth | null => {
-  if (typeof window === "undefined") {
-    return null
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as StoredAuth
-    if (!parsed?.user || !parsed?.token) return null
-    const storedToken = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
-    if (!storedToken || storedToken !== parsed.token) {
-      window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, parsed.token)
-    }
-    return parsed
-  } catch (error) {
-    console.warn("Failed to parse stored auth", error)
-    return null
-  }
-}
-
-const persistAuth = (auth: StoredAuth | null) => {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  if (!auth) {
-    window.localStorage.removeItem(STORAGE_KEY)
-    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
-    return
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(auth))
-  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, auth.token)
-}
+import { AuthContext } from "./AuthContext.shared"
+import { persistAuth, readStoredAuth, type StoredAuth } from "./authStorage"
 
 type AuthProviderProps = {
   children: ReactNode
@@ -145,12 +93,4 @@ export const AuthProvider = ({ children, initialAuth }: AuthProviderProps) => {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
 }
