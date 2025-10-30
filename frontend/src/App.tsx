@@ -45,12 +45,47 @@ const RequireAuth = ({ children }: { children: ReactElement }) => {
 }
 
 const App = () => {
-  const { user, logout, isHydrated } = useAuth()
+  const { user, logout, isHydrated, isAdmin, isModerator, banNotice, clearBanNotice } =
+    useAuth()
   const userInitial = (user?.name || user?.email || '').charAt(0).toUpperCase()
 
   return (
     <BrowserRouter>
       <div className="flex min-h-screen flex-col bg-slate-100 text-slate-900">
+        {banNotice ? (
+          <div className="border-b border-amber-200 bg-amber-50">
+            <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 text-sm text-amber-800 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="font-semibold">Account suspended</p>
+                <p>
+                  {banNotice.reason
+                    ? `Your marketplace access is limited: ${banNotice.reason}`
+                    : 'Your marketplace access is currently limited by our moderators.'}
+                </p>
+                {banNotice.banExpiresAt ? (
+                  <p className="text-xs text-amber-700">
+                    Suspension details: {banNotice.banExpiresAt}
+                  </p>
+                ) : null}
+                {banNotice.appealUrl ? (
+                  <a
+                    href={banNotice.appealUrl}
+                    className="mt-1 inline-flex text-xs font-semibold underline-offset-2 hover:underline"
+                  >
+                    Contact support to appeal
+                  </a>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={clearBanNotice}
+                className="self-start rounded-full border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        ) : null}
         <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
             <NavLink to="/" className="text-2xl font-semibold tracking-tight text-primary">
@@ -81,11 +116,16 @@ const App = () => {
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary transition group-hover:bg-primary group-hover:text-white">
                       {userInitial || '?'}
                     </span>
-                    <span className="text-slate-700 group-hover:text-primary">{user.name}</span>
+                    <span className="flex flex-col text-left text-slate-700 group-hover:text-primary">
+                      <span>{user.name}</span>
+                      <span className="text-xs font-semibold text-slate-400 group-hover:text-primary/80">
+                        {isAdmin ? 'Admin' : isModerator ? 'Moderator' : 'Member'}
+                      </span>
+                    </span>
                   </NavLink>
                   <button
                     type="button"
-                    onClick={logout}
+                    onClick={() => logout()}
                     className="rounded-full px-3 py-1 text-slate-600 transition-colors hover:bg-slate-100"
                   >
                     Sign Out

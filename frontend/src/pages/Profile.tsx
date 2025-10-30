@@ -21,7 +21,7 @@ const PROFILE_TABS: ProfileTabConfig[] = [
 ]
 
 const Profile = () => {
-  const { user, isHydrated } = useAuth()
+  const { user, isHydrated, banNotice, isModerator, isAdmin } = useAuth()
   const {
     account: profileAccount,
     metrics,
@@ -48,9 +48,20 @@ const Profile = () => {
       return profileAccount ?? undefined
     }
 
+    const moderationDetails =
+      user?.banReason || user?.moderation
+        ? {
+            flagCount: user.moderation?.flagCount,
+            reviewedAt: user.moderation?.reviewedAt ?? null,
+            notes: user.moderation?.notes ?? user.banReason ?? null,
+          }
+        : undefined
+
     const baseAccount: ProfileAccountInfo = {
       name: user.name,
       email: user.email,
+      role: user.role,
+      moderation: moderationDetails,
     }
 
     if (!profileAccount) {
@@ -62,6 +73,8 @@ const Profile = () => {
       ...profileAccount,
       name: profileAccount.name ?? baseAccount.name,
       email: profileAccount.email ?? baseAccount.email,
+      role: profileAccount.role ?? baseAccount.role,
+      moderation: profileAccount.moderation ?? baseAccount.moderation,
     }
   }, [profileAccount, user])
 
@@ -150,6 +163,33 @@ const Profile = () => {
           </a>
         }
       />
+      {banNotice ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+          <p className="font-semibold">Account suspended</p>
+          <p className="mt-1">
+            {banNotice.reason
+              ? `Your account access is limited: ${banNotice.reason}`
+              : 'Our moderators have temporarily suspended your marketplace access.'}
+          </p>
+        </div>
+      ) : null}
+      {accountDetails?.moderation?.flagCount ? (
+        <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4 text-sm text-amber-800">
+          <p className="font-semibold">Community alerts</p>
+          <p className="mt-1">
+            You have {accountDetails.moderation.flagCount}{' '}
+            {accountDetails.moderation.flagCount === 1 ? 'active report' : 'active reports'} under review.
+            {isModerator || isAdmin
+              ? ' Review the flagged content to keep your listings compliant.'
+              : ' Our team will review these soon. Keep an eye on your inbox for updates.'}
+          </p>
+          {accountDetails.moderation.reviewedAt ? (
+            <p className="mt-1 text-xs text-amber-700">
+              Last reviewed on {accountDetails.moderation.reviewedAt}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {isError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <p>We couldn&apos;t load your profile details right now.</p>

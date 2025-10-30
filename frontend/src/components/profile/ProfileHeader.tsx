@@ -12,6 +12,9 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({ account, metrics = [], actions,
   const displayName = account?.name ?? (isLoading ? 'Loading profile…' : 'Your profile')
   const displayEmail = account?.email
   const hasMetrics = metrics.length > 0
+  const roleLabel = account?.role
+    ? account.role.charAt(0).toUpperCase() + account.role.slice(1)
+    : undefined
 
   return (
     <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -19,6 +22,11 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({ account, metrics = [], actions,
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">Dashboard</p>
           <h1 className="text-3xl font-semibold text-slate-900">{displayName}</h1>
+          {roleLabel ? (
+            <span className="mt-2 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              {roleLabel}
+            </span>
+          ) : null}
           {displayEmail ? (
             <p className="mt-1 text-sm text-slate-600">{displayEmail}</p>
           ) : null}
