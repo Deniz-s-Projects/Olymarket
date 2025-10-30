@@ -37,3 +37,37 @@ export const searchListings = async (term: string) => {
 export const fetchListingById = async (id: string) => {
   return apiClient<Listing>(`/listings/${id}`)
 }
+
+export type ListingPayload = {
+  title: string
+  description: string
+  price: string
+  isActive?: boolean
+  categoryId?: string | null
+}
+
+const normalizeListingPayload = (payload: ListingPayload) => {
+  const { categoryId, ...rest } = payload
+  return {
+    ...rest,
+    categoryId: categoryId ? categoryId : undefined,
+  }
+}
+
+export const createListing = async (payload: ListingPayload) => {
+  return apiClient<Listing>('/listings', {
+    method: 'POST',
+    body: normalizeListingPayload(payload),
+  })
+}
+
+export const updateListing = async (id: string, payload: ListingPayload) => {
+  return apiClient<Listing>(`/listings/${id}`, {
+    method: 'PUT',
+    body: normalizeListingPayload(payload),
+  })
+}
+
+export const fetchListingCategories = async () => {
+  return apiClient<ListingCategory[]>('/categories')
+}

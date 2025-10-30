@@ -2,12 +2,12 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react"
 
+import { AUTH_TOKEN_STORAGE_KEY } from "../constants/auth"
 import { type AuthResponse, type AuthUser } from "../types/auth"
 
 type AuthContextValue = {
@@ -21,17 +21,22 @@ const STORAGE_KEY = "olymarket.auth"
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-type StoredAuth = {
-  user: AuthUser
-  token: string
-}
+type StoredAuth = AuthResponse
 
 const readStoredAuth = (): StoredAuth | null => {
+  if (typeof window === "undefined") {
+    return null
+  }
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as StoredAuth
     if (!parsed?.user || !parsed?.token) return null
+    const storedToken = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+    if (!storedToken || storedToken !== parsed.token) {
+      window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, parsed.token)
+    }
     return parsed
   } catch (error) {
     console.warn("Failed to parse stored auth", error)
@@ -40,25 +45,23 @@ const readStoredAuth = (): StoredAuth | null => {
 }
 
 const persistAuth = (auth: StoredAuth | null) => {
-  if (!auth) {
-    localStorage.removeItem(STORAGE_KEY)
+  if (typeof window === "undefined") {
     return
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(auth))
+  if (!auth) {
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
+    return
+  }
+
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(auth))
+  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, auth.token)
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [token, setToken] = useState<string | null>(null)
-
-  useEffect(() => {
-    const stored = readStoredAuth()
-    if (stored) {
-      setUser(stored.user)
-      setToken(stored.token)
-    }
-  }, [])
+  const [user, setUser] = useState<AuthUser | null>(() => readStoredAuth()?.user ?? null)
+  const [token, setToken] = useState<string | null>(() => readStoredAuth()?.token ?? null)
 
   const login = useCallback((auth: AuthResponse) => {
     setUser(auth.user)

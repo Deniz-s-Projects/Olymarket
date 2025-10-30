@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent } from "react"
+import { useNavigate } from "react-router-dom"
 import PriceInput from "../components/forms/PriceInput"
 import TextArea from "../components/forms/TextArea"
 import TextInput from "../components/forms/TextInput"
@@ -7,6 +8,13 @@ import ToggleSwitch from "../components/forms/ToggleSwitch"
 import PhotoUploadField, {
   type PhotoPreview,
 } from "../components/forms/PhotoUploadField"
+import { ApiError } from "../lib/apiClient"
+import { useAuth } from "../context/AuthContext"
+import {
+  createListing,
+  fetchListingCategories,
+  type ListingCategory,
+} from "../services/listings"
 
 type ListingFormValues = {
   title: string
@@ -30,7 +38,6 @@ const INITIAL_VALUES: ListingFormValues = {
   active: true,
 }
 
-const CATEGORIES = ["Equipment", "Services", "Facilities", "Tickets", "Training"]
 const CONTACT_OPTIONS = ["Email", "Phone", "In-app messaging"]
 const MAX_PHOTOS = 6
 
@@ -39,9 +46,69 @@ type ValidatorMap = {
 }
 
 const CreateListing = () => {
+  const navigate = useNavigate()
+  const { token } = useAuth()
+  const isMountedRef = useRef(true)
   const [values, setValues] = useState<ListingFormValues>(INITIAL_VALUES)
   const [errors, setErrors] = useState<ListingFormErrors>({})
   const [photos, setPhotos] = useState<PhotoPreview[]>([])
+  const [categories, setCategories] = useState<ListingCategory[]>([])
+  const [categoriesStatus, setCategoriesStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle")
+  const [categoriesError, setCategoriesError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (token === null) {
+      navigate("/auth", {
+        replace: true,
+        state: {
+          from: "/listings/new",
+          message: "Please sign in to create a listing.",
+        },
+      })
+    }
+  }, [navigate, token])
+
+  const loadCategories = useCallback(async () => {
+    if (!isMountedRef.current) {
+      return
+    }
+
+    setCategoriesStatus("loading")
+    setCategoriesError(null)
+
+    try {
+      const result = await fetchListingCategories()
+      if (!isMountedRef.current) {
+        return
+      }
+      setCategories(result)
+      setCategoriesStatus("success")
+    } catch (error) {
+      if (!isMountedRef.current) {
+        return
+      }
+      setCategoriesStatus("error")
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to load categories. Please try again."
+      setCategoriesError(message)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadCategories()
+  }, [loadCategories])
 
   const validators = useMemo<ValidatorMap>(
     () => ({
@@ -63,8 +130,9 @@ const CreateListing = () => {
         return ""
       },
       category: (value: string) => {
-        if (!value) return "Select a category to help shoppers discover this item."
-        return ""
+        if (!value) return ""
+        const exists = categories.some((category) => category.id === value)
+        return exists ? "" : "Select a valid category."
       },
       availability: (value: string) => {
         if (!value.trim()) return "Let buyers know when this listing is available."
@@ -76,7 +144,7 @@ const CreateListing = () => {
       },
       active: () => "",
     }),
-    []
+    [categories]
   )
 
   useEffect(() => {
@@ -101,7 +169,7 @@ const CreateListing = () => {
     return error
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const nextErrors = (Object.keys(values) as Array<keyof ListingFormValues>).reduce<ListingFormErrors>(
       (acc, field) => {
@@ -114,8 +182,62 @@ const CreateListing = () => {
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length === 0) {
-      // In a future iteration this payload will be submitted to the API.
-      console.log({ ...values, photos })
+      if (!token) {
+        navigate("/auth", {
+          replace: true,
+          state: {
+            from: "/listings/new",
+            message: "Please sign in to create a listing.",
+          },
+        })
+        return
+      }
+
+      setSubmitError(null)
+      setIsSubmitting(true)
+
+      try {
+        const listing = await createListing({
+          title: values.title.trim(),
+          description: values.description.trim(),
+          price: values.price.trim(),
+          isActive: values.active,
+          categoryId: values.category || undefined,
+        })
+
+        navigate("/profile", {
+          replace: true,
+          state: {
+            message: "Your listing has been created.",
+            listingId: listing.id,
+          },
+        })
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          navigate("/auth", {
+            replace: true,
+            state: {
+              from: "/listings/new",
+              message: "Please sign in to create a listing.",
+            },
+          })
+          return
+        }
+
+        if (!isMountedRef.current) {
+          return
+        }
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Something went wrong while saving your listing."
+        setSubmitError(message)
+      } finally {
+        if (isMountedRef.current) {
+          setIsSubmitting(false)
+        }
+      }
     }
   }
 
@@ -202,27 +324,47 @@ const CreateListing = () => {
           />
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             <span>
-              Category<span className="ml-1 text-red-500">*</span>
+              Category<span className="ml-1 text-xs font-normal text-slate-500">(optional)</span>
             </span>
             <select
               name="category"
               value={values.category}
               onChange={(event) => updateValue("category", event.target.value)}
               onBlur={() => validateField("category")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-base text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="rounded-md border border-slate-300 px-3 py-2 text-base text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
               aria-invalid={Boolean(errors.category)}
+              disabled={categoriesStatus === "loading"}
             >
-              <option value="" disabled>
-                Select a category
+              <option value="">
+                {categoriesStatus === "loading"
+                  ? "Loading categories..."
+                  : "No category"}
               </option>
-              {CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
                 </option>
               ))}
             </select>
             {errors.category ? (
               <span className="text-xs font-normal text-red-600">{errors.category}</span>
+            ) : null}
+            {categoriesStatus === "error" && categoriesError ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                <span>{categoriesError}</span>
+                <button
+                  type="button"
+                  onClick={loadCategories}
+                  className="rounded-full border border-amber-400 px-2 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            {categoriesStatus === "success" && categories.length === 0 ? (
+              <span className="text-xs font-normal text-slate-500">
+                Categories aren&apos;t available yet. You can still create your listing without one.
+              </span>
             ) : null}
           </label>
         </section>
@@ -296,13 +438,24 @@ const CreateListing = () => {
           />
         </section>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-2">
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            disabled={isSubmitting}
+            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-primary/70"
           >
-            Save draft
+            {isSubmitting ? "Creating…" : "Create listing"}
           </button>
+          {isSubmitting ? (
+            <span className="text-xs text-slate-500" role="status" aria-live="polite">
+              Saving your listing…
+            </span>
+          ) : null}
+          {submitError ? (
+            <span className="text-xs text-red-600" role="alert">
+              {submitError}
+            </span>
+          ) : null}
         </div>
       </form>
     </section>
