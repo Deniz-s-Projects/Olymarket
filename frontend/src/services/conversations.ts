@@ -100,7 +100,7 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
         if (typeof (details as { message?: string })?.message === 'string') {
           message = (details as { message?: string }).message as string
         }
-      } catch (error) {
+      } catch {
         details = undefined
       }
     }

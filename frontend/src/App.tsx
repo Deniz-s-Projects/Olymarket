@@ -13,7 +13,7 @@ import CreateListing from './pages/CreateListing'
 import Messages from './pages/Messages'
 import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
-import { useAuth } from './context/AuthContext'
+import { useAuth } from './context/useAuth'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
