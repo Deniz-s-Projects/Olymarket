@@ -1,8 +1,14 @@
 import { useState } from 'react'
-import type { ProfilePreferenceToggle } from '../../types/profile'
+
+type PreferenceToggle = {
+  id: string
+  label: string
+  description?: string
+  enabled: boolean
+}
 
 type PreferenceToggleListProps = {
-  preferences: ProfilePreferenceToggle[]
+  preferences: PreferenceToggle[]
 }
 
 const PreferenceToggleList = ({ preferences }: PreferenceToggleListProps) => {

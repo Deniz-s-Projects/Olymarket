@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { ProfileAccountInfo } from '../../types/profile'
+import type { ProfileDetails } from '../../types/profile'
 
 type AccountInfoCardProps = {
-  account: ProfileAccountInfo
+  account: Pick<ProfileDetails, 'name' | 'email' | 'location' | 'memberSince' | 'bio'>
 }
 
 const AccountInfoCard = ({ account }: AccountInfoCardProps) => {
