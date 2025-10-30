@@ -10,7 +10,7 @@ export class User extends BaseModel {
   @Column({ length: 255 })
   email!: string;
 
-  @Column({ name: "password_hash" })
+  @Column({ name: "password_hash", select: false })
   passwordHash!: string;
 
   @Column({ length: 150 })

@@ -36,7 +36,11 @@ router.post("/register", validationMiddleware(RegisterDto), async (req, res) => 
 
 router.post("/login", validationMiddleware(LoginDto), async (req, res) => {
   const userRepository = AppDataSource.getRepository(User);
-  const user = await userRepository.findOne({ where: { email: req.body.email } });
+  const user = await userRepository
+    .createQueryBuilder("user")
+    .addSelect("user.passwordHash")
+    .where("user.email = :email", { email: req.body.email })
+    .getOne();
   if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
