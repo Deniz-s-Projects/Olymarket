@@ -6,6 +6,12 @@ export interface ProfileAccountInfo {
   bio?: string
 }
 
+export interface ProfileAccountUpdateInput {
+  name?: string
+  location?: string
+  bio?: string
+}
+
 export interface ProfileListingSummary {
   id: string
   title: string

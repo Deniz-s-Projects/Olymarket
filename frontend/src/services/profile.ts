@@ -1,6 +1,7 @@
 import { apiClient } from '../lib/apiClient'
 import type {
   ProfileAccountInfo,
+  ProfileAccountUpdateInput,
   ProfileListingSummary,
   ProfileMetric,
   ProfilePreferenceToggle,
@@ -25,4 +26,11 @@ export const fetchProfileSavedItems = async () => {
 
 export const fetchProfilePreferences = async () => {
   return apiClient<ProfilePreferenceToggle[]>('/profile/preferences')
+}
+
+export const updateProfileAccount = async (input: ProfileAccountUpdateInput) => {
+  return apiClient<ProfileAccountInfo>('/profile/account', {
+    method: 'PATCH',
+    body: input,
+  })
 }

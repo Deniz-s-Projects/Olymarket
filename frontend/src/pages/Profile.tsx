@@ -1,14 +1,24 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
-import AccountInfoCard from '../components/profile/AccountInfoCard'
 import ListingTable from '../components/profile/ListingTable'
 import PreferenceToggleList from '../components/profile/PreferenceToggleList'
 import ProfileHeader from '../components/profile/ProfileHeader'
+import ProfileOverviewTab from '../components/profile/ProfileOverviewTab'
+import ProfileTabs, { type ProfileTabConfig } from '../components/profile/ProfileTabs'
+import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
 import { useAuth } from '../context/useAuth'
 import useProfile from '../hooks/useProfile'
 import type { ProfileAccountInfo } from '../types/profile'
+
+const PROFILE_TABS: ProfileTabConfig[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'listings', label: 'Listings' },
+  { id: 'saved', label: 'Saved Items' },
+  { id: 'preferences', label: 'Preferences' },
+  { id: 'reputation', label: 'Reputation' },
+]
 
 const Profile = () => {
   const { user, isHydrated } = useAuth()
@@ -22,7 +32,12 @@ const Profile = () => {
     isError,
     error,
     refetch,
+    updateAccount,
+    isUpdatingAccount,
+    updateAccountError,
   } = useProfile({ enabled: Boolean(user) })
+
+  const [activeTab, setActiveTab] = useState<string>(PROFILE_TABS[0]?.id ?? 'overview')
 
   const accountDetails = useMemo<ProfileAccountInfo | undefined>(() => {
     if (!user && !profileAccount) {
@@ -75,6 +90,54 @@ const Profile = () => {
     )
   }
 
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'listings':
+        return (
+          <div className="flex flex-col gap-6">
+            <ListingTable
+              listings={activeListings}
+              title="Active Listings"
+              emptyMessage="You do not have any listings yet. Start by creating your first listing."
+              isLoading={isLoading}
+            />
+          </div>
+        )
+      case 'saved':
+        return (
+          <div className="flex flex-col gap-6">
+            <SavedItemsCard items={savedItems} isLoading={isLoading} />
+          </div>
+        )
+      case 'preferences':
+        return (
+          <div className="flex flex-col gap-6">
+            <PreferenceToggleList preferences={preferences} isLoading={isLoading} />
+          </div>
+        )
+      case 'reputation':
+        return <ReputationPanel metrics={metrics} isLoading={isLoading} />
+      case 'overview':
+      default:
+        return (
+          <ProfileOverviewTab
+            account={accountDetails}
+            isLoading={isLoading}
+            onUpdate={updateAccount}
+            isUpdating={isUpdatingAccount}
+            updateError={updateAccountError}
+          />
+        )
+    }
+  }
+
+  const activeTabId = PROFILE_TABS.some((tab) => tab.id === activeTab)
+    ? activeTab
+    : PROFILE_TABS[0]?.id ?? 'overview'
+  const baseTabId = 'profile-dashboard'
+  const panelId = `${baseTabId}-panel-${activeTabId}`
+  const tabId = `${baseTabId}-tab-${activeTabId}`
+
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 lg:px-0">
       <ProfileHeader
@@ -106,20 +169,19 @@ const Profile = () => {
           </button>
         </div>
       ) : null}
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="flex flex-col gap-6">
-          <AccountInfoCard account={accountDetails} isLoading={isLoading} />
-          <ListingTable
-            listings={activeListings}
-            title="Active Listings"
-            emptyMessage="You do not have any listings yet. Start by creating your first listing."
-            isLoading={isLoading}
-          />
-        </div>
-        <div className="flex flex-col gap-6">
-          <SavedItemsCard items={savedItems} isLoading={isLoading} />
-          <PreferenceToggleList preferences={preferences} isLoading={isLoading} />
-        </div>
+      <ProfileTabs
+        tabs={PROFILE_TABS}
+        activeTabId={activeTabId}
+        onTabChange={setActiveTab}
+        baseId={baseTabId}
+      />
+      <div
+        role="tabpanel"
+        id={panelId}
+        aria-labelledby={tabId}
+        className="mt-2"
+      >
+        {renderActiveTab()}
       </div>
     </section>
   )
