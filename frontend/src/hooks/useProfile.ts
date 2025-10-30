@@ -7,9 +7,11 @@ import {
   fetchProfileMetrics,
   fetchProfilePreferences,
   fetchProfileSavedItems,
+  updateProfileAccount,
 } from '../services/profile'
 import type {
   ProfileAccountInfo,
+  ProfileAccountUpdateInput,
   ProfileListingSummary,
   ProfileMetric,
   ProfilePreferenceToggle,
@@ -33,6 +35,9 @@ type UseProfileState = ProfileData & {
   isError: boolean
   error: Error | null
   refetch: () => Promise<void>
+  updateAccount: (input: ProfileAccountUpdateInput) => Promise<ProfileAccountInfo>
+  isUpdatingAccount: boolean
+  updateAccountError: Error | null
 }
 
 const EMPTY_PROFILE_DATA: ProfileData = {
@@ -65,6 +70,8 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
   const [data, setData] = useState<ProfileData>(EMPTY_PROFILE_DATA)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [isUpdatingAccount, setIsUpdatingAccount] = useState(false)
+  const [updateAccountError, setUpdateAccountError] = useState<Error | null>(null)
 
   const loadProfile = useCallback(async () => {
     if (!enabled) {
@@ -105,6 +112,32 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
     }
   }, [enabled])
 
+  const updateAccount = useCallback(async (input: ProfileAccountUpdateInput) => {
+    setIsUpdatingAccount(true)
+    setUpdateAccountError(null)
+
+    try {
+      const updatedAccount = await updateProfileAccount(input)
+
+      setData((current) => ({
+        ...current,
+        account: current.account ? { ...current.account, ...updatedAccount } : updatedAccount,
+      }))
+
+      return updatedAccount
+    } catch (error) {
+      const normalizedError =
+        error instanceof Error
+          ? error
+          : new Error('We could not update your profile details. Please try again later.')
+
+      setUpdateAccountError(normalizedError)
+      throw normalizedError
+    } finally {
+      setIsUpdatingAccount(false)
+    }
+  }, [])
+
   useEffect(() => {
     loadProfile()
   }, [loadProfile])
@@ -116,8 +149,11 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       isError: Boolean(error),
       error,
       refetch: loadProfile,
+      updateAccount,
+      isUpdatingAccount,
+      updateAccountError,
     }),
-    [data, error, isLoading, loadProfile],
+    [data, error, isLoading, loadProfile, updateAccount, isUpdatingAccount, updateAccountError],
   )
 }
 

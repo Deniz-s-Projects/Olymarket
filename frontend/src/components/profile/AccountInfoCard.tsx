@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import type { ProfileAccountInfo } from '../../types/profile'
 
 type AccountInfoCardProps = {
   account?: ProfileAccountInfo | null
   isLoading?: boolean
+  actions?: ReactNode
 }
 
-const AccountInfoCard = ({ account, isLoading = false }: AccountInfoCardProps) => {
+const AccountInfoCard = ({ account, isLoading = false, actions }: AccountInfoCardProps) => {
   const [isOpen, setIsOpen] = useState(true)
 
   const toggleVisibility = () => {
@@ -23,23 +25,27 @@ const AccountInfoCard = ({ account, isLoading = false }: AccountInfoCardProps) =
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <header className="flex items-center justify-between gap-2">
+      <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Account Information</h2>
           <p className="text-sm text-slate-500">
             Update your contact details and personal bio to help buyers know you better.
           </p>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary md:hidden"
-          onClick={toggleVisibility}
-          aria-expanded={isOpen}
-        >
-          {isOpen ? 'Hide' : 'Show'}
-          <span aria-hidden="true">▾</span>
-        </button>
+        <div className="flex items-center gap-2 md:self-start">
+          {actions ? <div className="hidden md:flex md:gap-2">{actions}</div> : null}
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary md:hidden"
+            onClick={toggleVisibility}
+            aria-expanded={isOpen}
+          >
+            {isOpen ? 'Hide' : 'Show'}
+            <span aria-hidden="true">▾</span>
+          </button>
+        </div>
       </header>
+      {actions ? <div className="mt-4 flex flex-wrap gap-2 md:hidden">{actions}</div> : null}
       <div
         className={`${
           isOpen ? 'mt-4 flex flex-col gap-4' : 'hidden'
