@@ -1,27 +1,40 @@
-import type { AuthUser } from "./auth"
-
-export type ProfileDetails = {
+export interface ProfileAccountInfo {
   name: string
   email: string
-  location: string | null
-  bio: string | null
-  notifyNewListings: boolean
-  memberSince: string
-  updatedAt: string
-}
-
-export type ProfileResponse = {
-  profile: ProfileDetails
-}
-
-export type ProfileUpsertResponse = {
-  profile: ProfileDetails
-  user: AuthUser
-}
-
-export type ProfilePayload = {
-  name: string
   location?: string
+  memberSince: string
   bio?: string
-  notifyNewListings?: boolean
+}
+
+export interface ProfileListingSummary {
+  id: string
+  title: string
+  category: string
+  price: number
+  currency: string
+  status: 'active' | 'sold' | 'draft'
+  updatedAt: string
+  thumbnailUrl?: string
+}
+
+export interface ProfileSavedItemSummary {
+  id: string
+  title: string
+  category: string
+  price: number
+  currency: string
+  favoritedAt: string
+  thumbnailUrl?: string
+}
+
+export interface ProfileMetric {
+  label: string
+  value: string | number
+}
+
+export interface ProfilePreferenceToggle {
+  id: string
+  label: string
+  description?: string
+  enabled: boolean
 }

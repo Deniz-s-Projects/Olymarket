@@ -1,16 +1,8 @@
 import { useState } from 'react'
-
-export type ProfileListingRow = {
-  id: string
-  title: string
-  categoryLabel: string
-  priceLabel: string
-  statusLabel: string
-  updatedAtLabel: string
-}
+import type { ProfileListingSummary } from '../../types/profile'
 
 type ListingTableProps = {
-  listings: ProfileListingRow[]
+  listings: ProfileListingSummary[]
   title: string
   emptyMessage?: string
 }
@@ -62,10 +54,13 @@ const ListingTable = ({ listings, title, emptyMessage }: ListingTableProps) => {
                 {listings.map((listing) => (
                   <tr key={listing.id} className="hover:bg-slate-50">
                     <td className="px-3 py-3 font-medium text-slate-900">{listing.title}</td>
-                    <td className="px-3 py-3">{listing.categoryLabel}</td>
-                    <td className="px-3 py-3 font-semibold text-slate-900">{listing.priceLabel}</td>
-                    <td className="px-3 py-3 capitalize">{listing.statusLabel}</td>
-                    <td className="px-3 py-3 text-slate-500">{listing.updatedAtLabel}</td>
+                    <td className="px-3 py-3">{listing.category}</td>
+                    <td className="px-3 py-3 font-semibold text-slate-900">
+                      {listing.currency}
+                      {listing.price.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-3 capitalize">{listing.status}</td>
+                    <td className="px-3 py-3 text-slate-500">{listing.updatedAt}</td>
                   </tr>
                 ))}
               </tbody>
@@ -81,21 +76,22 @@ const ListingTable = ({ listings, title, emptyMessage }: ListingTableProps) => {
                   <div>
                     <h3 className="text-base font-semibold text-slate-900">{listing.title}</h3>
                     <p className="text-xs uppercase tracking-wide text-slate-500">
-                      {listing.categoryLabel}
+                      {listing.category}
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-primary">
-                    {listing.priceLabel}
+                    {listing.currency}
+                    {listing.price.toLocaleString()}
                   </span>
                 </header>
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
                   <div>
                     <dt className="font-semibold text-slate-500">Status</dt>
-                    <dd className="capitalize text-slate-700">{listing.statusLabel}</dd>
+                    <dd className="capitalize text-slate-700">{listing.status}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-slate-500">Updated</dt>
-                    <dd>{listing.updatedAtLabel}</dd>
+                    <dd>{listing.updatedAt}</dd>
                   </div>
                 </dl>
               </article>

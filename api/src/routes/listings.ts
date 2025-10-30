@@ -5,8 +5,6 @@ import { ListingDto } from "../dtos/listing";
 import { AppDataSource } from "../config";
 import { Listing } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
-import { UserProfile } from "../entities/UserProfile";
-import { sendNewListingAlert } from "../utils/email";
 
 const router = Router();
 
@@ -35,31 +33,6 @@ router.post(
       category,
     });
     await listingRepository.save(listing);
-
-    try {
-      const profileRepository = AppDataSource.getRepository(UserProfile);
-      const subscribers = await profileRepository.find({
-        where: {
-          notifyNewListings: true,
-          user: { isVerified: true },
-        },
-        relations: { user: true },
-      });
-
-      const recipients = subscribers
-        .filter((subscriber) => subscriber.user.id !== req.user!.id)
-        .map((subscriber) => subscriber.user.email);
-
-      await sendNewListingAlert(recipients, {
-        id: listing.id,
-        title: listing.title,
-        price: listing.price,
-        ownerName: req.user!.name,
-      });
-    } catch (error) {
-      console.error("Failed to send new listing alerts", error);
-    }
-
     return res.status(201).json(listing);
   }
 );

@@ -1,16 +1,8 @@
 import { useState } from 'react'
-
-type SavedItemSummary = {
-  id: string
-  title: string
-  category: string
-  price: number
-  currency: string
-  favoritedAt: string
-}
+import type { ProfileSavedItemSummary } from '../../types/profile'
 
 type SavedItemsCardProps = {
-  items: SavedItemSummary[]
+  items: ProfileSavedItemSummary[]
 }
 
 const SavedItemsCard = ({ items }: SavedItemsCardProps) => {
