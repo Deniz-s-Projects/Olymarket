@@ -115,7 +115,6 @@ const CreateListing = () => {
 
     if (Object.keys(nextErrors).length === 0) {
       // In a future iteration this payload will be submitted to the API.
-      // eslint-disable-next-line no-console
       console.log({ ...values, photos })
     }
   }
