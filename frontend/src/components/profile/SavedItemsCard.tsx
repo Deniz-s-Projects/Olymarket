@@ -3,9 +3,10 @@ import type { ProfileSavedItemSummary } from '../../types/profile'
 
 type SavedItemsCardProps = {
   items: ProfileSavedItemSummary[]
+  isLoading?: boolean
 }
 
-const SavedItemsCard = ({ items }: SavedItemsCardProps) => {
+const SavedItemsCard = ({ items, isLoading = false }: SavedItemsCardProps) => {
   const [isOpen, setIsOpen] = useState(true)
 
   const toggleVisibility = () => {
@@ -26,7 +27,11 @@ const SavedItemsCard = ({ items }: SavedItemsCardProps) => {
           <span aria-hidden="true">▾</span>
         </button>
       </header>
-      {items.length === 0 ? (
+      {isLoading && items.length === 0 ? (
+        <p className={`${isOpen ? 'mt-4' : 'hidden'} text-sm text-slate-500 md:mt-4 md:block`}>
+          Loading your saved items…
+        </p>
+      ) : items.length === 0 ? (
         <p className={`${isOpen ? 'mt-4' : 'hidden'} text-sm text-slate-500 md:mt-4 md:block`}>
           You have not saved any listings yet.
         </p>

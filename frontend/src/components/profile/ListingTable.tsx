@@ -5,9 +5,10 @@ type ListingTableProps = {
   listings: ProfileListingSummary[]
   title: string
   emptyMessage?: string
+  isLoading?: boolean
 }
 
-const ListingTable = ({ listings, title, emptyMessage }: ListingTableProps) => {
+const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: ListingTableProps) => {
   const [isOpen, setIsOpen] = useState(true)
 
   const toggleVisibility = () => {
@@ -33,7 +34,11 @@ const ListingTable = ({ listings, title, emptyMessage }: ListingTableProps) => {
           <span aria-hidden="true">▾</span>
         </button>
       </header>
-      {listings.length === 0 ? (
+      {isLoading && listings.length === 0 ? (
+        <p className={`${isOpen ? 'mt-4' : 'hidden'} text-sm text-slate-500 md:mt-4 md:block`}>
+          Loading your listings…
+        </p>
+      ) : listings.length === 0 ? (
         <p className={`${isOpen ? 'mt-4' : 'hidden'} text-sm text-slate-500 md:mt-4 md:block`}>
           {emptyMessage ?? 'No listings available yet.'}
         </p>

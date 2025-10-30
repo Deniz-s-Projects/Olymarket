@@ -2,14 +2,23 @@ import { useState } from 'react'
 import type { ProfileAccountInfo } from '../../types/profile'
 
 type AccountInfoCardProps = {
-  account: ProfileAccountInfo
+  account?: ProfileAccountInfo | null
+  isLoading?: boolean
 }
 
-const AccountInfoCard = ({ account }: AccountInfoCardProps) => {
+const AccountInfoCard = ({ account, isLoading = false }: AccountInfoCardProps) => {
   const [isOpen, setIsOpen] = useState(true)
 
   const toggleVisibility = () => {
     setIsOpen((current) => !current)
+  }
+
+  const renderValue = (value: string | undefined, placeholder: string) => {
+    if (value && value.trim().length > 0) {
+      return value
+    }
+
+    return placeholder
   }
 
   return (
@@ -31,33 +40,50 @@ const AccountInfoCard = ({ account }: AccountInfoCardProps) => {
           <span aria-hidden="true">▾</span>
         </button>
       </header>
-      <div className={`${isOpen ? 'mt-4 flex flex-col gap-4' : 'hidden'} md:mt-4 md:flex md:flex-row md:items-start md:gap-10`}>
-        <dl className="space-y-3 text-sm text-slate-600 md:w-1/2">
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</dt>
-            <dd className="text-base font-medium text-slate-900">{account.name}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</dt>
-            <dd>{account.email}</dd>
-          </div>
-          {account.location ? (
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</dt>
-              <dd>{account.location}</dd>
+      <div
+        className={`${
+          isOpen ? 'mt-4 flex flex-col gap-4' : 'hidden'
+        } md:mt-4 md:flex md:flex-row md:items-start md:gap-10`}
+      >
+        {isLoading ? (
+          <p className="text-sm text-slate-500">Loading your account information…</p>
+        ) : account ? (
+          <>
+            <dl className="space-y-3 text-sm text-slate-600 md:w-1/2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</dt>
+                <dd className="text-base font-medium text-slate-900">
+                  {renderValue(account.name, 'Not provided yet')}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</dt>
+                <dd>{renderValue(account.email, 'Not provided yet')}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</dt>
+                <dd>{renderValue(account.location, 'Not provided yet')}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Member Since</dt>
+                <dd>{renderValue(account.memberSince, 'Not available yet')}</dd>
+              </div>
+            </dl>
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600 md:w-1/2">
+              <h3 className="text-sm font-semibold text-slate-900">Bio</h3>
+              <p className="mt-2 leading-relaxed">
+                {renderValue(
+                  account.bio,
+                  'You have not added a bio yet. Share a short introduction to help other members get to know you.',
+                )}
+              </p>
             </div>
-          ) : null}
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Member Since</dt>
-            <dd>{account.memberSince}</dd>
-          </div>
-        </dl>
-        {account.bio ? (
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600 md:w-1/2">
-            <h3 className="text-sm font-semibold text-slate-900">Bio</h3>
-            <p className="mt-2 leading-relaxed">{account.bio}</p>
-          </div>
-        ) : null}
+          </>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Set up your account details to help buyers learn more about who you are.
+          </p>
+        )}
       </div>
     </section>
   )
