@@ -10,7 +10,7 @@ import {
 import { subscribeToUnauthorized, unsubscribeFromUnauthorized } from "../lib/authEvents"
 import { refreshSessionRequest } from "../services/auth"
 import { type AuthResponse, type AuthUser } from "../types/auth"
-import { AuthContext } from "./AuthContext.shared"
+import { AuthContext, type BannedAccountNotice } from "./AuthContext.shared"
 import { persistAuth, readStoredAuth, type StoredAuth } from "./authStorage"
 
 type AuthProviderProps = {
@@ -22,21 +22,60 @@ export const AuthProvider = ({ children, initialAuth }: AuthProviderProps) => {
   const [user, setUser] = useState<AuthUser | null>(initialAuth?.user ?? null)
   const [token, setToken] = useState<string | null>(initialAuth?.token ?? null)
   const [isHydrated, setIsHydrated] = useState<boolean>(Boolean(initialAuth))
+  const [banNotice, setBanNotice] = useState<BannedAccountNotice | null>(null)
   const hasAttemptedRefresh = useRef(false)
 
-  const login = useCallback((auth: AuthResponse) => {
-    setUser(auth.user)
-    setToken(auth.token)
-    persistAuth(auth)
-    setIsHydrated(true)
-  }, [])
-
-  const logout = useCallback(() => {
+  const resetAuthState = useCallback(() => {
     setUser(null)
     setToken(null)
     persistAuth(null)
-    setIsHydrated(true)
   }, [])
+
+  const clearBanNotice = useCallback(() => {
+    setBanNotice(null)
+  }, [])
+
+  const logout = useCallback(
+    (options?: { preserveBanNotice?: boolean }) => {
+      resetAuthState()
+      if (!options?.preserveBanNotice) {
+        clearBanNotice()
+      }
+      setIsHydrated(true)
+    },
+    [clearBanNotice, resetAuthState]
+  )
+
+  const applyBannedState = useCallback(
+    (bannedUser: AuthUser) => {
+      setBanNotice({
+        isBanned: true,
+        reason: bannedUser.banReason ?? bannedUser.moderation?.notes ?? null,
+        bannedAt: bannedUser.moderation?.bannedAt ?? null,
+        banExpiresAt: bannedUser.moderation?.banExpiresAt ?? null,
+        appealUrl: bannedUser.moderation?.appealUrl ?? null,
+      })
+      resetAuthState()
+      setIsHydrated(true)
+    },
+    [resetAuthState]
+  )
+
+  const login = useCallback(
+    (auth: AuthResponse) => {
+      if (auth.user.isBanned) {
+        applyBannedState(auth.user)
+        return
+      }
+
+      setUser(auth.user)
+      setToken(auth.token)
+      clearBanNotice()
+      persistAuth(auth)
+      setIsHydrated(true)
+    },
+    [applyBannedState, clearBanNotice]
+  )
 
   const refreshSession = useCallback(async () => {
     if (!token) {
@@ -46,8 +85,15 @@ export const AuthProvider = ({ children, initialAuth }: AuthProviderProps) => {
 
     try {
       const currentUser = await refreshSessionRequest()
+
+      if (currentUser.isBanned) {
+        applyBannedState(currentUser)
+        return null
+      }
+
       const nextAuth: StoredAuth = { user: currentUser, token }
       setUser(currentUser)
+      clearBanNotice()
       persistAuth(nextAuth)
       setIsHydrated(true)
       return currentUser
@@ -55,19 +101,24 @@ export const AuthProvider = ({ children, initialAuth }: AuthProviderProps) => {
       logout()
       throw error
     }
-  }, [logout, token])
+  }, [applyBannedState, logout, token])
 
   useEffect(() => {
     if (!hasAttemptedRefresh.current) {
       hasAttemptedRefresh.current = true
       const stored = initialAuth ?? readStoredAuth()
       if (stored && (!user || !token)) {
-        setUser(stored.user)
-        setToken(stored.token)
+        if (stored.user.isBanned) {
+          applyBannedState(stored.user)
+        } else {
+          setUser(stored.user)
+          setToken(stored.token)
+          clearBanNotice()
+        }
       }
       refreshSession().catch(() => undefined)
     }
-  }, [initialAuth, refreshSession, token, user])
+  }, [applyBannedState, clearBanNotice, initialAuth, refreshSession, token, user])
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -85,11 +136,16 @@ export const AuthProvider = ({ children, initialAuth }: AuthProviderProps) => {
       user,
       token,
       isHydrated,
+      isAdmin: user?.role === "admin",
+      isModerator: user?.role === "admin" || user?.role === "moderator",
+      isBanned: Boolean(user?.isBanned || banNotice?.isBanned),
+      banNotice,
       login,
       logout,
       refreshSession,
+      clearBanNotice,
     }),
-    [isHydrated, login, logout, refreshSession, token, user]
+    [banNotice, clearBanNotice, isHydrated, login, logout, refreshSession, token, user]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

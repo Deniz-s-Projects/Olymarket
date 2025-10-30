@@ -126,7 +126,7 @@ const Auth = () => {
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] =
     useState(false)
-  const { login: setAuth } = useAuth()
+  const { login: setAuth, banNotice } = useAuth()
 
   const loginForm = useFormValidation(
     { email: "", password: "" },
@@ -197,7 +197,23 @@ const Auth = () => {
       loginForm.setStatus("success", "Welcome back! Redirecting you shortly.")
     } catch (error) {
       const authError = error as AuthServiceError
-      if (authError.status === 401) {
+      const isBannedError =
+        authError.code === "USER_BANNED" ||
+        Boolean(authError.details?.["isBanned"])
+
+      if (isBannedError) {
+        const banReason =
+          typeof authError.details?.["banReason"] === "string"
+            ? (authError.details?.["banReason"] as string)
+            : undefined
+        loginForm.setStatus(
+          "error",
+          banReason
+            ? `Access denied: ${banReason}`
+            : authError.message ||
+                "Your account has been suspended. Please contact support."
+        )
+      } else if (authError.status === 401) {
         loginForm.setStatus(
           "error",
           "We couldn't verify those credentials. Please try again."
@@ -205,7 +221,8 @@ const Auth = () => {
       } else {
         loginForm.setStatus(
           "error",
-          "Something went wrong while signing you in. Please try again later."
+          authError.message ||
+            "Something went wrong while signing you in. Please try again later."
         )
       }
     }
@@ -301,6 +318,25 @@ const Auth = () => {
           API integration when you are.
         </p>
       </header>
+
+      {banNotice ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">Account access restricted</p>
+          <p className="mt-1">
+            {banNotice.reason
+              ? `We can't sign you in because your account is suspended: ${banNotice.reason}`
+              : "We can't sign you in because your account is currently suspended."}
+          </p>
+          {banNotice.appealUrl ? (
+            <a
+              href={banNotice.appealUrl}
+              className="mt-2 inline-flex text-xs font-semibold text-amber-700 underline-offset-2 hover:underline"
+            >
+              Contact support to appeal
+            </a>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-center gap-2 rounded-full bg-slate-100 p-1 text-sm font-medium">

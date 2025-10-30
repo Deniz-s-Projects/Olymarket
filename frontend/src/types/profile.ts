@@ -4,6 +4,12 @@ export interface ProfileAccountInfo {
   location?: string
   memberSince?: string
   bio?: string
+  role?: string
+  moderation?: {
+    flagCount?: number
+    reviewedAt?: string | null
+    notes?: string | null
+  }
 }
 
 export interface ProfileAccountUpdateInput {
