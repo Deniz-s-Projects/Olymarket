@@ -4,6 +4,8 @@ import type {
   AuthCredentials,
   RegisterPayload,
   AuthUser,
+  RegisterResponse,
+  VerifyEmailPayload,
 } from "../types/auth"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"
@@ -18,7 +20,7 @@ export class AuthServiceError extends Error {
   }
 }
 
-const handleResponse = async (response: Response): Promise<AuthResponse> => {
+const handleAuthResponse = async (response: Response): Promise<AuthResponse> => {
   const data = (await response.json().catch(() => ({}))) as Partial<AuthResponse> & {
     message?: string
   }
@@ -35,7 +37,26 @@ const handleResponse = async (response: Response): Promise<AuthResponse> => {
   return data as AuthResponse
 }
 
-export const register = async (payload: RegisterPayload): Promise<AuthResponse> => {
+const handleMessageResponse = async (
+  response: Response,
+): Promise<RegisterResponse> => {
+  const data = (await response.json().catch(() => ({}))) as Partial<RegisterResponse> & {
+    message?: string
+  }
+
+  if (!response.ok) {
+    const message = data?.message ?? "Authentication request failed"
+    throw new AuthServiceError(message, response.status)
+  }
+
+  if (!data?.message) {
+    throw new AuthServiceError("Malformed authentication response")
+  }
+
+  return { message: data.message }
+}
+
+export const register = async (payload: RegisterPayload): Promise<RegisterResponse> => {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
     headers: {
@@ -44,7 +65,7 @@ export const register = async (payload: RegisterPayload): Promise<AuthResponse> 
     body: JSON.stringify(payload),
   })
 
-  return handleResponse(response)
+  return handleMessageResponse(response)
 }
 
 export const login = async (payload: AuthCredentials): Promise<AuthResponse> => {
@@ -56,7 +77,19 @@ export const login = async (payload: AuthCredentials): Promise<AuthResponse> => 
     body: JSON.stringify(payload),
   })
 
-  return handleResponse(response)
+  return handleAuthResponse(response)
+}
+
+export const verifyEmail = async (payload: VerifyEmailPayload): Promise<AuthResponse> => {
+  const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return handleAuthResponse(response)
 }
 
 export const refreshSessionRequest = async (): Promise<AuthUser> => {

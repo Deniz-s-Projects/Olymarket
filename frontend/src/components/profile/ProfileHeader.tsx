@@ -1,9 +1,21 @@
 import type { FC, ReactNode } from 'react'
-import type { ProfileAccountInfo, ProfileMetric } from '../../types/profile'
+
+type HeaderAccount = {
+  name: string
+  email: string
+  location?: string | null
+  memberSince: string
+  bio?: string | null
+}
+
+type HeaderMetric = {
+  label: string
+  value: string | number
+}
 
 type ProfileHeaderProps = {
-  account: ProfileAccountInfo
-  metrics?: ProfileMetric[]
+  account: HeaderAccount
+  metrics?: HeaderMetric[]
   actions?: ReactNode
 }
 
