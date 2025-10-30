@@ -13,7 +13,7 @@ import CreateListing from './pages/CreateListing'
 import Messages from './pages/Messages'
 import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
-import { AUTH_TOKEN_STORAGE_KEY } from './constants/auth'
+import { useAuth } from './context/AuthContext'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
@@ -25,10 +25,7 @@ const navigation = [
 
 const RequireAuth = ({ children }: { children: ReactElement }) => {
   const location = useLocation()
-  const token =
-    typeof window !== 'undefined'
-      ? window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
-      : null
+  const { token } = useAuth()
 
   if (!token) {
     return (
@@ -116,11 +113,11 @@ const App = () => {
             <Route
               path="/conversations"
               element={
-                <ProtectedRoute>
+                <RequireAuth>
                   <div className="mx-auto max-w-3xl px-4 py-10 text-center text-slate-600">
                     Conversations coming soon.
                   </div>
-                </ProtectedRoute>
+                </RequireAuth>
               }
             />
           </Routes>
