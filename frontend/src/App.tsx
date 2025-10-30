@@ -1,16 +1,50 @@
-import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom'
+import { type ReactElement } from 'react'
+import {
+  BrowserRouter,
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom'
 
 import Auth from './pages/Auth'
 import CreateListing from './pages/CreateListing'
+import Messages from './pages/Messages'
 import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
+import { AUTH_TOKEN_STORAGE_KEY } from './constants/auth'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
   { to: '/listings/new', label: 'Create Listing' },
+  { to: '/messages', label: 'Messages' },
   { to: '/profile', label: 'Profile' },
   { to: '/auth', label: 'Sign In' },
 ]
+
+const RequireAuth = ({ children }: { children: ReactElement }) => {
+  const location = useLocation()
+  const token =
+    typeof window !== 'undefined'
+      ? window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+      : null
+
+  if (!token) {
+    return (
+      <Navigate
+        to="/auth"
+        replace
+        state={{
+          from: location.pathname,
+          message: 'Please sign in to continue.',
+        }}
+      />
+    )
+  }
+
+  return children
+}
 
 const App = () => {
   return (
@@ -45,6 +79,14 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Marketplace />} />
             <Route path="/listings/new" element={<CreateListing />} />
+            <Route
+              path="/messages"
+              element={
+                <RequireAuth>
+                  <Messages />
+                </RequireAuth>
+              }
+            />
             <Route path="/profile" element={<Profile />} />
             <Route path="/auth" element={<Auth />} />
           </Routes>
