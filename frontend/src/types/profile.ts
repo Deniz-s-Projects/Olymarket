@@ -12,15 +12,51 @@ export interface ProfileAccountUpdateInput {
   bio?: string
 }
 
+export type ProfileListingStatus = 'active' | 'sold' | 'draft'
+
 export interface ProfileListingSummary {
   id: string
   title: string
   category: string
   price: number
   currency: string
-  status: 'active' | 'sold' | 'draft'
+  status: ProfileListingStatus
   updatedAt: string
   thumbnailUrl?: string
+}
+
+export interface ProfileListingActionLinks {
+  editUrl: string
+  archiveUrl?: string
+  viewUrl?: string
+}
+
+export interface ProfileListingWithActions extends ProfileListingSummary {
+  actions: ProfileListingActionLinks
+}
+
+export interface ProfileListingStatusEmptyStateAction {
+  label: string
+  url: string
+}
+
+export interface ProfileListingStatusEmptyState {
+  title: string
+  description: string
+  action?: ProfileListingStatusEmptyStateAction
+}
+
+export interface ProfileListingStatusGroup {
+  id: ProfileListingStatus
+  label: string
+  description?: string
+  listings: ProfileListingWithActions[]
+  emptyState?: ProfileListingStatusEmptyState
+}
+
+export interface ProfileListingsOverview {
+  groups: ProfileListingStatusGroup[]
+  createListingUrl?: string
 }
 
 export interface ProfileSavedItemSummary {

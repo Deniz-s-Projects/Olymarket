@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
-import ListingTable from '../components/profile/ListingTable'
 import PreferenceToggleList from '../components/profile/PreferenceToggleList'
 import ProfileHeader from '../components/profile/ProfileHeader'
 import ProfileOverviewTab from '../components/profile/ProfileOverviewTab'
+import ProfileListingsTab from '../components/profile/ProfileListingsTab'
 import ProfileTabs, { type ProfileTabConfig } from '../components/profile/ProfileTabs'
 import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
@@ -25,7 +25,7 @@ const Profile = () => {
   const {
     account: profileAccount,
     metrics,
-    activeListings,
+    listings,
     savedItems,
     preferences,
     isLoading,
@@ -65,6 +65,8 @@ const Profile = () => {
     }
   }, [profileAccount, user])
 
+  const createListingUrl = listings.createListingUrl ?? '/listings/new'
+
   if (!isHydrated) {
     return (
       <section className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 py-24 text-slate-500">
@@ -95,12 +97,7 @@ const Profile = () => {
       case 'listings':
         return (
           <div className="flex flex-col gap-6">
-            <ListingTable
-              listings={activeListings}
-              title="Active Listings"
-              emptyMessage="You do not have any listings yet. Start by creating your first listing."
-              isLoading={isLoading}
-            />
+            <ProfileListingsTab listings={listings} isLoading={isLoading} />
           </div>
         )
       case 'saved':
@@ -145,12 +142,12 @@ const Profile = () => {
         metrics={metrics}
         isLoading={isLoading}
         actions={
-          <button
-            type="button"
+          <a
+            href={createListingUrl}
             className="inline-flex items-center justify-center rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
           >
             Create Listing
-          </button>
+          </a>
         }
       />
       {isError ? (

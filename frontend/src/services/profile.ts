@@ -2,7 +2,7 @@ import { apiClient } from '../lib/apiClient'
 import type {
   ProfileAccountInfo,
   ProfileAccountUpdateInput,
-  ProfileListingSummary,
+  ProfileListingsOverview,
   ProfileMetric,
   ProfilePreferenceToggle,
   ProfileSavedItemSummary,
@@ -16,8 +16,8 @@ export const fetchProfileMetrics = async () => {
   return apiClient<ProfileMetric[]>('/profile/metrics')
 }
 
-export const fetchProfileActiveListings = async () => {
-  return apiClient<ProfileListingSummary[]>('/profile/listings')
+export const fetchProfileListings = async () => {
+  return apiClient<ProfileListingsOverview>('/profile/listings')
 }
 
 export const fetchProfileSavedItems = async () => {

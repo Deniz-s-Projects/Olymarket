@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { ProfileListingSummary } from '../../types/profile'
+import type { ProfileListingWithActions } from '../../types/profile'
 
 type ListingTableProps = {
-  listings: ProfileListingSummary[]
+  listings: ProfileListingWithActions[]
   title: string
   emptyMessage?: string
   isLoading?: boolean
@@ -53,6 +53,7 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                   <th className="px-3 py-2">Price</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Updated</th>
+                  <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
@@ -66,6 +67,24 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                     </td>
                     <td className="px-3 py-3 capitalize">{listing.status}</td>
                     <td className="px-3 py-3 text-slate-500">{listing.updatedAt}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center justify-end gap-2 text-sm">
+                        <a
+                          href={listing.actions.editUrl}
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-primary/40 hover:text-primary"
+                        >
+                          Edit
+                        </a>
+                        {listing.actions.archiveUrl ? (
+                          <a
+                            href={listing.actions.archiveUrl}
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-red-200 hover:text-red-600"
+                          >
+                            Archive
+                          </a>
+                        ) : null}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -99,6 +118,22 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                     <dd>{listing.updatedAt}</dd>
                   </div>
                 </dl>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
+                  <a
+                    href={listing.actions.editUrl}
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-primary/40 hover:text-primary"
+                  >
+                    Edit listing
+                  </a>
+                  {listing.actions.archiveUrl ? (
+                    <a
+                      href={listing.actions.archiveUrl}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-red-200 hover:text-red-600"
+                    >
+                      Archive
+                    </a>
+                  ) : null}
+                </div>
               </article>
             ))}
           </div>
