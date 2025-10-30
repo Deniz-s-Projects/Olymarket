@@ -1,3 +1,5 @@
+import { AUTH_TOKEN_STORAGE_KEY } from '../constants/auth'
+
 const normalizeBaseUrl = (value: string) => value.replace(/\/$/, '')
 
 const defaultBaseUrl = normalizeBaseUrl(
@@ -26,7 +28,7 @@ const getAuthToken = (): string | null => {
   }
 
   try {
-    return window.localStorage.getItem('authToken')
+    return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
   } catch (error) {
     console.warn('Unable to access auth token from storage.', error)
     return null
@@ -60,6 +62,16 @@ const prepareBody = (body: unknown, headers: Headers): BodyInit | undefined => {
   }
 
   return JSON.stringify(body)
+}
+
+export class ApiError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
 }
 
 export async function apiClient<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
@@ -101,7 +113,7 @@ export async function apiClient<T>(path: string, options: ApiRequestOptions = {}
       }
     }
 
-    throw new Error(message)
+    throw new ApiError(message, response.status)
   }
 
   if (response.status === 204) {
