@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import CategoryFilter from '../components/CategoryFilter'
-import ListingCard, { type Listing } from '../components/ListingCard'
+import ListingCard from '../components/ListingCard'
 import PriceRangeFilter, { type PriceRangeOption } from '../components/PriceRangeFilter'
+import { useListings } from '../hooks/useListings'
 
 const priceRangeOptions: PriceRangeOption[] = [
   { id: 'all', label: 'Any budget', min: 0 },
@@ -11,95 +12,24 @@ const priceRangeOptions: PriceRangeOption[] = [
   { id: '150-plus', label: '$150 and up', min: 150 },
 ]
 
-const mockedListings: Listing[] = [
-  {
-    id: '1',
-    title: 'Opening Ceremony Tickets',
-    description:
-      'Secure seats for the spectacular opening ceremony with a panoramic view of the stadium and live performances.',
-    price: 320,
-    category: 'Tickets',
-    location: 'Paris, France',
-    imageUrl: 'https://images.unsplash.com/photo-1542337585-4abf19f93674?auto=format&fit=crop&w=800&q=80',
-    postedAt: '3 days ago',
-  },
-  {
-    id: '2',
-    title: 'Athlete Village Studio',
-    description:
-      'Modern studio located five minutes from the Olympic Village with flexible booking options for teams or solo travelers.',
-    price: 140,
-    category: 'Accommodation',
-    location: 'Saint-Denis, France',
-    imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=800&q=80',
-    postedAt: '2 days ago',
-  },
-  {
-    id: '3',
-    title: 'Guided Seine River Cruise',
-    description:
-      'Evening cruise tailored for Olympic visitors featuring iconic landmarks, music, and refreshments on board.',
-    price: 65,
-    category: 'Experiences',
-    location: 'Paris, France',
-    imageUrl: 'https://images.unsplash.com/photo-1522096823084-2d1aa1c4fbd0?auto=format&fit=crop&w=800&q=80',
-    postedAt: '5 hours ago',
-  },
-  {
-    id: '4',
-    title: 'Team Logistics Coordinator',
-    description:
-      'On-the-ground specialist to support transport, scheduling, and venue access throughout the competition week.',
-    price: 480,
-    category: 'Services',
-    location: 'Paris, France',
-    imageUrl: 'https://images.unsplash.com/photo-1505843513577-22bb7d21e455?auto=format&fit=crop&w=800&q=80',
-    postedAt: '1 day ago',
-  },
-  {
-    id: '5',
-    title: 'Training Facility Rental',
-    description:
-      'Reserve a private indoor training facility complete with physio room, recovery stations, and secure storage.',
-    price: 260,
-    category: 'Facilities',
-    location: 'Aubervilliers, France',
-    imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80',
-    postedAt: '6 hours ago',
-  },
-  {
-    id: '6',
-    title: 'Local Guide Day Pass',
-    description:
-      'Hire a multilingual guide to navigate venues, cultural highlights, and fan zones with tailored itineraries.',
-    price: 95,
-    category: 'Services',
-    location: 'Paris, France',
-    imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
-    postedAt: '8 hours ago',
-  },
-]
+const parsePrice = (value: string) => {
+  const numericValue = Number.parseFloat(value)
+  return Number.isNaN(numericValue) ? null : numericValue
+}
 
 const Marketplace = () => {
-  const [isLoading, setIsLoading] = useState(true)
-  const [listings, setListings] = useState<Listing[]>([])
+  const { listings, isLoading, isError, error, refetch } = useListings()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>('all')
+  const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setListings(mockedListings)
-      setIsLoading(false)
-    }, 600)
+  const categories = useMemo(() => {
+    const names = listings
+      .map((listing) => listing.category?.name?.trim())
+      .filter((name): name is string => Boolean(name && name.length > 0))
 
-    return () => window.clearTimeout(timeoutId)
-  }, [])
-
-  const categories = useMemo(
-    () => Array.from(new Set(listings.map((listing) => listing.category))).sort(),
-    [listings],
-  )
+    return Array.from(new Set(names)).sort()
+  }, [listings])
 
   const selectedPriceRange = useMemo(
     () => priceRangeOptions.find((option) => option.id === selectedPriceRangeId) ?? priceRangeOptions[0],
@@ -107,31 +37,42 @@ const Marketplace = () => {
   )
 
   const filteredListings = useMemo(() => {
-    const searchValue = searchTerm.trim().toLowerCase()
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+    const maxPrice = selectedPriceRange.max ?? Number.POSITIVE_INFINITY
 
     return listings.filter((listing) => {
+      const priceValue = parsePrice(listing.price)
+      const matchesPrice =
+        priceValue === null ? true : priceValue >= selectedPriceRange.min && priceValue <= maxPrice
+
+      const categoryName = listing.category?.name ?? ''
+      const ownerName = listing.owner?.name ?? ''
+
+      const matchesCategory = !selectedCategory || categoryName === selectedCategory
+
       const matchesSearch =
-        searchValue.length === 0 ||
-        listing.title.toLowerCase().includes(searchValue) ||
-        listing.description.toLowerCase().includes(searchValue) ||
-        listing.location.toLowerCase().includes(searchValue)
-
-      const matchesCategory = !selectedCategory || listing.category === selectedCategory
-
-      const maxPrice = selectedPriceRange.max ?? Number.POSITIVE_INFINITY
-      const matchesPrice = listing.price >= selectedPriceRange.min && listing.price <= maxPrice
+        normalizedSearch.length === 0 ||
+        [listing.title, listing.description, categoryName, ownerName]
+          .map((value) => value.toLowerCase())
+          .some((value) => value.includes(normalizedSearch))
 
       return matchesSearch && matchesCategory && matchesPrice
     })
   }, [listings, searchTerm, selectedCategory, selectedPriceRange])
 
-  const showEmptyState = !isLoading && filteredListings.length === 0
+  const showEmptyState = !isLoading && !isError && filteredListings.length === 0
 
   const handleResetFilters = () => {
     setSearchTerm('')
     setSelectedCategory(null)
-    setSelectedPriceRangeId('all')
+    setSelectedPriceRangeId(priceRangeOptions[0].id)
   }
+
+  const headerMessage = isLoading
+    ? 'Fetching the latest marketplace updates...'
+    : isError
+      ? 'We were unable to load listings. Please try again.'
+      : `${filteredListings.length} result${filteredListings.length === 1 ? '' : 's'} ready for review.`
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 lg:px-8">
@@ -220,7 +161,7 @@ const Marketplace = () => {
             <CategoryFilter categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
             <PriceRangeFilter
               options={priceRangeOptions}
-              selectedId={selectedPriceRange.id}
+              selectedId={selectedPriceRangeId}
               onSelect={(option) => setSelectedPriceRangeId(option.id)}
             />
           </div>
@@ -230,11 +171,7 @@ const Marketplace = () => {
           <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">Featured listings</h2>
-              <p className="text-sm text-slate-500">
-                {isLoading
-                  ? 'Fetching the latest marketplace updates...'
-                  : `${filteredListings.length} result${filteredListings.length === 1 ? '' : 's'} ready for review.`}
-              </p>
+              <p className="text-sm text-slate-500">{headerMessage}</p>
             </div>
             <button
               type="button"
@@ -243,6 +180,29 @@ const Marketplace = () => {
               Save this search
             </button>
           </header>
+
+          {isError && (
+            <div className="card flex flex-col gap-4 p-8">
+              <div className="flex items-center gap-3 text-slate-900">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <h3 className="text-lg font-semibold">We couldn't load the latest listings</h3>
+                  <p className="text-sm text-slate-600">
+                    {error?.message ?? 'Please refresh the page or try again in a moment.'}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={refetch}
+                  className="btn-primary inline-flex items-center rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/60"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          )}
 
           {isLoading && (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -280,7 +240,7 @@ const Marketplace = () => {
             </div>
           )}
 
-          {!isLoading && !showEmptyState && (
+          {!isLoading && !isError && !showEmptyState && (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {filteredListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
