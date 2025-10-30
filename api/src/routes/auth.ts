@@ -5,6 +5,7 @@ import { AppDataSource } from "../config";
 import { User } from "../entities/User";
 import { hashPassword, comparePassword } from "../utils/password";
 import { signToken } from "../utils/jwt";
+import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 
@@ -52,6 +53,20 @@ router.post("/login", validationMiddleware(LoginDto), async (req, res) => {
       name: user.name,
     },
     token: signToken(user.id),
+  });
+});
+
+router.get("/me", authMiddleware, (req: AuthenticatedRequest, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+
+  return res.json({
+    user: {
+      id: req.user.id,
+      email: req.user.email,
+      name: req.user.name,
+    },
   });
 });
 
