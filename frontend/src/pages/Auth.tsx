@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from "react"
-
+import { useNavigate } from 'react-router-dom';
 import { useFormValidation } from "../hooks/useFormValidation"
 import { useAuth } from "../context/useAuth"
 import { login as loginRequest, register as registerRequest } from "../services/auth"
@@ -173,10 +173,10 @@ const Auth = () => {
 
     return { text: fallback, tone: "muted" }
   }
-
+  
+  const navigate = useNavigate();
   const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
+    event.preventDefault() 
     if (!loginForm.validateForm()) {
       loginForm.setStatus(
         "error",
@@ -195,6 +195,7 @@ const Auth = () => {
 
       setAuth(response)
       loginForm.setStatus("success", "Welcome back! Redirecting you shortly.")
+      navigate('/profile'); // Redirect to homepage after successful login
     } catch (error) {
       const authError = error as AuthServiceError
       const isBannedError =
