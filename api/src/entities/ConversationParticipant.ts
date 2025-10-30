@@ -2,6 +2,7 @@ import { Entity, ManyToOne, JoinColumn, Unique, Column } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { Conversation } from "./Conversation";
 import { User } from "./User";
+import { dateTimeColumnType } from "../utils/database";
 
 @Entity({ name: "conversation_participants" })
 @Unique(["conversation", "user"])
@@ -19,6 +20,6 @@ export class ConversationParticipant extends BaseModel {
   @JoinColumn({ name: "user_id" })
   user!: User;
 
-  @Column({ name: "last_read_at", type: "timestamp", nullable: true })
+  @Column({ name: "last_read_at", type: dateTimeColumnType, nullable: true })
   lastReadAt!: Date | null;
 }

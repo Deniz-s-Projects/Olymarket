@@ -4,7 +4,7 @@ import { User } from "./User";
 
 @Entity({ name: "user_profiles" })
 export class UserProfile extends BaseModel {
-  @Column({ length: 150, nullable: true })
+  @Column({ type: "varchar", length: 150, nullable: true })
   location!: string | null;
 
   @Column({ type: "text", nullable: true })

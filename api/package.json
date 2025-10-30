@@ -26,7 +26,8 @@
     "nodemailer": "^7.0.10",
     "pg": "^8.11.5",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.20",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
