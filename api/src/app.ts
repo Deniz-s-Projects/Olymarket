@@ -9,6 +9,7 @@ import adminRoutes from "./routes/admin";
 import groupRoutes from "./routes/groups";
 import reportRoutes from "./routes/reports";
 import offerRoutes from "./routes/offers";
+import analyticsRoutes from "./routes/analytics";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/admin", adminRoutes);
 app.use("/groups", groupRoutes);
 app.use("/reports", reportRoutes);
 app.use("/offers", offerRoutes);
+app.use("/analytics", analyticsRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

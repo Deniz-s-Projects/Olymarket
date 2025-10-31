@@ -1,4 +1,4 @@
-import { Entity, Column, OneToMany, Unique } from "typeorm";
+import { Entity, Column, OneToMany, Unique, OneToOne } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { Listing } from "./Listing";
 import { ConversationParticipant } from "./ConversationParticipant";
@@ -6,6 +6,7 @@ import { Message } from "./Message";
 import { SavedListing } from "./SavedListing";
 import { GroupMember } from "./GroupMember";
 import { Offer } from "./Offer";
+import { UserPreference } from "./UserPreference";
 
 @Entity({ name: "users" })
 @Unique(["email"])
@@ -18,6 +19,9 @@ export class User extends BaseModel {
 
   @Column({ length: 150 })
   name!: string;
+
+  @Column({ name: "phone_number", length: 32 })
+  phoneNumber!: string;
 
   @Column({ type: "varchar", length: 255, nullable: true })
   location!: string | null;
@@ -61,4 +65,6 @@ export class User extends BaseModel {
 
   @OneToMany(() => Offer, (offer) => offer.seller)
   offersReceived!: Offer[];
+  @OneToOne(() => UserPreference, (preference) => preference.user)
+  preference?: UserPreference | null;
 }

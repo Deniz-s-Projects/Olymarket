@@ -120,12 +120,61 @@ const confirmPasswordValidator = (value: string, values: { password: string }) =
   }
 }
 
+const COUNTRY_OPTIONS = [
+  { code: "+1", label: "United States / Canada" },
+  { code: "+44", label: "United Kingdom" },
+  { code: "+33", label: "France" },
+  { code: "+49", label: "Germany" },
+  { code: "+34", label: "Spain" },
+  { code: "+39", label: "Italy" },
+  { code: "+61", label: "Australia" },
+  { code: "+81", label: "Japan" },
+  { code: "+91", label: "India" },
+  { code: "+234", label: "Nigeria" },
+] as const
+
+const buildPhoneNumberValidator = (countryCode: string) => {
+  const countryDigits = countryCode.replace(/[^0-9]/g, "")
+  const maxLocalDigits = Math.max(4, 15 - countryDigits.length)
+
+  return (value: string) => {
+    const digitsOnly = value.replace(/[^0-9]/g, "")
+    const helper = "We'll text important alerts to this number."
+
+    if (!digitsOnly) {
+      return {
+        error: "Phone number is required.",
+        helper: "Enter the number where we can reach you for security checks.",
+      }
+    }
+
+    if (digitsOnly.length < 4) {
+      return {
+        error: "Phone number is too short.",
+        helper: "Include at least 4 digits after the country code.",
+      }
+    }
+
+    if (digitsOnly.length > maxLocalDigits) {
+      return {
+        error: "Phone number is too long.",
+        helper: `Use up to ${maxLocalDigits} digits after the country code.`,
+      }
+    }
+
+    return { helper }
+  }
+}
+
 const Auth = () => {
   const [activeForm, setActiveForm] = useState<ActiveForm>("login")
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] =
     useState(false)
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string>(
+    COUNTRY_OPTIONS[0].code
+  )
   const { login: setAuth, banNotice } = useAuth()
 
   const loginForm = useFormValidation(
@@ -140,18 +189,25 @@ const Auth = () => {
   )
 
   const registerForm = useFormValidation(
-    { fullName: "", email: "", password: "", confirmPassword: "" },
+    {
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: "",
+    },
     useMemo(
       () => ({
         fullName: (value) => fullNameValidator(value),
         email: (value) => emailValidator(value),
+        phoneNumber: (value) => buildPhoneNumberValidator(selectedCountryCode)(value),
         password: (value) => passwordValidator(value),
         confirmPassword: (value, values) =>
           confirmPasswordValidator(value, {
             password: values.password,
           }),
       }),
-      []
+      [selectedCountryCode]
     )
   )
 
@@ -243,9 +299,13 @@ const Auth = () => {
     registerForm.setStatus("loading", "Creating your account...")
 
     try {
+      const sanitizedPhone = registerPhoneField.value.replace(/[^0-9]/g, "")
+      const phoneNumber = `${selectedCountryCode}${sanitizedPhone}`
+
       const response = await registerRequest({
         name: registerNameField.value,
         email: registerEmailField.value,
+        phoneNumber,
         password: registerPasswordField.value,
       })
 
@@ -296,6 +356,7 @@ const Auth = () => {
   const loginPasswordField = loginForm.getFieldState("password")
   const registerNameField = registerForm.getFieldState("fullName")
   const registerEmailField = registerForm.getFieldState("email")
+  const registerPhoneField = registerForm.getFieldState("phoneNumber")
   const registerPasswordField = registerForm.getFieldState("password")
   const registerConfirmPasswordField = registerForm.getFieldState("confirmPassword")
 
@@ -524,6 +585,64 @@ const Auth = () => {
               {renderHelperText(
                 registerEmailField,
                 "We'll use this email for confirmations and alerts."
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label
+                className="text-sm font-semibold text-slate-700"
+                htmlFor="register-phone"
+              >
+                Phone number
+              </label>
+              <div className="flex gap-2">
+                <div className="w-32">
+                  <label className="sr-only" htmlFor="register-phone-country">
+                    Country code
+                  </label>
+                  <select
+                    id="register-phone-country"
+                    value={selectedCountryCode}
+                    onChange={(event) => setSelectedCountryCode(event.target.value)}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                      registerPhoneField.isTouched && registerPhoneField.error
+                        ? "border-red-500"
+                        : "border-slate-200"
+                    }`}
+                    aria-label="Select country calling code"
+                  >
+                    {COUNTRY_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.label} ({option.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <input
+                    id="register-phone"
+                    type="tel"
+                    inputMode="tel"
+                    value={registerPhoneField.value}
+                    onChange={registerForm.handleChange("phoneNumber")}
+                    onBlur={() => registerForm.handleBlur("phoneNumber")}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                      registerPhoneField.isTouched && registerPhoneField.error
+                        ? "border-red-500"
+                        : "border-slate-200"
+                    }`}
+                    placeholder="555 123 4567"
+                    autoComplete="tel"
+                    aria-invalid={
+                      registerPhoneField.isTouched &&
+                      Boolean(registerPhoneField.error)
+                    }
+                  />
+                </div>
+              </div>
+              {renderHelperText(
+                registerPhoneField,
+                "Add a phone number with country code for account security."
               )}
             </div>
 

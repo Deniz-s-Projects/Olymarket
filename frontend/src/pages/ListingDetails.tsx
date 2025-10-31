@@ -18,6 +18,7 @@ import { useAuth } from '../context/useAuth'
 import ReportModal from '../components/ReportModal'
 import OfferStatusBadge from '../components/offers/OfferStatusBadge'
 import OfferTimeline from '../components/offers/OfferTimeline'
+import { shareListing } from '../lib/shareListing'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -81,6 +82,23 @@ const ListingDetails = () => {
       setOffersError(err instanceof Error ? err.message : 'Failed to load offers')
     }
   }, [id, token])
+  const [isSharing, setIsSharing] = useState(false)
+  const [shareFeedback, setShareFeedback] = useState<{
+    message: string
+    type: 'success' | 'error'
+  } | null>(null)
+
+  useEffect(() => {
+    if (!shareFeedback) return
+
+    const timeout = window.setTimeout(() => {
+      setShareFeedback(null)
+    }, 4000)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [shareFeedback])
 
   useEffect(() => {
     let mounted = true
@@ -149,12 +167,14 @@ const ListingDetails = () => {
     )
   }
 
-  const { title, description, price, isFree, category, owner, createdAt } = listing
+  const { title, description, price, isFree, category, owner, createdAt, availability, preferredContactMethod } = listing
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
   const viewerRole = offersData?.viewerRole ?? null
   const offers = offersData?.offers ?? []
   const hasPendingOffer = offers.some((offerItem) => offerItem.status === 'pending')
   const currentUserId = user ? String(user.id) : null
+  const availabilityInfo = availability?.trim() ?? ''
+  const preferredContactInfo = preferredContactMethod?.trim() ?? ''
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -389,6 +409,33 @@ const ListingDetails = () => {
       setOfferActionError(err instanceof Error ? err.message : 'Failed to counter the offer')
     } finally {
       setActiveAction(null)
+  const handleShareListing = async () => {
+    if (!listing) return
+    if (typeof window === 'undefined') {
+      setShareFeedback({ message: 'Sharing is only available in the browser.', type: 'error' })
+      return
+    }
+
+    setIsSharing(true)
+    try {
+      const result = await shareListing({
+        url: window.location.href,
+        title: listing.title,
+        text: listing.description ? `${listing.title} — ${listing.description.slice(0, 180)}` : listing.title,
+      })
+
+      setShareFeedback({
+        message:
+          result.method === 'web-share'
+            ? 'Share dialog opened. Send this listing to your network!'
+            : 'Listing link copied to your clipboard.',
+        type: 'success',
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to share listing. Please try again.'
+      setShareFeedback({ message, type: 'error' })
+    } finally {
+      setIsSharing(false)
     }
   }
 
@@ -725,11 +772,11 @@ const ListingDetails = () => {
 
         <aside className="space-y-4 lg:sticky lg:top-8 self-start">
           <div className="rounded-2xl bg-white p-6 shadow">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                {isFree ? (
-                  <>
-                    <div className="text-3xl font-semibold text-green-600">FREE</div>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  {isFree ? (
+                    <>
+                      <div className="text-3xl font-semibold text-green-600">FREE</div>
                     <div className="mt-1 flex items-center gap-2 text-sm text-green-600">
                       <span>🎁</span>
                       <span>Being given away for free!</span>
@@ -759,11 +806,26 @@ const ListingDetails = () => {
                 <button
                   type="button"
                   title="Share"
+                  onClick={handleShareListing}
+                  disabled={isSharing}
                   className="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                 >
-                  Share
+                  {isSharing ? 'Sharing…' : 'Share'}
                 </button>
               </div>
+            </div>
+            <div className="mt-5 rounded-xl bg-slate-50 p-4">
+              <h2 className="text-sm font-semibold text-slate-700">Availability &amp; contact</h2>
+              <dl className="mt-3 space-y-3 text-sm text-slate-600">
+                <div>
+                  <dt className="font-medium text-slate-500">Availability</dt>
+                  <dd>{availabilityInfo || 'Seller has not specified availability yet.'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">Preferred contact</dt>
+                  <dd>{preferredContactInfo || 'Seller has not shared a preferred contact method yet.'}</dd>
+                </div>
+              </dl>
             </div>
             <button
               type="button"
@@ -809,9 +871,31 @@ const ListingDetails = () => {
         </aside>
       </div>
 
-      {reportSuccess && (
-        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white shadow-lg">
-          Report submitted successfully. Our team will review it soon.
+      {(shareFeedback || reportSuccess) && (
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+          {shareFeedback ? (
+            <div
+              className={`flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${
+                shareFeedback.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+              }`}
+              role="status"
+            >
+              <span>{shareFeedback.message}</span>
+              <button
+                type="button"
+                onClick={() => setShareFeedback(null)}
+                className="text-white transition hover:opacity-80"
+                aria-label="Dismiss notification"
+              >
+                ✕
+              </button>
+            </div>
+          ) : null}
+          {reportSuccess ? (
+            <div className="rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white shadow-lg">
+              Report submitted successfully. Our team will review it soon.
+            </div>
+          ) : null}
         </div>
       )}
 

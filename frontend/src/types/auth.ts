@@ -14,6 +14,7 @@ export type AuthUser = {
   id: string
   email: string
   name: string
+  phoneNumber: string
   role: UserRole
   isBanned: boolean
   banReason?: string | null
@@ -32,4 +33,5 @@ export type AuthCredentials = {
 
 export type RegisterPayload = AuthCredentials & {
   name: string
+  phoneNumber: string
 }
