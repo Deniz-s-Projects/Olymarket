@@ -138,6 +138,7 @@ const StatsPanel = ({ addToast }: PanelProps) => {
   const [stats, setStats] = useState<UsageStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -156,6 +157,7 @@ const StatsPanel = ({ addToast }: PanelProps) => {
       const result = await fetchUsageStats()
       if (isMountedRef.current) {
         setStats(result)
+        setLastRefreshedAt(new Date())
       }
     } catch (err) {
       if (isMountedRef.current) {
@@ -197,6 +199,29 @@ const StatsPanel = ({ addToast }: PanelProps) => {
       {/* Stats display */}
       {!loading && !error && stats && (
         <>
+          <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+            <h2 className="text-lg font-semibold text-slate-900">Statistics Overview</h2>
+            <div className="flex flex-col items-start gap-2 text-xs text-slate-600 md:flex-row md:items-center md:gap-4">
+              {lastRefreshedAt && (
+                <span>
+                  Last refreshed: {lastRefreshedAt.toLocaleString()}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={loadStats}
+                disabled={loading}
+                className={`rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                  loading
+                    ? 'cursor-not-allowed bg-slate-400'
+                    : 'bg-primary hover:bg-primary/90 focus-visible:outline-primary'
+                }`}
+              >
+                {loading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+
           {/* Overview cards */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Listings card */}
