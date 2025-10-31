@@ -11,9 +11,9 @@ import SavedItemsCard from '../components/profile/SavedItemsCard'
 import AnnouncementsBoard from '../components/announcements/AnnouncementsBoard'
 import { FEATURE_REQUEST_EMAIL, GENERAL_FEEDBACK_EMAIL } from '../constants/support'
 import { useAuth } from '../context/useAuth'
-import useProfile from '../hooks/useProfile'
+import useProfile from '../hooks/useProfile' 
 import useAnnouncements from '../hooks/useAnnouncements'
-import type { ProfileAccountInfo, ProfileListingStatus } from '../types/profile'
+import type { ProfileAccountInfo, ProfileListingStatusAction } from '../types/profile'
 import { updateListingStatus } from '../services/listings'
 import { ApiError } from '../lib/apiClient'
 
@@ -77,7 +77,7 @@ const Profile = () => {
   }, [activeTab, communityNewsPreferenceEnabled, refetchCommunityAnnouncements])
 
   const handleListingStatusChange = useCallback(
-    async (listingId: string, status: ProfileListingStatus) => {
+    async (listingId: string, status: ProfileListingStatusAction) => {
       setPendingListingId(listingId)
       setListingActionError(null)
 
