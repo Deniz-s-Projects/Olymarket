@@ -82,10 +82,11 @@ const buildQueryParams = (filters: ListingsFilters): Omit<ListingsQueryParams, '
 }
 
 export const useListings = (
-  filters: ListingsFilters = {},
-  options: UseListingsOptions = {},
+  filters?: ListingsFilters,
+  options?: UseListingsOptions,
 ): ListingsState => {
-  const limit = options.limit ?? DEFAULT_PAGE_SIZE
+  const resolvedOptions = options ?? {}
+  const limit = resolvedOptions.limit ?? DEFAULT_PAGE_SIZE
 
   const [listings, setListings] = useState<Listing[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -96,7 +97,7 @@ export const useListings = (
   const [hasMore, setHasMore] = useState(false)
   const requestIdRef = useRef(0)
 
-  const queryFilters = useMemo(() => buildQueryParams(filters), [filters])
+  const queryFilters = useMemo(() => buildQueryParams(filters ?? {}), [filters])
 
   const loadListings = useCallback(
     async (pageToLoad: number, append: boolean) => {

@@ -25,7 +25,7 @@ export class GroupEvent extends BaseModel {
   @Column({ type: "timestamptz", name: "end_at", nullable: true })
   endAt!: Date | null;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: "varchar", length: 255, nullable: true })
   location!: string | null;
 
   @Column({ name: "is_all_day", type: "boolean", default: false })

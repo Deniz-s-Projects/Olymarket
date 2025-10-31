@@ -1,4 +1,4 @@
-import { ArrayMaxSize, IsArray, IsBoolean, IsNotEmpty, IsNumberString, IsOptional, IsString, MaxLength } from "class-validator";
+import { ArrayMaxSize, IsArray, IsBoolean, IsNotEmpty, IsNumberString, IsOptional, IsString, MaxLength, IsIn } from "class-validator";
 
 export class ListingDto {
   @IsString()

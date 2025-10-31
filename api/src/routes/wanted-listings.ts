@@ -90,7 +90,7 @@ const buildWantedListingsQuery = (
     .leftJoinAndSelect("wanted.category", "category")
     .leftJoinAndSelect("wanted.fulfillingSeller", "fulfillingSeller")
     .leftJoinAndSelect("wanted.conversation", "conversation")
-    .orderBy("wanted.created_at", "DESC");
+    .orderBy("wanted.createdAt", "DESC");
 
   const searchTerm = typeof req.query.q === "string" ? req.query.q.trim() : "";
   if (searchTerm) {
