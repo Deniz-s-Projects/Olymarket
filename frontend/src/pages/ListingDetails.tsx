@@ -19,6 +19,7 @@ import ReportModal from '../components/ReportModal'
 import OfferStatusBadge from '../components/offers/OfferStatusBadge'
 import OfferTimeline from '../components/offers/OfferTimeline'
 import { shareListing } from '../lib/shareListing'
+import PickupLocationsMap from '../components/PickupLocationsMap'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -497,6 +498,10 @@ const ListingDetails = () => {
             <h1 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">{title}</h1>
             <p className="mt-3 whitespace-pre-line text-slate-700">{description}</p>
           </article>
+
+          <section className="rounded-2xl bg-white p-6 shadow">
+            <PickupLocationsMap />
+          </section>
 
           <section className="rounded-2xl bg-white p-6 shadow">
             <div className="flex flex-wrap items-center justify-between gap-3">
