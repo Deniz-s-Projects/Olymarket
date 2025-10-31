@@ -1,5 +1,7 @@
 import type {
   Group,
+  GroupSummary,
+  PaginatedResponse,
   CreateGroupPayload,
   UpdateGroupPayload,
   GroupEvent,
@@ -16,8 +18,14 @@ import { apiClient } from '../lib/apiClient'
 
 export const groupsService = {
   // Get all groups, optionally filtered by type
-  async getGroups(type?: string): Promise<Group[]> {
-    return apiClient<Group[]>('/groups', { params: type ? { type } : undefined })
+  async getGroups(params?: {
+    type?: string
+    page?: number
+    limit?: number
+  }): Promise<PaginatedResponse<GroupSummary>> {
+    return apiClient<PaginatedResponse<GroupSummary>>('/groups', {
+      params,
+    })
   },
 
   // Get a specific group by ID
@@ -66,8 +74,13 @@ export const groupsService = {
   },
 
   // Get user's groups
-  async getMyGroups(): Promise<Group[]> {
-    return apiClient<Group[]>('/groups/my/groups')
+  async getMyGroups(params?: {
+    page?: number
+    limit?: number
+  }): Promise<PaginatedResponse<GroupSummary>> {
+    return apiClient<PaginatedResponse<GroupSummary>>('/groups/my/groups', {
+      params,
+    })
   },
 
   async getGroupEvents(groupId: string): Promise<GroupEvent[]> {

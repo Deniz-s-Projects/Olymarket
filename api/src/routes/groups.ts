@@ -63,19 +63,56 @@ router.get("/", async (req, res) => {
   const groupRepository = AppDataSource.getRepository(Group);
   const type = req.query.type as string | undefined;
 
+  const page = Math.max(parseInt((req.query.page as string) ?? "1", 10) || 1, 1);
+  const limit = Math.max(
+    Math.min(parseInt((req.query.limit as string) ?? "12", 10) || 12, 100),
+    1,
+  );
+  const skip = (page - 1) * limit;
+
   const query = groupRepository
     .createQueryBuilder("group")
     .leftJoinAndSelect("group.owner", "owner")
-    .leftJoinAndSelect("group.members", "members")
-    .leftJoinAndSelect("members.user", "memberUser")
-    .where("group.isActive = :isActive", { isActive: true });
+    .where("group.isActive = :isActive", { isActive: true })
+    .loadRelationCountAndMap("group.memberCount", "group.members");
 
   if (type && ["hobby", "interest", "block"].includes(type)) {
     query.andWhere("group.type = :type", { type });
   }
 
-  const groups = await query.orderBy("group.createdAt", "DESC").getMany();
-  return res.json(groups);
+  const [groups, total] = await query
+    .orderBy("group.createdAt", "DESC")
+    .skip(skip)
+    .take(limit)
+    .getManyAndCount();
+
+  const data = groups.map((group) => ({
+    id: group.id,
+    name: group.name,
+    description: group.description,
+    type: group.type,
+    isActive: group.isActive,
+    owner: group.owner
+      ? {
+          id: group.owner.id,
+          name: group.owner.name,
+        }
+      : null,
+    memberCount: (group as Group & { memberCount?: number }).memberCount ?? 0,
+    createdAt: group.createdAt,
+    updatedAt: group.updatedAt,
+  }));
+
+  return res.json({
+    data,
+    meta: {
+      total,
+      page,
+      limit,
+      pageCount: Math.ceil(total / limit),
+      hasMore: skip + groups.length < total,
+    },
+  });
 });
 
 // Group events --------------------------------------------------------------
@@ -770,13 +807,56 @@ router.post("/:id/leave", authMiddleware, async (req: AuthenticatedRequest, res)
 router.get("/my/groups", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const groupMemberRepository = AppDataSource.getRepository(GroupMember);
 
-  const memberships = await groupMemberRepository.find({
-    where: { user: { id: req.user!.id } },
-    relations: ["group", "group.owner", "group.members", "group.members.user"],
-  });
+  const page = Math.max(parseInt((req.query.page as string) ?? "1", 10) || 1, 1);
+  const limit = Math.max(
+    Math.min(parseInt((req.query.limit as string) ?? "12", 10) || 12, 100),
+    1,
+  );
+  const skip = (page - 1) * limit;
 
-  const groups = memberships.map((membership) => membership.group);
-  return res.json(groups);
+  const membershipQuery = groupMemberRepository
+    .createQueryBuilder("membership")
+    .innerJoinAndSelect("membership.group", "group")
+    .leftJoinAndSelect("group.owner", "owner")
+    .where("membership.user_id = :userId", { userId: req.user!.id })
+    .loadRelationCountAndMap("group.memberCount", "group.members");
+
+  const [memberships, total] = await membershipQuery
+    .orderBy("group.createdAt", "DESC")
+    .skip(skip)
+    .take(limit)
+    .getManyAndCount();
+
+  const data = memberships.map((membership) => ({
+    id: membership.group.id,
+    name: membership.group.name,
+    description: membership.group.description,
+    type: membership.group.type,
+    isActive: membership.group.isActive,
+    owner: membership.group.owner
+      ? {
+          id: membership.group.owner.id,
+          name: membership.group.owner.name,
+        }
+      : null,
+    memberCount:
+      (membership.group as Group & { memberCount?: number }).memberCount ?? 0,
+    createdAt: membership.group.createdAt,
+    updatedAt: membership.group.updatedAt,
+    membershipRole: membership.role,
+    isMember: true,
+  }));
+
+  return res.json({
+    data,
+    meta: {
+      total,
+      page,
+      limit,
+      pageCount: Math.ceil(total / limit),
+      hasMore: skip + memberships.length < total,
+    },
+  });
 });
 
 export default router;
