@@ -8,6 +8,7 @@ import ProfileListingsTab from '../components/profile/ProfileListingsTab'
 import ProfileTabs, { type ProfileTabConfig } from '../components/profile/ProfileTabs'
 import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
+import { FEATURE_REQUEST_EMAIL, GENERAL_FEEDBACK_EMAIL } from '../constants/support'
 import { useAuth } from '../context/useAuth'
 import useProfile from '../hooks/useProfile'
 import type { ProfileAccountInfo, ProfileListingStatus } from '../types/profile'
@@ -197,12 +198,26 @@ const Profile = () => {
         metrics={metrics}
         isLoading={isLoading}
         actions={
-          <Link
-            to={createListingUrl}
-            className="inline-flex items-center justify-center rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
-          >
-            Create Listing
-          </Link>
+          <>
+            <a
+              href={FEATURE_REQUEST_EMAIL}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+            >
+              Feature Request
+            </a>
+            <a
+              href={GENERAL_FEEDBACK_EMAIL}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+            >
+              Send Feedback
+            </a>
+            <Link
+              to={createListingUrl}
+              className="inline-flex items-center justify-center rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
+            >
+              Create Listing
+            </Link>
+          </>
         }
       />
       {banNotice ? (
