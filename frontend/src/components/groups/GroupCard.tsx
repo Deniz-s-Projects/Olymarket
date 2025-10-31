@@ -10,9 +10,17 @@ type Props = {
   group: GroupSummary
   onGroupUpdated: (group: GroupSummary) => void
   onGroupDeleted: (groupId: string) => void
+  onSelect?: (group: Group) => void
+  isSelected?: boolean
 }
 
-const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
+const GroupCard: FC<Props> = ({
+  group,
+  onGroupUpdated,
+  onGroupDeleted,
+  onSelect,
+  isSelected = false,
+}) => {
   const { token, user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -86,9 +94,21 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
     }
   }
 
+  const handleSelect = () => {
+    if (onSelect) {
+      onSelect(group)
+    }
+  }
+
   return (
     <>
-      <div className="flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+      <div
+        className={`flex flex-col rounded-lg border bg-white p-6 shadow-sm transition hover:shadow-md ${
+          isSelected
+            ? 'border-primary ring-2 ring-primary/40'
+            : 'border-slate-200'
+        }`}
+      >
         <div className="mb-3 flex items-start justify-between">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-slate-800">{group.name}</h3>
@@ -125,8 +145,21 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
           </span>
         </div>
 
-        <div className="text-xs text-slate-400">
-          Created by {group.owner?.name ?? 'Unknown'}
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <span>Created by {group.owner?.name ?? 'Unknown'}</span>
+          {onSelect ? (
+            <button
+              type="button"
+              onClick={handleSelect}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                isSelected
+                  ? 'bg-primary text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary'
+              }`}
+            >
+              {isSelected ? 'Viewing' : 'View details'}
+            </button>
+          ) : null}
         </div>
 
         {user && (
