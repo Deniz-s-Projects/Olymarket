@@ -73,3 +73,29 @@ export const updateListing = async (id: string, payload: ListingPayload) => {
 export const fetchListingCategories = async () => {
   return apiClient<ListingCategory[]>('/categories')
 }
+
+export const checkListingSaved = async (id: string, token: string) => {
+  return apiClient<{ isSaved: boolean }>(`/listings/${id}/saved`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const saveListing = async (id: string, token: string) => {
+  return apiClient<{ message: string; isSaved: boolean }>(`/listings/${id}/save`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const unsaveListing = async (id: string, token: string) => {
+  return apiClient<{ message: string; isSaved: boolean }>(`/listings/${id}/save`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
