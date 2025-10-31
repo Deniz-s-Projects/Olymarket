@@ -24,6 +24,7 @@ const Marketplace = () => {
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
   const [showFreeOnly, setShowFreeOnly] = useState(false)
   const [savedSearches, setSavedSearches] = useState<SavedMarketplaceSearch[]>([])
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [feedback, setFeedback] = useState<
     | {
         type: 'success' | 'error'
