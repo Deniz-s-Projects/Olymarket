@@ -139,7 +139,7 @@ const ListingDetails = () => {
   useEffect(() => {
     void refreshOffers()
   }, [refreshOffers])
-
+  const soldAtLabel = useMemo(() => formatDate(listing?.soldAt ?? undefined), [listing?.soldAt])
   // Hooks must be called unconditionally: compute gallery before any early returns
   const images = listing?.images ?? []
   const gallery = useMemo(() => (images && images.length > 0 ? images : []), [images])
@@ -173,8 +173,7 @@ const ListingDetails = () => {
   const offers = offersData?.offers ?? []
   const hasPendingOffer = offers.some((offerItem) => offerItem.status === 'pending')
   const currentUserId = user ? String(user.id) : null
-  const isSold = listing.status === 'sold'
-  const soldAtLabel = useMemo(() => formatDate(listing.soldAt ?? undefined), [listing?.soldAt])
+  const isSold = listing.status === 'sold' 
 
   const handleContactSeller = async () => {
     if (!token) {

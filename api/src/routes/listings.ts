@@ -13,7 +13,7 @@ type ListingQueryFilters = {
 };
 
 const MAX_PAGE_SIZE = 50;
-const DEFAULT_PAGE_SIZE = 12;
+const DEFAULT_PAGE_SIZE = 10;
 
 const parseNumberParam = (value: unknown): number | undefined => {
   if (typeof value === "number") {
