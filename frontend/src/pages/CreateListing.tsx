@@ -343,16 +343,16 @@ const CreateListing = () => {
     })
   }
 
-  const handleRemovePhoto = (id: string) => {
+  const handleRemovePhoto = (photoId: string) => {
     setPhotos((prev) => {
-      const removed = prev.find((preview) => preview.id === id)
-      if (removed && !id.startsWith("existing-")) {
+      const removed = prev.find((preview) => preview.id === photoId)
+      if (removed && !photoId.startsWith("existing-")) {
         URL.revokeObjectURL(removed.url)
       }
-      return prev.filter((preview) => preview.id !== id)
+      return prev.filter((preview) => preview.id !== photoId)
     })
-    if (!id.startsWith("existing-")) {
-      setPhotoFiles((prev) => prev.filter((file) => !id.startsWith(file.name + '-' + file.lastModified)))
+    if (!photoId.startsWith("existing-")) {
+      setPhotoFiles((prev) => prev.filter((file) => !photoId.startsWith(file.name + '-' + file.lastModified)))
     }
   }
 
