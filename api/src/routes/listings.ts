@@ -82,7 +82,8 @@ const buildListingsQuery = (
     .leftJoinAndSelect("listing.owner", "owner")
     .leftJoinAndSelect("listing.category", "category")
     .where("listing.moderation_status = :status", { status: "approved" })
-    .andWhere("owner.is_banned = false");
+    .andWhere("owner.is_banned = false")
+    .andWhere("listing.status = :activeStatus", { activeStatus: "active" });
 
   const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
   if (category) {
@@ -173,6 +174,20 @@ const resolveStatusFromBody = (body: any, fallback?: ListingStatus): ListingStat
   return fallback;
 };
 
+const applyStatusToListing = (listing: Listing, status: ListingStatus) => {
+  const previousStatus = listing.status;
+  listing.status = status;
+  listing.isActive = status === "active";
+
+  if (status === "sold") {
+    if (previousStatus !== "sold" || !listing.soldAt) {
+      listing.soldAt = new Date();
+    }
+  } else if (previousStatus === "sold") {
+    listing.soldAt = null;
+  }
+};
+
 router.post(
   "/",
   authMiddleware,
@@ -202,6 +217,7 @@ router.post(
       isFree: req.body.isFree ?? false,
       isActive: status === "active",
       status,
+      soldAt: null,
       owner: req.user!,
       category,
       images: Array.isArray(req.body.images) ? req.body.images : [],
@@ -292,8 +308,7 @@ router.put(
       return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
     }
 
-    listing.status = resolvedStatus;
-    listing.isActive = listing.status === "active";
+    applyStatusToListing(listing, resolvedStatus);
     listing.category = category ?? null;
     listing.availability = availability || null;
     listing.preferredContactMethod = preferredContactMethod || null;
@@ -329,8 +344,7 @@ router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, re
     return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
   }
 
-  listing.status = status;
-  listing.isActive = status === "active";
+  applyStatusToListing(listing, status);
 
   const saved = await listingRepository.save(listing);
   return res.json(saved);

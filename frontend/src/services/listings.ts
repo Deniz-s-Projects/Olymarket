@@ -22,6 +22,7 @@ export type Listing = {
   isFree: boolean
   isActive: boolean
   status: ListingStatus
+  soldAt?: string | null
   createdAt: string
   updatedAt: string
   owner: ListingOwner

@@ -174,6 +174,7 @@ const ListingDetails = () => {
   const hasPendingOffer = offers.some((offerItem) => offerItem.status === 'pending')
   const currentUserId = user ? String(user.id) : null
   const isSold = listing.status === 'sold'
+  const soldAtLabel = useMemo(() => formatDate(listing.soldAt ?? undefined), [listing?.soldAt])
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -793,7 +794,11 @@ const ListingDetails = () => {
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                       <span>🛑</span>
-                      <span>This item has been sold and is no longer available.</span>
+                      <span>
+                        {soldAtLabel
+                          ? `This item was sold on ${soldAtLabel} and is no longer available.`
+                          : 'This item has been sold and is no longer available.'}
+                      </span>
                     </div>
                   </>
                 ) : isFree ? (
@@ -837,8 +842,15 @@ const ListingDetails = () => {
               </div>
             </div>
             {isSold ? (
-              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                This listing has been marked as sold. Browse similar listings on the marketplace for other options.
+              <div className="mt-5 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <p>
+                  {soldAtLabel
+                    ? `This listing was sold on ${soldAtLabel}. Browse similar listings on the marketplace for other options.`
+                    : 'This listing has been marked as sold. Browse similar listings on the marketplace for other options.'}
+                </p>
+                {soldAtLabel ? (
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Sold on {soldAtLabel}</p>
+                ) : null}
               </div>
             ) : (
               <>
