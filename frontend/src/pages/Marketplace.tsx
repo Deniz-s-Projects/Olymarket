@@ -42,12 +42,13 @@ const Marketplace = () => {
     const maxPrice = selectedPriceRange.max ?? Number.POSITIVE_INFINITY
 
     return listings.filter((listing) => {
-      // Free items filter
-      if (showFreeOnly && !listing.isFree) {
+      const priceValue = parsePrice(listing.price)
+      if (showFreeOnly) {
+        if (listing.isFree) return true
+        if (priceValue !== null && priceValue === 0) return true
         return false
       }
 
-      const priceValue = parsePrice(listing.price)
       const matchesPrice =
         listing.isFree || priceValue === null ? true : priceValue >= selectedPriceRange.min && priceValue <= maxPrice
 

@@ -166,6 +166,12 @@ router.delete("/listings/:id", async (req, res) => {
   if (!listing) {
     return res.status(404).json({ message: "Listing not found" });
   }
+    await AppDataSource.createQueryBuilder()
+    .delete()
+    .from("saved_listings")
+    .where("listing_id = :id", { id: listing.id })
+    .execute();
+    
   await listingRepository.remove(listing);
   return res.status(204).send();
 });

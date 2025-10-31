@@ -52,6 +52,10 @@ export type ListingPayload = {
 
 const normalizeListingPayload = (payload: ListingPayload) => {
   const { categoryId, ...rest } = payload
+  const priceNum = Number(rest.price);
+  // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
+  const isFree = priceNum < 1 ? true : rest.isFree;
+  rest.isFree = isFree
   return {
     ...rest,
     categoryId: categoryId ? categoryId : undefined,
