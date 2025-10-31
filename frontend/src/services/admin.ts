@@ -99,3 +99,37 @@ export const unbanUser = async (id: string) => {
     },
   )
 }
+
+// Usage statistics types
+export type PopularCategory = {
+  id: string
+  name: string
+  listingCount: number
+}
+
+export type UsageStats = {
+  listings: {
+    total: number
+    pending: number
+    approved: number
+    rejected: number
+    active: number
+  }
+  users: {
+    total: number
+    active: number
+    banned: number
+  }
+  conversations: {
+    total: number
+  }
+  messages: {
+    total: number
+  }
+  popularCategories: PopularCategory[]
+}
+
+// Fetch usage statistics
+export const fetchUsageStats = async () => {
+  return apiClient<UsageStats>('/admin/stats')
+}

@@ -4,6 +4,8 @@ import { authMiddleware, requireAdmin, AuthenticatedRequest } from "../middlewar
 import { Listing } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
 import { User } from "../entities/User";
+import { Conversation } from "../entities/Conversation";
+import { Message } from "../entities/Message";
 import { validationMiddleware } from "../middleware/validate";
 import { AdminListingUpdateDto } from "../dtos/admin";
 
@@ -11,6 +13,81 @@ const router = Router();
 
 // All routes below require auth + admin
 router.use(authMiddleware, requireAdmin);
+
+// GET /admin/stats - Get usage statistics
+router.get("/stats", async (_req, res) => {
+  const listingRepo = AppDataSource.getRepository(Listing);
+  const userRepo = AppDataSource.getRepository(User);
+  const categoryRepo = AppDataSource.getRepository(ListingCategory);
+  const conversationRepo = AppDataSource.getRepository(Conversation);
+  const messageRepo = AppDataSource.getRepository(Message);
+
+  // Get listing counts by status
+  const listingsByStatus = await listingRepo
+    .createQueryBuilder("listing")
+    .select("listing.moderationStatus", "status")
+    .addSelect("COUNT(listing.id)", "count")
+    .groupBy("listing.moderationStatus")
+    .getRawMany<{ status: string; count: string }>();
+
+  const listingStats = {
+    total: await listingRepo.count(),
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    active: await listingRepo.count({ where: { isActive: true } }),
+  };
+  
+  listingsByStatus.forEach((stat) => {
+    const count = Number(stat.count);
+    if (stat.status === "pending") listingStats.pending = count;
+    else if (stat.status === "approved") listingStats.approved = count;
+    else if (stat.status === "rejected") listingStats.rejected = count;
+  });
+
+  // Get user counts
+  const userStats = {
+    total: await userRepo.count(),
+    active: await userRepo.count({ where: { isBanned: false } }),
+    banned: await userRepo.count({ where: { isBanned: true } }),
+  };
+
+  // Get category stats - count listings per category
+  const categoriesWithCounts = await categoryRepo
+    .createQueryBuilder("category")
+    .leftJoin("category.listings", "listing")
+    .select("category.id", "id")
+    .addSelect("category.name", "name")
+    .addSelect("COUNT(listing.id)", "listingCount")
+    .groupBy("category.id")
+    .addGroupBy("category.name")
+    .orderBy("COUNT(listing.id)", "DESC")
+    .limit(10)
+    .getRawMany<{ id: string; name: string; listingCount: string }>();
+
+  const popularCategories = categoriesWithCounts.map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    listingCount: Number(cat.listingCount),
+  }));
+
+  // Get conversation and message counts
+  const conversationStats = {
+    total: await conversationRepo.count(),
+  };
+
+  const messageStats = {
+    total: await messageRepo.count(),
+  };
+
+  return res.json({
+    listings: listingStats,
+    users: userStats,
+    conversations: conversationStats,
+    messages: messageStats,
+    popularCategories,
+  });
+});
 
 // GET /admin/listings?status=&owner=&from=&to=&page=&limit=
 router.get("/listings", async (req, res) => {

@@ -6,13 +6,15 @@ import {
   updateAdminListing,
   banUser,
   unbanUser,
+  fetchUsageStats,
   type AdminListing,
   type AdminListingUpdatePayload,
   type AdminUser,
+  type UsageStats,
 } from '../../services/admin'
 import { fetchListingCategories, type ListingCategory } from '../../services/listings'
 
-type Tab = 'listings' | 'users'
+type Tab = 'stats' | 'listings' | 'users'
 
 type Toast = {
   id: string
@@ -21,7 +23,7 @@ type Toast = {
 }
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('listings')
+  const [activeTab, setActiveTab] = useState<Tab>('stats')
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastIdCounter = useRef(0)
 
@@ -49,6 +51,17 @@ const AdminDashboard = () => {
       <div className="mb-6 flex gap-2 border-b border-slate-200">
         <button
           type="button"
+          onClick={() => setActiveTab('stats')}
+          className={`px-4 py-2 text-sm font-semibold transition ${
+            activeTab === 'stats'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Stats
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('listings')}
           className={`px-4 py-2 text-sm font-semibold transition ${
             activeTab === 'listings'
@@ -71,7 +84,9 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {activeTab === 'listings' ? (
+      {activeTab === 'stats' ? (
+        <StatsPanel addToast={addToast} />
+      ) : activeTab === 'listings' ? (
         <ListingsPanel addToast={addToast} />
       ) : (
         <UsersPanel addToast={addToast} />
@@ -103,6 +118,170 @@ const AdminDashboard = () => {
 
 type PanelProps = {
   addToast: (message: string, type: 'success' | 'error') => void
+}
+
+const StatsPanel = ({ addToast }: PanelProps) => {
+  const isMountedRef = useRef(false)
+  const [stats, setStats] = useState<UsageStats | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  const loadStats = useCallback(async () => {
+    if (!isMountedRef.current) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const result = await fetchUsageStats()
+      if (isMountedRef.current) {
+        setStats(result)
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        const message = err instanceof Error ? err.message : 'Failed to load statistics'
+        setError(message)
+        addToast(message, 'error')
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
+    }
+  }, [addToast])
+
+  useEffect(() => {
+    loadStats()
+  }, [loadStats])
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Loading state */}
+      {loading && (
+        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-primary"></div>
+          <p className="mt-2 text-sm text-slate-600">Loading statistics...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
+          <button type="button" onClick={loadStats} className="ml-2 font-semibold underline">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Stats display */}
+      {!loading && !error && stats && (
+        <>
+          {/* Overview cards */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Listings card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Total Listings</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.listings.total}</div>
+              <div className="space-y-1 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span>Active:</span>
+                  <span className="font-semibold text-green-600">{stats.listings.active}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Pending:</span>
+                  <span className="font-semibold text-yellow-600">{stats.listings.pending}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Approved:</span>
+                  <span className="font-semibold text-green-600">{stats.listings.approved}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Rejected:</span>
+                  <span className="font-semibold text-red-600">{stats.listings.rejected}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Users card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Total Users</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.users.total}</div>
+              <div className="space-y-1 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span>Active:</span>
+                  <span className="font-semibold text-green-600">{stats.users.active}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Banned:</span>
+                  <span className="font-semibold text-red-600">{stats.users.banned}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Conversations card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Conversations</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.conversations.total}</div>
+              <div className="text-xs text-slate-600">
+                Total conversation threads between users
+              </div>
+            </div>
+
+            {/* Messages card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Messages</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.messages.total}</div>
+              <div className="text-xs text-slate-600">
+                Total messages exchanged on the platform
+              </div>
+            </div>
+          </div>
+
+          {/* Popular categories */}
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">Popular Categories</h2>
+            {stats.popularCategories.length === 0 ? (
+              <p className="text-sm text-slate-600">No categories with listings yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {stats.popularCategories.map((category) => (
+                  <div key={category.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-slate-900">{category.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-32 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full bg-primary"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (category.listingCount / stats.popularCategories[0].listingCount) * 100,
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="w-12 text-right text-sm font-semibold text-slate-600">
+                        {category.listingCount}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 const ListingsPanel = ({ addToast }: PanelProps) => {
