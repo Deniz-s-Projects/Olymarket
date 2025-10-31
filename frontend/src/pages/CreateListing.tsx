@@ -10,6 +10,7 @@ import PhotoUploadField, {
 } from "../components/forms/PhotoUploadField"
 import { ApiError } from "../lib/apiClient"
 import { useAuth } from "../context/useAuth"
+import { optimizeImage } from "../utils/imageOptimization"
 import {
   createListing,
   fetchListingCategories,
@@ -352,21 +353,53 @@ const CreateListing = () => {
     if (!files?.length) return
 
     const filesArr = Array.from(files)
-    setPhotoFiles((prev) => [...prev, ...filesArr].slice(0, MAX_PHOTOS))
 
-    setPhotos((prev) => {
-      const newPreviews = filesArr.map<PhotoPreview>((file) => ({
-        id: `${file.name}-${file.lastModified}-${
-          typeof crypto !== "undefined" && "randomUUID" in crypto
-            ? crypto.randomUUID()
-            : Math.random().toString(36).slice(2)
-        }`,
-        url: URL.createObjectURL(file),
-        fileName: file.name,
-      }))
+    void (async () => {
+      const optimizedFiles = await Promise.all(
+        filesArr.map(async (file) => {
+          try {
+            return await optimizeImage(file)
+          } catch (error) {
+            console.warn("Falling back to original image", error)
+            return file
+          }
+        })
+      )
 
-      return [...prev, ...newPreviews].slice(0, MAX_PHOTOS)
-    })
+      if (!isMountedRef.current) {
+        return
+      }
+
+      setPhotoFiles((prev) => {
+        const remainingSlots = Math.max(0, MAX_PHOTOS - prev.length)
+        if (remainingSlots === 0) {
+          return prev
+        }
+
+        const filesToAdd = optimizedFiles.slice(0, remainingSlots)
+        return [...prev, ...filesToAdd]
+      })
+
+      setPhotos((prev) => {
+        const remainingSlots = Math.max(0, MAX_PHOTOS - prev.length)
+        if (remainingSlots === 0) {
+          return prev
+        }
+
+        const filesToAdd = optimizedFiles.slice(0, remainingSlots)
+        const newPreviews = filesToAdd.map<PhotoPreview>((file) => ({
+          id: `${file.name}-${file.lastModified}-${
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : Math.random().toString(36).slice(2)
+          }`,
+          url: URL.createObjectURL(file),
+          fileName: file.name,
+        }))
+
+        return [...prev, ...newPreviews]
+      })
+    })()
   }
 
   const handleRemovePhoto = (photoId: string) => {
