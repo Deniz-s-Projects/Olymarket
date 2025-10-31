@@ -77,12 +77,12 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                           Edit
                         </Link>
                         {listing.actions.archiveUrl ? (
-                          <a
-                            href={listing.actions.archiveUrl}
+                          <Link
+                            to={listing.actions.archiveUrl}
                             className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-red-200 hover:text-red-600"
                           >
                             Archive
-                          </a>
+                          </Link>
                         ) : null}
                       </div>
                     </td>
@@ -127,12 +127,12 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                     Edit listing
                   </Link>
                   {listing.actions.archiveUrl ? (
-                    <a
-                      href={listing.actions.archiveUrl}
+                    <Link
+                      to={listing.actions.archiveUrl}
                       className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-red-200 hover:text-red-600"
                     >
                       Archive
-                    </a>
+                    </Link>
                   ) : null}
                 </div>
               </article>
