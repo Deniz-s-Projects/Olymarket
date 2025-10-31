@@ -4,7 +4,7 @@ import { emitUnauthorized } from './authEvents'
 const normalizeBaseUrl = (value: string) => value.replace(/\/$/, '')
 
 const defaultBaseUrl = normalizeBaseUrl(
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000',
+  import.meta.env.VITE_API_BASE_URL ?? 'https://olymarket.net',
 )
 
 const buildUrl = (path: string, params?: Record<string, string | number | boolean | undefined>) => {
