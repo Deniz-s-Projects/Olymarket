@@ -31,7 +31,7 @@ const ProfileListingsTab = ({
   onStatusChange,
   actionError,
 }: ProfileListingsTabProps) => {
-  const groups = listings.groups ?? []
+  const groups = useMemo(() => listings.groups ?? [], [listings.groups])
   const [activeFilter, setActiveFilter] = useState<StatusFilterOption['id']>('all')
   const createListingUrl = listings.createListingUrl ?? DEFAULT_CREATE_URL
 
