@@ -2,6 +2,8 @@ import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { GroupMember } from "./GroupMember";
+import { GroupEvent } from "./GroupEvent";
+import { GroupPost } from "./GroupPost";
 
 @Entity({ name: "groups" })
 export class Group extends BaseModel {
@@ -27,4 +29,10 @@ export class Group extends BaseModel {
 
   @OneToMany(() => GroupMember, (member) => member.group)
   members!: GroupMember[];
+
+  @OneToMany(() => GroupEvent, (event) => event.group)
+  events!: GroupEvent[];
+
+  @OneToMany(() => GroupPost, (post) => post.group)
+  posts!: GroupPost[];
 }
