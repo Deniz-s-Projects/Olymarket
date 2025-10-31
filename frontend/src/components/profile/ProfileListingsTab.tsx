@@ -86,12 +86,20 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
             {activeGroup?.description ?? 'Manage and organize all of your listings from a single place.'}
           </p>
         </div>
-        <Link
-          to={createListingUrl}
-          className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
-        >
-          Create listing
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Link
+            to="/seller/analytics"
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-primary/40 hover:text-primary"
+          >
+            View analytics
+          </Link>
+          <Link
+            to={createListingUrl}
+            className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
+          >
+            Create listing
+          </Link>
+        </div>
       </header>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">

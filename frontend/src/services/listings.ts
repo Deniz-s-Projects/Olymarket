@@ -24,6 +24,8 @@ export type Listing = {
   owner: ListingOwner
   category: ListingCategory | null
   images?: string[] | null
+  viewsCount?: number
+  savesCount?: number
 }
 
 export type PaginatedResponse<T> = {
