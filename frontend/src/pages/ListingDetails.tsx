@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { fetchListingById, type Listing } from '../services/listings'
+import { createConversation } from '../services/conversations'
+import { useAuth } from '../context/useAuth'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -17,10 +19,14 @@ const formatDate = (value?: string) => {
 
 const ListingDetails = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { token, user } = useAuth()
   const [listing, setListing] = useState<Listing | null>(null)
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [isContactingSeller, setIsContactingSeller] = useState(false)
+  const [contactError, setContactError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -74,6 +80,51 @@ const ListingDetails = () => {
 
   const { title, description, price, category, owner, createdAt } = listing
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
+
+  const handleContactSeller = async () => {
+    if (!token) {
+      navigate('/auth', {
+        state: {
+          from: `/listings/${id}`,
+          message: 'Please sign in to contact the seller.',
+        },
+      })
+      return
+    }
+
+    if (!owner?.id) {
+      setContactError('Unable to contact seller. Please try again later.')
+      return
+    }
+
+    // Don't allow contacting yourself
+    if (user && String(user.id) === owner.id) {
+      setContactError('You cannot contact yourself.')
+      return
+    }
+
+    setIsContactingSeller(true)
+    setContactError(null)
+
+    try {
+      const conversation = await createConversation(
+        {
+          topic: `Inquiry about: ${title}`,
+          participantIds: [owner.id],
+        },
+        token
+      )
+      
+      // Navigate to messages page with the conversation selected
+      navigate('/messages', { state: { conversationId: conversation.id } })
+    } catch (err) {
+      setContactError(
+        err instanceof Error ? err.message : 'Failed to create conversation. Please try again.'
+      )
+    } finally {
+      setIsContactingSeller(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8">
@@ -140,10 +191,15 @@ const ListingDetails = () => {
             </div>
             <button
               type="button"
-              className="btn-primary mt-5 inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+              onClick={handleContactSeller}
+              disabled={isContactingSeller || Boolean(user && String(user.id) === owner.id)}
+              className="btn-primary mt-5 inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Contact seller
+              {isContactingSeller ? 'Connecting...' : (user && String(user.id) === owner.id) ? 'Your listing' : 'Contact seller'}
             </button>
+            {contactError ? (
+              <p className="mt-2 text-xs text-red-600">{contactError}</p>
+            ) : null}
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow">

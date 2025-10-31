@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AppDataSource } from "../config";
 import { User } from "../entities/User";
+import { Listing } from "../entities/Listing";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
@@ -49,6 +50,66 @@ router.patch("/account", authMiddleware, async (req: AuthenticatedRequest, res) 
     location: saved.location ?? undefined,
     bio: saved.bio ?? undefined,
   });
+});
+
+router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const listings = await listingRepository.find({
+    where: { owner: { id: req.user!.id } },
+    order: { createdAt: "DESC" },
+  });
+
+  const activeListings = listings.filter((l) => l.isActive && l.moderationStatus === "approved");
+  const inactiveListings = listings.filter((l) => !l.isActive || l.moderationStatus !== "approved");
+
+  const mapListing = (listing: Listing) => ({
+    id: listing.id,
+    title: listing.title,
+    category: listing.category?.name || "Uncategorized",
+    price: parseFloat(listing.price),
+    currency: "EUR",
+    status: listing.isActive && listing.moderationStatus === "approved" ? "active" : "draft",
+    updatedAt: listing.updatedAt.toISOString(),
+    thumbnailUrl: listing.images && listing.images.length > 0 ? listing.images[0] : undefined,
+    actions: {
+      editUrl: `/listings/${listing.id}/edit`,
+      viewUrl: `/listings/${listing.id}`,
+    },
+  });
+
+  return res.json({
+    groups: [
+      {
+        id: "active",
+        label: "Active",
+        description: "Listings currently visible to buyers",
+        listings: activeListings.map(mapListing),
+      },
+      {
+        id: "draft",
+        label: "Inactive",
+        description: "Listings not currently visible",
+        listings: inactiveListings.map(mapListing),
+      },
+    ],
+    createListingUrl: "/listings/new",
+  });
+});
+
+router.get("/metrics", authMiddleware, async (_req: AuthenticatedRequest, res) => {
+  return res.json([
+    { label: "Total views", value: 0 },
+    { label: "Active listings", value: 0 },
+    { label: "Inquiries", value: 0 },
+  ]);
+});
+
+router.get("/saved-items", authMiddleware, async (_req: AuthenticatedRequest, res) => {
+  return res.json([]);
+});
+
+router.get("/preferences", authMiddleware, async (_req: AuthenticatedRequest, res) => {
+  return res.json([]);
 });
 
 export default router;

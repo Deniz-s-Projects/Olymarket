@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 
 import ConversationList from '../components/messages/ConversationList'
 import MessageComposer from '../components/messages/MessageComposer'
@@ -23,6 +24,7 @@ const formatTimestamp = (timestamp: string) => {
 }
 
 const Messages = () => {
+  const location = useLocation()
   const token = useMemo(() => getInitialToken(), [])
   const {
     conversations,
@@ -38,6 +40,17 @@ const Messages = () => {
     sendStatus,
     sendError,
   } = useConversations(token)
+
+  // Auto-select conversation from navigation state
+  useEffect(() => {
+    const state = location.state as { conversationId?: string } | null
+    if (state?.conversationId && conversations.length > 0) {
+      const conversation = conversations.find((c) => c.id === state.conversationId)
+      if (conversation) {
+        selectConversation(conversation.id)
+      }
+    }
+  }, [location.state, conversations, selectConversation])
 
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 lg:px-0">
