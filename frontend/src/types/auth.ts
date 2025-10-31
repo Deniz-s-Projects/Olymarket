@@ -11,7 +11,7 @@ export type ModerationMetadata = {
 }
 
 export type AuthUser = {
-  id: number
+  id: string
   email: string
   name: string
   role: UserRole
