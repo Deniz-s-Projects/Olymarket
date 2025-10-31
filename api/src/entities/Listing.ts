@@ -21,6 +21,13 @@ export class Listing extends BaseModel {
   @Column({ name: "is_active", default: true })
   isActive!: boolean;
 
+  @Column({
+    type: "enum",
+    enum: ["active", "draft", "sold"],
+    default: "active",
+  })
+  status!: "active" | "draft" | "sold";
+
   @Column({ type: "text", array: true, nullable: true, default: () => "ARRAY[]::text[]" })
   images!: string[] | null;
 

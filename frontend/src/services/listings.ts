@@ -12,6 +12,8 @@ export type ListingOwner = {
   email: string
 }
 
+export type ListingStatus = 'active' | 'draft' | 'sold'
+
 export type Listing = {
   id: string
   title: string
@@ -19,6 +21,7 @@ export type Listing = {
   price: string
   isFree: boolean
   isActive: boolean
+  status: ListingStatus
   createdAt: string
   updatedAt: string
   owner: ListingOwner
@@ -115,6 +118,7 @@ export type ListingPayload = {
   price: string
   isFree?: boolean
   isActive?: boolean
+  status?: ListingStatus
   categoryId?: string | null
   images?: string[]
   availability: string
@@ -122,20 +126,22 @@ export type ListingPayload = {
 }
 
 const normalizeListingPayload = (payload: ListingPayload) => {
-  const { categoryId, availability, preferredContactMethod, ...rest } = payload
+  const { categoryId, status, ...rest } = payload
   const priceNum = Number(rest.price);
   // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
   const isFree = priceNum < 1 ? true : rest.isFree;
   rest.isFree = isFree
+  const normalizedStatus = status ?? (typeof rest.isActive === 'boolean' ? (rest.isActive ? 'active' : 'draft') : undefined)
   return {
     ...rest,
-    availability: availability.trim(),
-    preferredContactMethod: preferredContactMethod.trim(),
+    status: normalizedStatus, 
+    availability: rest.availability?.trim() ?? "",
+    preferredContactMethod: rest.preferredContactMethod?.trim() ?? "",
     categoryId: categoryId ? categoryId : undefined,
   }
 }
 
-export const createListing = async (payload: ListingPayload) => {
+export const createListing = async (payload: ListingPayload) => { 
   return apiClient<Listing>('/listings', {
     method: 'POST',
     body: normalizeListingPayload(payload),
@@ -146,6 +152,13 @@ export const updateListing = async (id: string, payload: ListingPayload) => {
   return apiClient<Listing>(`/listings/${id}`, {
     method: 'PUT',
     body: normalizeListingPayload(payload),
+  })
+}
+
+export const updateListingStatus = async (id: string, status: ListingStatus) => {
+  return apiClient<Listing>(`/listings/${id}/status`, {
+    method: 'PATCH',
+    body: { status },
   })
 }
 

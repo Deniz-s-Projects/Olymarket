@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/apiClient'
-import type { Listing, ListingOwner } from './listings'
+import type { Listing, ListingOwner, ListingStatus } from './listings'
 import type { Report, AdminReportUpdatePayload } from './reports'
 
 // Admin-specific listing type with moderation fields
@@ -24,6 +24,7 @@ export type AdminListingUpdatePayload = {
   description?: string
   price?: string
   isActive?: boolean
+  status?: ListingStatus
   categoryId?: string
   moderationStatus?: 'pending' | 'approved' | 'rejected'
   moderationNotes?: string

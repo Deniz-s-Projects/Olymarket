@@ -20,6 +20,10 @@ export class ListingDto {
   isActive?: boolean;
 
   @IsOptional()
+  @IsIn(["active", "draft", "sold"])
+  status?: "active" | "draft" | "sold";
+
+  @IsOptional()
   @IsString()
   categoryId?: string;
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import ListingTable from './ListingTable'
 import type {
+  ProfileListingStatus,
   ProfileListingStatusGroup,
   ProfileListingsOverview,
 } from '../../types/profile'
@@ -10,6 +11,9 @@ import type {
 type ProfileListingsTabProps = {
   listings: ProfileListingsOverview
   isLoading?: boolean
+  pendingListingId?: string | null
+  onStatusChange?: (listingId: string, status: ProfileListingStatus) => Promise<void> | void
+  actionError?: string | null
 }
 
 type StatusFilterOption = {
@@ -20,8 +24,14 @@ type StatusFilterOption = {
 
 const DEFAULT_CREATE_URL = '/listings/new'
 
-const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabProps) => {
-  const groups = listings.groups ?? []
+const ProfileListingsTab = ({
+  listings,
+  isLoading = false,
+  pendingListingId,
+  onStatusChange,
+  actionError,
+}: ProfileListingsTabProps) => {
+  const groups = useMemo(() => listings.groups ?? [], [listings.groups])
   const [activeFilter, setActiveFilter] = useState<StatusFilterOption['id']>('all')
   const createListingUrl = listings.createListingUrl ?? DEFAULT_CREATE_URL
 
@@ -126,6 +136,12 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
         })}
       </div>
 
+      {actionError ? (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {actionError}
+        </div>
+      ) : null}
+
       {shouldShowTable ? (
         <div className="mt-6">
           <ListingTable
@@ -133,6 +149,8 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
             title={activeFilter === 'all' ? 'All Listings' : `${activeGroup?.label ?? 'Listings'}`}
             emptyMessage={emptyDescription}
             isLoading={isLoading}
+            pendingListingId={pendingListingId}
+            onStatusChange={onStatusChange}
           />
         </div>
       ) : (

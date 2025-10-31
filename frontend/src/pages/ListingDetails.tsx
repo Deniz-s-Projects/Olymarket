@@ -167,14 +167,13 @@ const ListingDetails = () => {
     )
   }
 
-  const { title, description, price, isFree, category, owner, createdAt, availability, preferredContactMethod } = listing
+  const { title, description, price, isFree, category, owner, createdAt } = listing
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
   const viewerRole = offersData?.viewerRole ?? null
   const offers = offersData?.offers ?? []
   const hasPendingOffer = offers.some((offerItem) => offerItem.status === 'pending')
   const currentUserId = user ? String(user.id) : null
-  const availabilityInfo = availability?.trim() ?? ''
-  const preferredContactInfo = preferredContactMethod?.trim() ?? ''
+  const isSold = listing.status === 'sold'
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -195,6 +194,11 @@ const ListingDetails = () => {
     // Don't allow contacting yourself
     if (user && String(user.id) === owner.id) {
       setContactError('You cannot contact yourself.')
+      return
+    }
+
+    if (isSold) {
+      setContactError('This listing is no longer available.')
       return
     }
 
@@ -481,6 +485,11 @@ const ListingDetails = () => {
               <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
                 {category ? category.name : 'Uncategorized'}
               </span>
+              {isSold ? (
+                <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Sold
+                </span>
+              ) : null}
               {createdAt ? (
                 <span className="text-xs text-slate-500">Posted {formatDate(createdAt)}</span>
               ) : null}
@@ -775,11 +784,21 @@ const ListingDetails = () => {
 
         <aside className="space-y-4 lg:sticky lg:top-8 self-start">
           <div className="rounded-2xl bg-white p-6 shadow">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  {isFree ? (
-                    <>
-                      <div className="text-3xl font-semibold text-green-600">FREE</div>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {isSold ? (
+                  <>
+                    <div className="text-3xl font-semibold text-slate-500 line-through">
+                      {isFree ? 'FREE' : currencyFormatter.format(Number.parseFloat(price))}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                      <span>🛑</span>
+                      <span>This item has been sold and is no longer available.</span>
+                    </div>
+                  </>
+                ) : isFree ? (
+                  <>
+                    <div className="text-3xl font-semibold text-green-600">FREE</div>
                     <div className="mt-1 flex items-center gap-2 text-sm text-green-600">
                       <span>🎁</span>
                       <span>Being given away for free!</span>
@@ -817,30 +836,31 @@ const ListingDetails = () => {
                 </button>
               </div>
             </div>
-            <div className="mt-5 rounded-xl bg-slate-50 p-4">
-              <h2 className="text-sm font-semibold text-slate-700">Availability &amp; contact</h2>
-              <dl className="mt-3 space-y-3 text-sm text-slate-600">
-                <div>
-                  <dt className="font-medium text-slate-500">Availability</dt>
-                  <dd>{availabilityInfo || 'Seller has not specified availability yet.'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-slate-500">Preferred contact</dt>
-                  <dd>{preferredContactInfo || 'Seller has not shared a preferred contact method yet.'}</dd>
-                </div>
-              </dl>
-            </div>
-            <button
-              type="button"
-              onClick={handleContactSeller}
-              disabled={isContactingSeller || Boolean(user && String(user.id) === owner.id)}
-              className="btn-primary mt-5 inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isContactingSeller ? 'Connecting...' : (user && String(user.id) === owner.id) ? 'Your listing' : 'Contact seller'}
-            </button>
-            {contactError ? (
-              <p className="mt-2 text-xs text-red-600">{contactError}</p>
-            ) : null}
+            {isSold ? (
+              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                This listing has been marked as sold. Browse similar listings on the marketplace for other options.
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleContactSeller}
+                  disabled={
+                    isContactingSeller || Boolean(user && String(user.id) === owner.id)
+                  }
+                  className="btn-primary mt-5 inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isContactingSeller
+                    ? 'Connecting...'
+                    : user && String(user.id) === owner.id
+                    ? 'Your listing'
+                    : 'Contact seller'}
+                </button>
+                {contactError ? (
+                  <p className="mt-2 text-xs text-red-600">{contactError}</p>
+                ) : null}
+              </>
+            )}
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow">

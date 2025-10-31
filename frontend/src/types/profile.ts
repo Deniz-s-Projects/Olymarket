@@ -37,6 +37,7 @@ export interface ProfileListingActionLinks {
   editUrl: string
   archiveUrl?: string
   viewUrl?: string
+  statusOptions?: { status: ProfileListingStatus; label: string }[]
 }
 
 export interface ProfileListingWithActions extends ProfileListingSummary {
