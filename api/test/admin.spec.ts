@@ -2,6 +2,7 @@ import request from 'supertest'
 import app from '../src/app'
 import { AppDataSource } from '../src/config'
 import { User } from '../src/entities/User'
+import { closeTestDataSource, initializeTestDataSource } from './utils/test-data-source'
 
 async function createUser(email: string, role: 'user' | 'admin' = 'user', isBanned = false) {
   const repo = AppDataSource.getRepository(User)
@@ -12,10 +13,10 @@ async function createUser(email: string, role: 'user' | 'admin' = 'user', isBann
 
 describe('Admin routes', () => {
   beforeAll(async () => {
-    await AppDataSource.initialize()
+    await initializeTestDataSource()
   })
   afterAll(async () => {
-    if (AppDataSource.isInitialized) await AppDataSource.destroy()
+    await closeTestDataSource()
   })
 
   it('rejects non-authenticated', async () => {

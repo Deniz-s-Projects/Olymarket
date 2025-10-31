@@ -2,6 +2,7 @@ import { Router } from "express";
 import { AppDataSource } from "../config";
 import { User } from "../entities/User";
 import { Listing } from "../entities/Listing";
+import { Offer } from "../entities/Offer";
 import { SavedListing } from "../entities/SavedListing";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import { UserPreference } from "../entities/UserPreference";
@@ -195,11 +196,42 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
   });
 });
 
-router.get("/metrics", authMiddleware, async (_req: AuthenticatedRequest, res) => {
+router.get("/metrics", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const offerRepository = AppDataSource.getRepository(Offer);
+
+  const viewsResult = await listingRepository
+    .createQueryBuilder("listing")
+    .leftJoin("listing.owner", "owner")
+    .select("COALESCE(SUM(listing.viewsCount), 0)", "totalViews")
+    .where("owner.id = :ownerId", { ownerId: req.user!.id })
+    .getRawOne<{ totalViews: string | number | null }>();
+
+  const activeResult = await listingRepository
+    .createQueryBuilder("listing")
+    .leftJoin("listing.owner", "owner")
+    .select("COUNT(*)", "activeCount")
+    .where("owner.id = :ownerId", { ownerId: req.user!.id })
+    .andWhere("listing.status = :status", { status: "active" })
+    .andWhere("listing.isActive = :isActive", { isActive: true })
+    .getRawOne<{ activeCount: string | number | null }>();
+
+  const inquiryResult = await offerRepository
+    .createQueryBuilder("offer")
+    .leftJoin("offer.seller", "seller")
+    .select("COUNT(*)", "inquiryCount")
+    .where("seller.id = :sellerId", { sellerId: req.user!.id })
+    .andWhere("offer.status = :status", { status: "pending" })
+    .getRawOne<{ inquiryCount: string | number | null }>();
+
+  const totalViews = Number(viewsResult?.totalViews ?? 0);
+  const activeListings = Number(activeResult?.activeCount ?? 0);
+  const inquiries = Number(inquiryResult?.inquiryCount ?? 0);
+
   return res.json([
-    { label: "Total views", value: 0 },
-    { label: "Active listings", value: 0 },
-    { label: "Inquiries", value: 0 },
+    { label: "Total views", value: totalViews },
+    { label: "Active listings", value: activeListings },
+    { label: "Inquiries", value: inquiries },
   ]);
 });
 
