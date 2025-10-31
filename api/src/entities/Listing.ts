@@ -43,6 +43,12 @@ export class Listing extends BaseModel {
   @Column({ name: "reviewed_at", type: "timestamp", nullable: true })
   reviewedAt!: Date | null;
 
+  @Column({ name: "views_count", type: "integer", default: 0 })
+  viewsCount!: number;
+
+  @Column({ name: "saves_count", type: "integer", default: 0 })
+  savesCount!: number;
+
   @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: "reviewer_id" })
   reviewer!: User | null;
