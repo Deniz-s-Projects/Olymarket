@@ -5,6 +5,7 @@ import { ListingDto } from "../dtos/listing";
 import { AppDataSource } from "../config";
 import { Listing } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
+import { SavedListing } from "../entities/SavedListing";
 
 const router = Router();
 
@@ -135,6 +136,68 @@ router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => 
   }
   await listingRepository.remove(listing);
   return res.status(204).send();
+});
+
+// Check if a listing is saved by the current user
+router.get("/:id/saved", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const savedListingRepository = AppDataSource.getRepository(SavedListing);
+  const saved = await savedListingRepository.findOne({
+    where: {
+      user: { id: req.user!.id },
+      listing: { id: req.params.id },
+    },
+  });
+  return res.json({ isSaved: Boolean(saved) });
+});
+
+// Save a listing
+router.post("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const savedListingRepository = AppDataSource.getRepository(SavedListing);
+
+  const listing = await listingRepository.findOne({ where: { id: req.params.id } });
+  if (!listing) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
+
+  // Check if already saved
+  const existing = await savedListingRepository.findOne({
+    where: {
+      user: { id: req.user!.id },
+      listing: { id: req.params.id },
+    },
+  });
+
+  if (existing) {
+    return res.json({ message: "Already saved", isSaved: true });
+  }
+
+  const savedListing = savedListingRepository.create({
+    user: req.user!,
+    listing,
+  });
+  await savedListingRepository.save(savedListing);
+
+  return res.status(201).json({ message: "Listing saved", isSaved: true });
+});
+
+// Unsave a listing
+router.delete("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const savedListingRepository = AppDataSource.getRepository(SavedListing);
+
+  const saved = await savedListingRepository.findOne({
+    where: {
+      user: { id: req.user!.id },
+      listing: { id: req.params.id },
+    },
+  });
+
+  if (!saved) {
+    return res.status(404).json({ message: "Listing not saved" });
+  }
+
+  await savedListingRepository.remove(saved);
+  return res.json({ message: "Listing unsaved", isSaved: false });
 });
 
 export default router;

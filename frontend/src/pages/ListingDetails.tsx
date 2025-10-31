@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { fetchListingById, type Listing } from '../services/listings'
+import { fetchListingById, checkListingSaved, saveListing, unsaveListing, type Listing } from '../services/listings'
 import { createConversation } from '../services/conversations'
 import { useAuth } from '../context/useAuth'
 
@@ -27,6 +27,8 @@ const ListingDetails = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [isContactingSeller, setIsContactingSeller] = useState(false)
   const [contactError, setContactError] = useState<string | null>(null)
+  const [isSaved, setIsSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -39,6 +41,19 @@ const ListingDetails = () => {
         if (!mounted) return
         setListing(data)
         setStatus('success')
+
+        // Check if listing is saved (only if user is logged in)
+        if (token) {
+          try {
+            const savedStatus = await checkListingSaved(id, token)
+            if (mounted) {
+              setIsSaved(savedStatus.isSaved)
+            }
+          } catch (err) {
+            // Log error but don't block page load
+            console.warn('Failed to check saved status:', err)
+          }
+        }
       } catch (err) {
         if (!mounted) return
         setStatus('error')
@@ -49,7 +64,7 @@ const ListingDetails = () => {
     return () => {
       mounted = false
     }
-  }, [id])
+  }, [id, token])
 
   // Hooks must be called unconditionally: compute gallery before any early returns
   const images = listing?.images ?? []
@@ -126,6 +141,33 @@ const ListingDetails = () => {
     }
   }
 
+  const handleToggleSave = async () => {
+    if (!token || !id) {
+      navigate('/auth', {
+        state: {
+          from: `/listings/${id}`,
+          message: 'Please sign in to save listings.',
+        },
+      })
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      if (isSaved) {
+        await unsaveListing(id, token)
+        setIsSaved(false)
+      } else {
+        await saveListing(id, token)
+        setIsSaved(true)
+      }
+    } catch (err) {
+      console.error('Failed to toggle save:', err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8">
       <nav className="mb-6 text-sm text-slate-500">
@@ -181,13 +223,28 @@ const ListingDetails = () => {
                 <div className="text-3xl font-semibold text-primary">{currencyFormatter.format(Number.parseFloat(price))}</div>
                 <div className="mt-1 text-sm text-slate-500">All prices in EUR</div>
               </div>
-              <button
-                type="button"
-                title="Share"
-                className="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-              >
-                Share
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleSave}
+                  disabled={isSaving}
+                  title={isSaved ? "Unsave listing" : "Save listing"}
+                  className={`rounded-full border px-3 py-1 text-sm transition ${
+                    isSaved 
+                      ? 'border-primary bg-primary text-white hover:bg-primary/90' 
+                      : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                  } disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  {isSaving ? '...' : isSaved ? '★ Saved' : '☆ Save'}
+                </button>
+                <button
+                  type="button"
+                  title="Share"
+                  className="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                >
+                  Share
+                </button>
+              </div>
             </div>
             <button
               type="button"

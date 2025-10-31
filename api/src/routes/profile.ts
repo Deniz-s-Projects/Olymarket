@@ -2,6 +2,7 @@ import { Router } from "express";
 import { AppDataSource } from "../config";
 import { User } from "../entities/User";
 import { Listing } from "../entities/Listing";
+import { SavedListing } from "../entities/SavedListing";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
@@ -104,8 +105,28 @@ router.get("/metrics", authMiddleware, async (_req: AuthenticatedRequest, res) =
   ]);
 });
 
-router.get("/saved-items", authMiddleware, async (_req: AuthenticatedRequest, res) => {
-  return res.json([]);
+router.get("/saved-items", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const savedListingRepository = AppDataSource.getRepository(SavedListing);
+  const savedListings = await savedListingRepository.find({
+    where: { user: { id: req.user!.id } },
+    relations: { listing: { category: true } },
+    order: { createdAt: "DESC" },
+  });
+
+  const items = savedListings.map((saved) => ({
+    id: saved.listing.id,
+    title: saved.listing.title,
+    category: saved.listing.category?.name || "Uncategorized",
+    price: parseFloat(saved.listing.price),
+    currency: "EUR",
+    favoritedAt: new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    }).format(saved.createdAt),
+    thumbnailUrl: saved.listing.images && saved.listing.images.length > 0 ? saved.listing.images[0] : undefined,
+  }));
+
+  return res.json(items);
 });
 
 router.get("/preferences", authMiddleware, async (_req: AuthenticatedRequest, res) => {
