@@ -22,6 +22,7 @@ const Marketplace = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
+  const [showFreeOnly, setShowFreeOnly] = useState(false)
 
   const categories = useMemo(() => {
     const names = listings
@@ -41,9 +42,14 @@ const Marketplace = () => {
     const maxPrice = selectedPriceRange.max ?? Number.POSITIVE_INFINITY
 
     return listings.filter((listing) => {
+      // Free items filter
+      if (showFreeOnly && !listing.isFree) {
+        return false
+      }
+
       const priceValue = parsePrice(listing.price)
       const matchesPrice =
-        priceValue === null ? true : priceValue >= selectedPriceRange.min && priceValue <= maxPrice
+        listing.isFree || priceValue === null ? true : priceValue >= selectedPriceRange.min && priceValue <= maxPrice
 
       const categoryName = listing.category?.name ?? ''
       const ownerName = listing.owner?.name ?? ''
@@ -58,7 +64,7 @@ const Marketplace = () => {
 
       return matchesSearch && matchesCategory && matchesPrice
     })
-  }, [listings, searchTerm, selectedCategory, selectedPriceRange])
+  }, [listings, searchTerm, selectedCategory, selectedPriceRange, showFreeOnly])
 
   const showEmptyState = !isLoading && !isError && filteredListings.length === 0
 
@@ -66,6 +72,7 @@ const Marketplace = () => {
     setSearchTerm('')
     setSelectedCategory(null)
     setSelectedPriceRangeId(priceRangeOptions[0].id)
+    setShowFreeOnly(false)
   }
 
   const headerMessage = isLoading
@@ -158,6 +165,21 @@ const Marketplace = () => {
           </div>
 
           <div className="space-y-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Free Items</h3>
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 transition hover:border-green-300 hover:bg-green-50">
+                <input
+                  type="checkbox"
+                  checked={showFreeOnly}
+                  onChange={(e) => setShowFreeOnly(e.target.checked)}
+                  className="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500"
+                />
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-slate-700">Show free items only</span>
+                  <p className="text-xs text-slate-500">Items being given away for free</p>
+                </div>
+              </label>
+            </div>
             <CategoryFilter categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
             <PriceRangeFilter
               options={priceRangeOptions}

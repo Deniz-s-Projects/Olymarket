@@ -22,6 +22,7 @@ type ListingFormValues = {
   title: string
   description: string
   price: string
+  isFree: boolean
   category: string
   availability: string
   contactPreference: string
@@ -34,6 +35,7 @@ const INITIAL_VALUES: ListingFormValues = {
   title: "",
   description: "",
   price: "",
+  isFree: false,
   category: "",
   availability: "",
   contactPreference: "",
@@ -129,6 +131,7 @@ const CreateListing = () => {
         title: listing.title,
         description: listing.description,
         price: listing.price,
+        isFree: listing.isFree,
         category: listing.category?.id || "",
         availability: "",
         contactPreference: "",
@@ -184,6 +187,7 @@ const CreateListing = () => {
         if (Number.isNaN(numeric) || numeric <= 0) return "Price must be a positive number."
         return ""
       },
+      isFree: () => "",
       category: (value: string) => {
         if (!value) return ""
         const exists = categories.some((category) => category.id === value)
@@ -212,7 +216,14 @@ const CreateListing = () => {
     validators[field](value)
 
   const updateValue = <Field extends keyof ListingFormValues>(field: Field, value: ListingFormValues[Field]) => {
-    setValues((prev) => ({ ...prev, [field]: value }))
+    setValues((prev) => {
+      const updated = { ...prev, [field]: value }
+      // Clear price when marking as free
+      if (field === 'isFree' && value === true) {
+        updated.price = '0'
+      }
+      return updated
+    })
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: runValidator(field, value) }))
     }
@@ -241,6 +252,10 @@ const CreateListing = () => {
     event.preventDefault()
     const nextErrors = (Object.keys(values) as Array<keyof ListingFormValues>).reduce<ListingFormErrors>(
       (acc, field) => {
+        // Skip price validation if item is free
+        if (field === 'price' && values.isFree) {
+          return acc
+        }
         const error = runValidator(field, values[field])
         if (error) acc[field] = error
         return acc
@@ -275,6 +290,7 @@ const CreateListing = () => {
           title: values.title.trim(),
           description: values.description.trim(),
           price: values.price.trim(),
+          isFree: values.isFree,
           isActive: values.active,
           categoryId: values.category || undefined,
           images: allImages,
@@ -421,6 +437,14 @@ const CreateListing = () => {
             <h2 className="text-lg font-semibold text-slate-900">Pricing &amp; discovery</h2>
             <p className="text-sm text-slate-500">Help buyers understand the cost and how to find your listing.</p>
           </div>
+          <ToggleSwitch
+            label="Free item (Give away)"
+            name="isFree"
+            description="Mark this item as free to encourage reuse and sustainability"
+            hint="Free items are highlighted with a special badge"
+            checked={values.isFree}
+            onChange={(checked) => updateValue("isFree", checked)}
+          />
           <PriceInput
             label="Price"
             name="price"
@@ -429,7 +453,8 @@ const CreateListing = () => {
             onChange={(value) => updateValue("price", value)}
             onBlur={() => validateField("price")}
             error={errors.price}
-            required
+            required={!values.isFree}
+            disabled={values.isFree}
           />
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             <span>

@@ -29,6 +29,7 @@ router.post(
       title: req.body.title,
       description: req.body.description,
       price: req.body.price,
+      isFree: req.body.isFree ?? false,
       isActive: req.body.isActive ?? true,
       owner: req.user!,
       category,
@@ -114,6 +115,7 @@ router.put(
     listing.title = req.body.title;
     listing.description = req.body.description;
     listing.price = req.body.price;
+    listing.isFree = req.body.isFree ?? listing.isFree;
     listing.isActive = req.body.isActive ?? listing.isActive;
     listing.category = category ?? null;
     if (Array.isArray(req.body.images)) {
