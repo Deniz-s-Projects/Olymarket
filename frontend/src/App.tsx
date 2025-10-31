@@ -17,6 +17,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import Groups from './pages/Groups'
 import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
+import ThemeToggle from './components/ThemeToggle'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
@@ -85,10 +86,10 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen flex-col bg-slate-100 text-slate-900">
+      <div className="flex min-h-screen flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
         {banNotice ? (
-          <div className="border-b border-amber-200 bg-amber-50">
-            <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 text-sm text-amber-800 md:flex-row md:items-center md:justify-between">
+          <div className="border-b border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+            <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 text-sm text-amber-800 dark:text-amber-200 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="font-semibold">Account suspended</p>
                 <p>
@@ -97,7 +98,7 @@ const App = () => {
                     : 'Your marketplace access is currently limited by our moderators.'}
                 </p>
                 {banNotice.banExpiresAt ? (
-                  <p className="text-xs text-amber-700">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
                     Suspension details: {banNotice.banExpiresAt}
                   </p>
                 ) : null}
@@ -113,16 +114,16 @@ const App = () => {
               <button
                 type="button"
                 onClick={clearBanNotice}
-                className="self-start rounded-full border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                className="self-start rounded-full border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900"
               >
                 Dismiss
               </button>
             </div>
           </div>
         ) : null}
-        <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
+        <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-700 dark:bg-slate-800/80">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-            <NavLink to="/" className="text-2xl font-semibold tracking-tight text-primary">
+            <NavLink to="/" className="text-2xl font-semibold tracking-tight text-primary dark:text-white">
               Olymarket
             </NavLink>
             <nav className="flex items-center gap-4 text-sm font-medium">
@@ -133,8 +134,8 @@ const App = () => {
                   className={({ isActive }) =>
                     `rounded-full px-3 py-1 transition-colors ${
                       isActive
-                        ? 'bg-primary text-white'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        ? 'bg-primary text-white dark:bg-slate-700'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`
                   }
                 >
@@ -147,26 +148,27 @@ const App = () => {
                   className={({ isActive }) =>
                     `rounded-full px-3 py-1 transition-colors ${
                       isActive
-                        ? 'bg-primary text-white'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        ? 'bg-primary text-white dark:bg-slate-700'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`
                   }
                 >
                   Admin
                 </NavLink>
               )}
+              <ThemeToggle />
               {!isHydrated ? (
-                <span className="text-slate-400">Loading...</span>
+                <span className="text-slate-400 dark:text-slate-500">Loading...</span>
               ) : user ? (
                 <div className="flex items-center gap-3">
                   <NavLink to="/profile" className="group flex items-center gap-2">
                     <span className="sr-only">View profile</span>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary transition group-hover:bg-primary group-hover:text-white">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary transition group-hover:bg-primary group-hover:text-white dark:bg-slate-700 dark:text-slate-300 dark:group-hover:bg-slate-600">
                       {userInitial || '?'}
                     </span>
-                    <span className="flex flex-col text-left text-slate-700 group-hover:text-primary">
+                    <span className="flex flex-col text-left text-slate-700 group-hover:text-primary dark:text-slate-300 dark:group-hover:text-white">
                       <span>{user.name}</span>
-                      <span className="text-xs font-semibold text-slate-400 group-hover:text-primary/80">
+                      <span className="text-xs font-semibold text-slate-400 group-hover:text-primary/80 dark:text-slate-500 dark:group-hover:text-slate-300">
                         {isAdmin ? 'Admin' : isModerator ? 'Moderator' : 'Member'}
                       </span>
                     </span>
@@ -174,7 +176,7 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => logout()}
-                    className="rounded-full px-3 py-1 text-slate-600 transition-colors hover:bg-slate-100"
+                    className="rounded-full px-3 py-1 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
                   >
                     Sign Out
                   </button>
@@ -185,8 +187,8 @@ const App = () => {
                   className={({ isActive }) =>
                     `rounded-full px-3 py-1 transition-colors ${
                       isActive
-                        ? 'bg-primary text-white'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        ? 'bg-primary text-white dark:bg-slate-700'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`
                   }
                 >
@@ -226,8 +228,8 @@ const App = () => {
           </Routes>
         </main>
 
-        <footer className="border-t border-slate-200 bg-white/80">
-          <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-slate-500">
+        <footer className="border-t border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-800/80">
+          <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
             &copy; {new Date().getFullYear()} Olymarket. All rights reserved.
           </div>
         </footer>

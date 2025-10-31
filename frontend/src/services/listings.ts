@@ -17,6 +17,7 @@ export type Listing = {
   title: string
   description: string
   price: string
+  isFree: boolean
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -43,6 +44,7 @@ export type ListingPayload = {
   title: string
   description: string
   price: string
+  isFree?: boolean
   isActive?: boolean
   categoryId?: string | null
   images?: string[]

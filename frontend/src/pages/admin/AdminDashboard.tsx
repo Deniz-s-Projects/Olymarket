@@ -6,13 +6,15 @@ import {
   updateAdminListing,
   banUser,
   unbanUser,
+  fetchUsageStats,
   type AdminListing,
   type AdminListingUpdatePayload,
   type AdminUser,
+  type UsageStats,
 } from '../../services/admin'
 import { fetchListingCategories, type ListingCategory } from '../../services/listings'
-
-type Tab = 'listings' | 'users'
+ 
+type Tab = 'stats' | 'listings' | 'users' | 'reports' 
 
 type Toast = {
   id: string
@@ -21,7 +23,7 @@ type Toast = {
 }
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('listings')
+  const [activeTab, setActiveTab] = useState<Tab>('stats')
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastIdCounter = useRef(0)
 
@@ -49,6 +51,17 @@ const AdminDashboard = () => {
       <div className="mb-6 flex gap-2 border-b border-slate-200">
         <button
           type="button"
+          onClick={() => setActiveTab('stats')}
+          className={`px-4 py-2 text-sm font-semibold transition ${
+            activeTab === 'stats'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Stats
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('listings')}
           className={`px-4 py-2 text-sm font-semibold transition ${
             activeTab === 'listings'
@@ -69,12 +82,27 @@ const AdminDashboard = () => {
         >
           Users
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('reports')}
+          className={`px-4 py-2 text-sm font-semibold transition ${
+            activeTab === 'reports'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Reports
+        </button>
       </div>
 
-      {activeTab === 'listings' ? (
+      {activeTab === 'stats' ? (
+        <StatsPanel addToast={addToast} />
+      ) : activeTab === 'listings' ? (
         <ListingsPanel addToast={addToast} />
-      ) : (
+      ) : activeTab === 'users' ? (
         <UsersPanel addToast={addToast} />
+      ) : (
+        <ReportsPanel addToast={addToast} />
       )}
 
       {/* Toast notifications */}
@@ -103,6 +131,170 @@ const AdminDashboard = () => {
 
 type PanelProps = {
   addToast: (message: string, type: 'success' | 'error') => void
+}
+
+const StatsPanel = ({ addToast }: PanelProps) => {
+  const isMountedRef = useRef(false)
+  const [stats, setStats] = useState<UsageStats | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  const loadStats = useCallback(async () => {
+    if (!isMountedRef.current) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const result = await fetchUsageStats()
+      if (isMountedRef.current) {
+        setStats(result)
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        const message = err instanceof Error ? err.message : 'Failed to load statistics'
+        setError(message)
+        addToast(message, 'error')
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
+    }
+  }, [addToast])
+
+  useEffect(() => {
+    loadStats()
+  }, [loadStats])
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Loading state */}
+      {loading && (
+        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-primary"></div>
+          <p className="mt-2 text-sm text-slate-600">Loading statistics...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
+          <button type="button" onClick={loadStats} className="ml-2 font-semibold underline">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Stats display */}
+      {!loading && !error && stats && (
+        <>
+          {/* Overview cards */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Listings card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Total Listings</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.listings.total}</div>
+              <div className="space-y-1 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span>Active:</span>
+                  <span className="font-semibold text-green-600">{stats.listings.active}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Pending:</span>
+                  <span className="font-semibold text-yellow-600">{stats.listings.pending}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Approved:</span>
+                  <span className="font-semibold text-green-600">{stats.listings.approved}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Rejected:</span>
+                  <span className="font-semibold text-red-600">{stats.listings.rejected}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Users card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Total Users</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.users.total}</div>
+              <div className="space-y-1 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span>Active:</span>
+                  <span className="font-semibold text-green-600">{stats.users.active}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Banned:</span>
+                  <span className="font-semibold text-red-600">{stats.users.banned}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Conversations card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Conversations</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.conversations.total}</div>
+              <div className="text-xs text-slate-600">
+                Total conversation threads between users
+              </div>
+            </div>
+
+            {/* Messages card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-2 text-sm font-medium text-slate-600">Messages</div>
+              <div className="mb-4 text-3xl font-bold text-primary">{stats.messages.total}</div>
+              <div className="text-xs text-slate-600">
+                Total messages exchanged on the platform
+              </div>
+            </div>
+          </div>
+
+          {/* Popular categories */}
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">Popular Categories</h2>
+            {stats.popularCategories.length === 0 ? (
+              <p className="text-sm text-slate-600">No categories with listings yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {stats.popularCategories.map((category) => (
+                  <div key={category.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-slate-900">{category.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-32 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full bg-primary"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (category.listingCount / (stats.popularCategories[0]?.listingCount || 1)) * 100,
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="w-12 text-right text-sm font-semibold text-slate-600">
+                        {category.listingCount}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 const ListingsPanel = ({ addToast }: PanelProps) => {
@@ -838,6 +1030,512 @@ const UsersPanel = ({ addToast }: PanelProps) => {
               >
                 {operationInProgress ? 'Banning...' : 'Ban User'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const ReportsPanel = ({ addToast }: PanelProps) => {
+  const isMountedRef = useRef(false)
+  const [reports, setReports] = useState<import('../../services/reports').Report[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [limit] = useState(20)
+  const [statusFilter, setStatusFilter] = useState<'' | 'pending' | 'under_review' | 'resolved' | 'dismissed'>('')
+  const [typeFilter, setTypeFilter] = useState<'' | 'listing' | 'user'>('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [viewingReport, setViewingReport] = useState<import('../../services/reports').Report | null>(null)
+  const [operationInProgress, setOperationInProgress] = useState(false)
+  const [showResolutionForm, setShowResolutionForm] = useState<'resolved' | 'dismissed' | null>(null)
+  const [resolutionNotes, setResolutionNotes] = useState('')
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  const loadReports = useCallback(async () => {
+    if (!isMountedRef.current) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { fetchAdminReports } = await import('../../services/admin')
+      const response = await fetchAdminReports({
+        status: statusFilter || undefined,
+        reportType: typeFilter || undefined,
+        page,
+        limit,
+      })
+      if (isMountedRef.current) {
+        setReports(response.items)
+        setTotal(response.total)
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        const message = err instanceof Error ? err.message : 'Failed to load reports'
+        setError(message)
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
+    }
+  }, [statusFilter, typeFilter, page, limit])
+
+  useEffect(() => {
+    loadReports()
+  }, [loadReports])
+
+  const handleStatusFilterChange = (status: '' | 'pending' | 'under_review' | 'resolved' | 'dismissed') => {
+    setStatusFilter(status)
+    setPage(1)
+  }
+
+  const handleTypeFilterChange = (type: '' | 'listing' | 'user') => {
+    setTypeFilter(type)
+    setPage(1)
+  }
+
+  const handleUpdateStatus = async (
+    reportId: string,
+    status: 'under_review' | 'resolved' | 'dismissed',
+    notes?: string,
+  ) => {
+    if (operationInProgress) return
+
+    setOperationInProgress(true)
+    try {
+      const { updateAdminReport } = await import('../../services/admin')
+      await updateAdminReport(reportId, { status, resolutionNotes: notes })
+      await loadReports()
+      setViewingReport(null)
+      setShowResolutionForm(null)
+      setResolutionNotes('')
+      addToast(`Report ${status} successfully`, 'success')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update report'
+      addToast(message, 'error')
+    } finally {
+      if (isMountedRef.current) {
+        setOperationInProgress(false)
+      }
+    }
+  }
+
+  const handleResolutionSubmit = (status: 'resolved' | 'dismissed') => {
+    if (!viewingReport) return
+    handleUpdateStatus(viewingReport.id, status, resolutionNotes.trim() || undefined)
+  }
+
+  const handleDelete = async (reportId: string) => {
+    if (operationInProgress) return
+    if (!window.confirm('Are you sure you want to delete this report?')) return
+
+    setOperationInProgress(true)
+    try {
+      const { deleteAdminReport } = await import('../../services/admin')
+      await deleteAdminReport(reportId)
+      await loadReports()
+      setViewingReport(null)
+      addToast('Report deleted successfully', 'success')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete report'
+      addToast(message, 'error')
+    } finally {
+      if (isMountedRef.current) {
+        setOperationInProgress(false)
+      }
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    }).format(new Date(dateString))
+  }
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      under_review: 'bg-blue-100 text-blue-800',
+      resolved: 'bg-green-100 text-green-800',
+      dismissed: 'bg-gray-100 text-gray-800',
+    }
+    return styles[status as keyof typeof styles] || styles.pending
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          Status:
+          <select
+            value={statusFilter}
+            onChange={(e) => handleStatusFilterChange(e.target.value as any)}
+            className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+          >
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="under_review">Under Review</option>
+            <option value="resolved">Resolved</option>
+            <option value="dismissed">Dismissed</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          Type:
+          <select
+            value={typeFilter}
+            onChange={(e) => handleTypeFilterChange(e.target.value as any)}
+            className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+          >
+            <option value="">All</option>
+            <option value="listing">Listing</option>
+            <option value="user">User</option>
+          </select>
+        </label>
+      </div>
+
+      {/* Reports list */}
+      {loading ? (
+        <div className="rounded-lg bg-white p-8 text-center shadow">
+          <div className="text-slate-500">Loading reports...</div>
+        </div>
+      ) : error ? (
+        <div className="rounded-lg bg-red-50 p-4 text-red-800">
+          <strong>Error:</strong> {error}
+        </div>
+      ) : reports.length === 0 ? (
+        <div className="rounded-lg bg-white p-8 text-center shadow">
+          <div className="text-slate-500">No reports found</div>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-lg bg-white shadow">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Target
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Reporter
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Reason
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {reports.map((report) => (
+                  <tr key={report.id} className="hover:bg-slate-50">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-800">
+                        {report.reportType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-900">
+                      {report.reportType === 'listing' && report.reportedListing ? (
+                        <div>
+                          <div className="font-medium">{report.reportedListing.title}</div>
+                          <div className="text-xs text-slate-500">
+                            by {report.reportedListing.owner.name}
+                          </div>
+                        </div>
+                      ) : report.reportType === 'user' && report.reportedUser ? (
+                        <div>
+                          <div className="font-medium">{report.reportedUser.name}</div>
+                          <div className="text-xs text-slate-500">{report.reportedUser.email}</div>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400">N/A</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">
+                      <div>{report.reporter.name}</div>
+                      <div className="text-xs text-slate-500">{report.reporter.email}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-700">
+                      <div className="max-w-xs truncate">{report.reason}</div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadge(report.status)}`}
+                      >
+                        {report.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
+                      {formatDate(report.createdAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setViewingReport(report)}
+                        className="text-primary hover:text-primary/80"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {total > limit && (
+            <div className="flex items-center justify-between rounded-lg bg-white px-6 py-4 shadow">
+              <div className="text-sm text-slate-700">
+                Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}{' '}
+                reports
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page * limit >= total}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Report detail modal */}
+      {viewingReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-start justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Report Details</h2>
+              <button
+                type="button"
+                onClick={() => setViewingReport(null)}
+                className="text-gray-400 hover:text-gray-600"
+                disabled={operationInProgress}
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Report Type</label>
+                <div className="mt-1 text-gray-900">{viewingReport.reportType}</div>
+              </div>
+
+              {viewingReport.reportType === 'listing' && viewingReport.reportedListing && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Reported Listing</label>
+                  <div className="mt-1 text-gray-900">
+                    <div className="font-medium">{viewingReport.reportedListing.title}</div>
+                    <div className="text-sm text-gray-500">
+                      Owner: {viewingReport.reportedListing.owner.name}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {viewingReport.reportType === 'user' && viewingReport.reportedUser && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Reported User</label>
+                  <div className="mt-1 text-gray-900">
+                    <div className="font-medium">{viewingReport.reportedUser.name}</div>
+                    <div className="text-sm text-gray-500">{viewingReport.reportedUser.email}</div>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Reporter</label>
+                <div className="mt-1 text-gray-900">
+                  <div>{viewingReport.reporter.name}</div>
+                  <div className="text-sm text-gray-500">{viewingReport.reporter.email}</div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Reason</label>
+                <div className="mt-1 text-gray-900">{viewingReport.reason}</div>
+              </div>
+
+              {viewingReport.description && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Description</label>
+                  <div className="mt-1 whitespace-pre-wrap text-gray-900">
+                    {viewingReport.description}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <div className="mt-1">
+                  <span
+                    className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadge(viewingReport.status)}`}
+                  >
+                    {viewingReport.status.replace('_', ' ')}
+                  </span>
+                </div>
+              </div>
+
+              {viewingReport.resolutionNotes && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Resolution Notes</label>
+                  <div className="mt-1 whitespace-pre-wrap text-gray-900">
+                    {viewingReport.resolutionNotes}
+                  </div>
+                </div>
+              )}
+
+              {viewingReport.reviewedBy && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Reviewed By</label>
+                  <div className="mt-1 text-gray-900">{viewingReport.reviewedBy.name}</div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Created At</label>
+                <div className="mt-1 text-gray-900">{formatDate(viewingReport.createdAt)}</div>
+              </div>
+
+              {viewingReport.resolvedAt && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Resolved At</label>
+                  <div className="mt-1 text-gray-900">{formatDate(viewingReport.resolvedAt)}</div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="border-t border-gray-200 pt-4">
+                {showResolutionForm ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="resolution-notes" className="block text-sm font-medium text-gray-700">
+                        {showResolutionForm === 'resolved' ? 'Resolution notes' : 'Dismissal reason'} (optional)
+                      </label>
+                      <textarea
+                        id="resolution-notes"
+                        value={resolutionNotes}
+                        onChange={(e) => setResolutionNotes(e.target.value)}
+                        rows={3}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Enter additional notes about this decision..."
+                        disabled={operationInProgress}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionSubmit(showResolutionForm)}
+                        disabled={operationInProgress}
+                        className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${
+                          showResolutionForm === 'resolved'
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-gray-600 hover:bg-gray-700'
+                        }`}
+                      >
+                        {operationInProgress ? 'Submitting...' : `Confirm ${showResolutionForm === 'resolved' ? 'Resolution' : 'Dismissal'}`}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowResolutionForm(null)
+                          setResolutionNotes('')
+                        }}
+                        disabled={operationInProgress}
+                        className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {viewingReport.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateStatus(viewingReport.id, 'under_review')}
+                        disabled={operationInProgress}
+                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        Mark as Under Review
+                      </button>
+                    )}
+                    {(viewingReport.status === 'pending' || viewingReport.status === 'under_review') && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setShowResolutionForm('resolved')}
+                          disabled={operationInProgress}
+                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                          Mark as Resolved
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowResolutionForm('dismissed')}
+                          disabled={operationInProgress}
+                          className="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          Dismiss
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(viewingReport.id)}
+                      disabled={operationInProgress}
+                      className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Delete Report
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
