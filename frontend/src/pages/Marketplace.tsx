@@ -1,9 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import CategoryFilter from '../components/CategoryFilter'
 import ListingCard from '../components/ListingCard'
 import PriceRangeFilter, { type PriceRangeOption } from '../components/PriceRangeFilter'
 import { useListings } from '../hooks/useListings'
+import {
+  getSavedMarketplaceSearches,
+  saveMarketplaceSearch,
+  type SavedMarketplaceSearch,
+} from '../services/savedSearches'
 
 const priceRangeOptions: PriceRangeOption[] = [
   { id: 'all', label: 'Any budget', min: 0 },
@@ -23,6 +28,59 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
   const [showFreeOnly, setShowFreeOnly] = useState(false)
+  const [savedSearches, setSavedSearches] = useState<SavedMarketplaceSearch[]>([])
+  const [feedback, setFeedback] = useState<
+    | {
+        type: 'success' | 'error'
+        message: string
+      }
+    | null
+  >(null)
+
+  useEffect(() => {
+    const existingSearches = getSavedMarketplaceSearches()
+    setSavedSearches(existingSearches)
+  }, [])
+
+  useEffect(() => {
+    if (!feedback) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => setFeedback(null), 4000)
+    return () => window.clearTimeout(timeoutId)
+  }, [feedback])
+
+  const currentPriceRangeLabel = useMemo(() => {
+    const option = priceRangeOptions.find((item) => item.id === selectedPriceRangeId)
+    return option?.label ?? priceRangeOptions[0].label
+  }, [selectedPriceRangeId])
+
+  const savedSearchLabel = useMemo(() => {
+    const labelParts: string[] = []
+
+    if (searchTerm.trim().length > 0) {
+      labelParts.push(`“${searchTerm.trim()}”`)
+    }
+
+    if (selectedCategory) {
+      labelParts.push(selectedCategory)
+    }
+
+    if (selectedPriceRangeId !== priceRangeOptions[0].id) {
+      labelParts.push(currentPriceRangeLabel)
+    }
+
+    if (showFreeOnly) {
+      labelParts.push('Free items only')
+    }
+
+    if (labelParts.length === 0) {
+      return 'All listings'
+    }
+
+    return labelParts.join(' · ')
+  }, [searchTerm, selectedCategory, selectedPriceRangeId, showFreeOnly, currentPriceRangeLabel])
 
   const categories = useMemo(() => {
     const names = listings
@@ -75,6 +133,34 @@ const Marketplace = () => {
     setSelectedPriceRangeId(priceRangeOptions[0].id)
     setShowFreeOnly(false)
   }
+
+  const handleSaveSearch = useCallback(() => {
+    try {
+      const updatedSavedSearches = saveMarketplaceSearch({
+        label: savedSearchLabel,
+        filters: {
+          searchTerm,
+          selectedCategory,
+          selectedPriceRangeId,
+          showFreeOnly,
+        },
+      })
+
+      setSavedSearches(updatedSavedSearches)
+      setFeedback({ type: 'success', message: `Saved search “${savedSearchLabel}”` })
+    } catch (saveError) {
+      console.error('Unable to save marketplace search', saveError)
+      setFeedback({ type: 'error', message: 'We could not save this search. Please try again.' })
+    }
+  }, [savedSearchLabel, searchTerm, selectedCategory, selectedPriceRangeId, showFreeOnly])
+
+  const handleApplySavedSearch = useCallback((savedSearch: SavedMarketplaceSearch) => {
+    setSearchTerm(savedSearch.searchTerm)
+    setSelectedCategory(savedSearch.selectedCategory)
+    setSelectedPriceRangeId(savedSearch.selectedPriceRangeId)
+    setShowFreeOnly(savedSearch.showFreeOnly)
+    setFeedback({ type: 'success', message: `Applied saved search “${savedSearch.label}”` })
+  }, [])
 
   const headerMessage = isLoading
     ? 'Fetching the latest marketplace updates...'
@@ -198,11 +284,18 @@ const Marketplace = () => {
             </div>
             <button
               type="button"
+              onClick={handleSaveSearch}
               className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-primary hover:text-primary"
             >
               Save this search
             </button>
           </header>
+
+          <div aria-live="polite" className="min-h-[1.5rem] text-sm">
+            {feedback && (
+              <span className={feedback.type === 'success' ? 'text-green-600' : 'text-red-600'}>{feedback.message}</span>
+            )}
+          </div>
 
           {isError && (
             <div className="card flex flex-col gap-4 p-8">
@@ -272,6 +365,29 @@ const Marketplace = () => {
           )}
         </section>
       </div>
+
+      {savedSearches.length > 0 && (
+        <section className="mx-auto w-full max-w-6xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+          <div className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Saved searches</h3>
+              <p className="text-sm text-slate-500">Quickly revisit filters you've saved.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {savedSearches.map((savedSearch) => (
+                <button
+                  key={savedSearch.id}
+                  type="button"
+                  onClick={() => handleApplySavedSearch(savedSearch)}
+                  className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-primary hover:text-primary"
+                >
+                  {savedSearch.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   )
 }
