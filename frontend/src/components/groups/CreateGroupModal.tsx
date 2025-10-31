@@ -29,10 +29,11 @@ const CreateGroupModal: FC<Props> = ({ onClose, onGroupCreated }) => {
     try {
       setLoading(true)
       setError(null)
-      const group = await groupsService.createGroup(
-        { name: name.trim(), description: description.trim() || undefined, type },
-        token
-      )
+      const group = await groupsService.createGroup({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        type,
+      })
       onGroupCreated(group)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create group')

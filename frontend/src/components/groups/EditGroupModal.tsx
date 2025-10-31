@@ -30,11 +30,11 @@ const EditGroupModal: FC<Props> = ({ group, onClose, onGroupUpdated }) => {
     try {
       setLoading(true)
       setError(null)
-      const updated = await groupsService.updateGroup(
-        group.id,
-        { name: name.trim(), description: description.trim() || undefined, type },
-        token
-      )
+      const updated = await groupsService.updateGroup(group.id, {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        type,
+      })
       onGroupUpdated(updated)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update group')

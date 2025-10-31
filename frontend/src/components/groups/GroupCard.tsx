@@ -30,7 +30,7 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
     if (!token) return
     try {
       setLoading(true)
-      const updated = await groupsService.joinGroup(group.id, token)
+      const updated = await groupsService.joinGroup(group.id)
       onGroupUpdated(updated)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to join group')
@@ -48,7 +48,7 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
 
     try {
       setLoading(true)
-      const updated = await groupsService.leaveGroup(group.id, token)
+      const updated = await groupsService.leaveGroup(group.id)
       onGroupUpdated(updated)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to leave group')
@@ -68,7 +68,7 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
 
     try {
       setLoading(true)
-      await groupsService.deleteGroup(group.id, token)
+      await groupsService.deleteGroup(group.id)
       onGroupDeleted(group.id)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete group')

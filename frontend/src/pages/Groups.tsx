@@ -22,7 +22,7 @@ const Groups: FC = () => {
       let data: Group[]
       
       if (viewMode === 'my' && token) {
-        data = await groupsService.getMyGroups(token)
+        data = await groupsService.getMyGroups()
       } else {
         data = await groupsService.getGroups()
       }

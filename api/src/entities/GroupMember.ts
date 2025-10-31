@@ -1,4 +1,4 @@
-import { Entity, ManyToOne, Column } from "typeorm";
+import { Entity, ManyToOne, Column, JoinColumn } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { Group } from "./Group";
@@ -6,9 +6,11 @@ import { Group } from "./Group";
 @Entity({ name: "group_members" })
 export class GroupMember extends BaseModel {
   @ManyToOne(() => Group, (group) => group.members, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "group_id" })
   group!: Group;
 
   @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "user_id" })
   user!: User;
 
   @Column({

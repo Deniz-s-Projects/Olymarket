@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, OneToMany } from "typeorm";
+import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { GroupMember } from "./GroupMember";
@@ -19,6 +19,7 @@ export class Group extends BaseModel {
   type!: "hobby" | "interest" | "block";
 
   @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: "owner_id" })
   owner!: User;
 
   @Column({ name: "is_active", type: "boolean", default: true })
