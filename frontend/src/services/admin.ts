@@ -101,6 +101,34 @@ export const unbanUser = async (id: string) => {
   )
 }
 
+// Usage statistics types
+export type PopularCategory = {
+  id: string
+  name: string
+  listingCount: number
+}
+
+export type UsageStats = {
+  listings: {
+    total: number
+    pending: number
+    approved: number
+    rejected: number
+    active: number
+  }
+  users: {
+    total: number
+    active: number
+    banned: number
+  }
+  conversations: {
+    total: number
+  }
+  messages: {
+    total: number
+  }
+  popularCategories: PopularCategory[]
+}
 // Reports response type
 export type AdminReportsResponse = {
   items: Report[]
@@ -134,10 +162,14 @@ export const updateAdminReport = async (
     body: payload,
   })
 }
-
+export const fetchUsageStats = async () => {
+  return apiClient<UsageStats>('/admin/stats')
+}
 // Delete a report (admin)
 export const deleteAdminReport = async (id: string) => {
   return apiClient<void>(`/reports/${id}`, {
     method: 'DELETE',
   })
+// Fetch usage statistics
+ 
 }
