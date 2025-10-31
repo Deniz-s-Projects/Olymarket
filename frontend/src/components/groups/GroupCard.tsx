@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { useState } from 'react'
-import type { GroupSummary } from '../../types/group'
+import type { Group, GroupSummary } from '../../types/group'
 import { toGroupSummary } from '../../types/group'
 import { useAuth } from '../../context/useAuth'
 import { groupsService } from '../../services/groups'
