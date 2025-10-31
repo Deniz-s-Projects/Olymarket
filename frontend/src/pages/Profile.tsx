@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 
 import PreferenceToggleList from '../components/profile/PreferenceToggleList'
 import ProfileHeader from '../components/profile/ProfileHeader'
@@ -155,12 +155,12 @@ const Profile = () => {
         metrics={metrics}
         isLoading={isLoading}
         actions={
-          <a
-            href={createListingUrl}
+          <Link
+            to={createListingUrl}
             className="inline-flex items-center justify-center rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
           >
             Create Listing
-          </a>
+          </Link>
         }
       />
       {banNotice ? (

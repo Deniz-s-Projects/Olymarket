@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { ProfileListingWithActions } from '../../types/profile'
 
 type ListingTableProps = {
@@ -69,19 +70,19 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                     <td className="px-3 py-3 text-slate-500">{listing.updatedAt}</td>
                     <td className="px-3 py-3">
                       <div className="flex items-center justify-end gap-2 text-sm">
-                        <a
-                          href={listing.actions.editUrl}
+                        <Link
+                          to={listing.actions.editUrl}
                           className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-primary/40 hover:text-primary"
                         >
                           Edit
-                        </a>
+                        </Link>
                         {listing.actions.archiveUrl ? (
-                          <a
-                            href={listing.actions.archiveUrl}
+                          <Link
+                            to={listing.actions.archiveUrl}
                             className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-red-200 hover:text-red-600"
                           >
                             Archive
-                          </a>
+                          </Link>
                         ) : null}
                       </div>
                     </td>
@@ -119,19 +120,19 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                   </div>
                 </dl>
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
-                  <a
-                    href={listing.actions.editUrl}
+                  <Link
+                    to={listing.actions.editUrl}
                     className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-primary/40 hover:text-primary"
                   >
                     Edit listing
-                  </a>
+                  </Link>
                   {listing.actions.archiveUrl ? (
-                    <a
-                      href={listing.actions.archiveUrl}
+                    <Link
+                      to={listing.actions.archiveUrl}
                       className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-red-200 hover:text-red-600"
                     >
                       Archive
-                    </a>
+                    </Link>
                   ) : null}
                 </div>
               </article>

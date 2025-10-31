@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import ListingTable from './ListingTable'
 import type {
@@ -85,12 +86,12 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
             {activeGroup?.description ?? 'Manage and organize all of your listings from a single place.'}
           </p>
         </div>
-        <a
-          href={createListingUrl}
+        <Link
+          to={createListingUrl}
           className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
         >
           Create listing
-        </a>
+        </Link>
       </header>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -130,12 +131,12 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
         <div className="mt-10 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
           <h3 className="text-lg font-semibold text-slate-900">{emptyTitle}</h3>
           <p className="max-w-md text-sm text-slate-600">{emptyDescription}</p>
-          <a
-            href={emptyAction?.url ?? createListingUrl}
+          <Link
+            to={emptyAction?.url ?? createListingUrl}
             className="inline-flex items-center justify-center rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
           >
             {emptyAction?.label ?? 'Create your first listing'}
-          </a>
+          </Link>
         </div>
       )}
     </section>
