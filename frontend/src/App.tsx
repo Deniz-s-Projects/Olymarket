@@ -14,6 +14,7 @@ import Messages from './pages/Messages'
 import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import Groups from './pages/Groups'
 import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
 import ThemeToggle from './components/ThemeToggle'
@@ -21,6 +22,7 @@ import ThemeToggle from './components/ThemeToggle'
 const navigation = [
   { to: '/', label: 'Marketplace' },
   { to: '/listings/new', label: 'Create Listing' },
+  { to: '/groups', label: 'Groups' },
   { to: '/messages', label: 'Conversations' },
   { to: '/profile', label: 'Profile' },
 ]
@@ -203,6 +205,7 @@ const App = () => {
             <Route path="/listings/new" element={<CreateListing />} />
             <Route path="/listings/:id/edit" element={<CreateListing />} />
             <Route path="/listings/:id" element={<ListingDetails />} />
+            <Route path="/groups" element={<Groups />} />
             <Route
               path="/messages"
               element={
