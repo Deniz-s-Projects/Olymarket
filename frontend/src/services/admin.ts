@@ -162,14 +162,14 @@ export const updateAdminReport = async (
     body: payload,
   })
 }
-
+export const fetchUsageStats = async () => {
+  return apiClient<UsageStats>('/admin/stats')
+}
 // Delete a report (admin)
 export const deleteAdminReport = async (id: string) => {
   return apiClient<void>(`/reports/${id}`, {
     method: 'DELETE',
   })
 // Fetch usage statistics
-export const fetchUsageStats = async () => {
-  return apiClient<UsageStats>('/admin/stats')
-}
+ 
 }
