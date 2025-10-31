@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 
 import PreferenceToggleList from '../components/profile/PreferenceToggleList'
@@ -10,7 +10,9 @@ import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
 import { useAuth } from '../context/useAuth'
 import useProfile from '../hooks/useProfile'
-import type { ProfileAccountInfo } from '../types/profile'
+import type { ProfileAccountInfo, ProfileListingStatus } from '../types/profile'
+import { updateListingStatus } from '../services/listings'
+import { ApiError } from '../lib/apiClient'
 
 const PROFILE_TABS: ProfileTabConfig[] = [
   { id: 'overview', label: 'Overview' },
@@ -46,6 +48,29 @@ const Profile = () => {
   } = useProfile({ enabled: Boolean(user) })
 
   const [activeTab, setActiveTab] = useState<string>(PROFILE_TABS[0]?.id ?? 'overview')
+  const [pendingListingId, setPendingListingId] = useState<string | null>(null)
+  const [listingActionError, setListingActionError] = useState<string | null>(null)
+
+  const handleListingStatusChange = useCallback(
+    async (listingId: string, status: ProfileListingStatus) => {
+      setPendingListingId(listingId)
+      setListingActionError(null)
+
+      try {
+        await updateListingStatus(listingId, status)
+        await refetch()
+      } catch (error) {
+        const message =
+          error instanceof ApiError && error.message
+            ? error.message
+            : 'We could not update the listing status. Please try again.'
+        setListingActionError(message)
+      } finally {
+        setPendingListingId(null)
+      }
+    },
+    [refetch],
+  )
 
   const accountDetails = useMemo<ProfileAccountInfo | undefined>(() => {
     if (!user && !profileAccount) {
@@ -121,10 +146,9 @@ const Profile = () => {
             <ProfileListingsTab
               listings={listings}
               isLoading={isLoading}
-              onStatusChange={updateListingStatus}
-              isStatusUpdating={isUpdatingListingStatus}
-              statusUpdateError={updateListingStatusError?.message ?? null}
-              pendingListingId={updatingListingId}
+              pendingListingId={pendingListingId}
+              onStatusChange={handleListingStatusChange}
+              actionError={listingActionError}
             />
           </div>
         )

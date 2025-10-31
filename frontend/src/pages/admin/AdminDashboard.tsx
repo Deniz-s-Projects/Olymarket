@@ -638,7 +638,7 @@ const EditListingModal = ({
   const [description, setDescription] = useState(listing.description)
   const [price, setPrice] = useState(listing.price)
   const [categoryId, setCategoryId] = useState(listing.category?.id || '')
-  const [status, setStatus] = useState<ListingStatus>(listing.status)
+  const [status, setStatus] = useState(listing.status)
   const [moderationStatus, setModerationStatus] = useState(listing.moderationStatus)
   const [moderationNotes, setModerationNotes] = useState(listing.moderationNotes || '')
 
@@ -649,6 +649,7 @@ const EditListingModal = ({
       description,
       price,
       categoryId: categoryId || undefined,
+      isActive: status === 'active',
       status,
       moderationStatus,
       moderationNotes: moderationNotes || undefined,
@@ -710,10 +711,10 @@ const EditListingModal = ({
           </label>
 
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            <span>Listing status</span>
+            <span>Status</span>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value as ListingStatus)}
+              onChange={(e) => setStatus(e.target.value as AdminListing['status'])}
               className="rounded-md border border-slate-300 px-3 py-2"
             >
               <option value="active">Active</option>

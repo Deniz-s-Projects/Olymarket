@@ -11,10 +11,9 @@ import type {
 type ProfileListingsTabProps = {
   listings: ProfileListingsOverview
   isLoading?: boolean
-  onStatusChange?: (listingId: string, status: ProfileListingStatus) => Promise<void>
-  isStatusUpdating?: boolean
-  statusUpdateError?: string | null
   pendingListingId?: string | null
+  onStatusChange?: (listingId: string, status: ProfileListingStatus) => Promise<void> | void
+  actionError?: string | null
 }
 
 type StatusFilterOption = {
@@ -28,10 +27,9 @@ const DEFAULT_CREATE_URL = '/listings/new'
 const ProfileListingsTab = ({
   listings,
   isLoading = false,
+  pendingListingId,
   onStatusChange,
-  isStatusUpdating = false,
-  statusUpdateError = null,
-  pendingListingId = null,
+  actionError,
 }: ProfileListingsTabProps) => {
   const groups = useMemo(() => listings.groups ?? [], [listings.groups])
   const [activeFilter, setActiveFilter] = useState<StatusFilterOption['id']>('all')
@@ -177,9 +175,8 @@ const ProfileListingsTab = ({
             title={activeFilter === 'all' ? 'All Listings' : `${activeGroup?.label ?? 'Listings'}`}
             emptyMessage={emptyDescription}
             isLoading={isLoading}
-            onStatusChange={onStatusChange ? handleStatusTransition : undefined}
-            isStatusUpdating={isStatusUpdating}
             pendingListingId={pendingListingId}
+            onStatusChange={onStatusChange}
           />
         </div>
       ) : (

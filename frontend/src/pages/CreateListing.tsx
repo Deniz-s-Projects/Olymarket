@@ -16,8 +16,8 @@ import {
   fetchListingById,
   updateListing,
   type ListingCategory,
-  type ListingStatus,
 } from "../services/listings"
+import type { ListingStatus } from "../services/listings"
 
 type ListingFormValues = {
   title: string
@@ -202,7 +202,11 @@ const CreateListing = () => {
         if (!value.trim()) return "Choose how you prefer to be contacted."
         return ""
       },
-      status: () => "",
+      status: (value: ListingStatus) => {
+        return value === "active" || value === "draft" || value === "sold"
+          ? ""
+          : "Select a valid status."
+      },
     }),
     [categories]
   )
@@ -304,6 +308,7 @@ const CreateListing = () => {
           description: values.description.trim(),
           price: values.price.trim(),
           isFree: values.isFree,
+          isActive: values.status === "active",
           status: values.status,
           categoryId: values.category || undefined,
           images: allImages,
@@ -346,6 +351,20 @@ const CreateListing = () => {
         }
       }
     }
+  }
+
+  const handleStatusToggle = (isActive: boolean) => {
+    const nextStatus: ListingStatus = isActive
+      ? "active"
+      : values.status === "sold"
+      ? "sold"
+      : "draft"
+
+    if (nextStatus === values.status) {
+      return
+    }
+
+    updateValue("status", nextStatus)
   }
 
   const handlePhotoSelection = (files: FileList | null) => {
@@ -562,10 +581,20 @@ const CreateListing = () => {
             label="Active listing"
             name="status"
             description="Disable this to hide the listing from buyers without deleting it."
-            hint="You can update this status at any time."
+            hint={
+              values.status === "sold"
+                ? "This listing is marked as sold. Turn this back on to make it available again."
+                : "You can update this status at any time."
+            }
             checked={values.status === "active"}
-            onChange={(checked) => updateValue("status", checked ? "active" : "draft")}
+            onChange={handleStatusToggle}
           />
+          {values.status === "sold" ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              Buyers can no longer contact you about this listing. Use the status toggle above or the controls in your
+              profile dashboard to relist it when you're ready.
+            </div>
+          ) : null}
         </section>
 
         <section className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

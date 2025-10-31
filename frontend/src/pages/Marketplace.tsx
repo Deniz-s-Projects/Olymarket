@@ -1,15 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import CategoryFilter from '../components/CategoryFilter'
 import ListingCard from '../components/ListingCard'
 import PriceRangeFilter, { type PriceRangeOption } from '../components/PriceRangeFilter'
-import { useListings, type ListingsFilters } from '../hooks/useListings'
-import { fetchListingCategories } from '../services/listings' 
-import {
-  getSavedMarketplaceSearches,
-  saveMarketplaceSearch,
-  type SavedMarketplaceSearch,
-} from '../services/savedSearches'
+import { useListings } from '../hooks/useListings'
 
 const priceRangeOptions: PriceRangeOption[] = [
   { id: 'all', label: 'Any budget', min: 0 },
@@ -18,131 +12,62 @@ const priceRangeOptions: PriceRangeOption[] = [
   { id: '150-plus', label: '$150 and up', min: 150 },
 ]
 
+const parsePrice = (value: string) => {
+  const numericValue = Number.parseFloat(value)
+  return Number.isNaN(numericValue) ? null : numericValue
+}
+
 const Marketplace = () => {
+  const { listings, isLoading, isError, error, refetch } = useListings()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
   const [showFreeOnly, setShowFreeOnly] = useState(false)
-  const [savedSearches, setSavedSearches] = useState<SavedMarketplaceSearch[]>([])
-  const [availableCategories, setAvailableCategories] = useState<string[]>([])
-  const [feedback, setFeedback] = useState<
-    | {
-        type: 'success' | 'error'
-        message: string
-      }
-    | null
-  >(null)
 
-  useEffect(() => {
-    const existingSearches = getSavedMarketplaceSearches()
-    setSavedSearches(existingSearches)
-  }, [])
+  const categories = useMemo(() => {
+    const names = listings
+      .map((listing) => listing.category?.name?.trim())
+      .filter((name): name is string => Boolean(name && name.length > 0))
 
-  useEffect(() => {
-    if (!feedback) {
-      return
-    }
-
-    const timeoutId = window.setTimeout(() => setFeedback(null), 4000)
-    return () => window.clearTimeout(timeoutId)
-  }, [feedback])
-
-  const currentPriceRangeLabel = useMemo(() => {
-    const option = priceRangeOptions.find((item) => item.id === selectedPriceRangeId)
-    return option?.label ?? priceRangeOptions[0].label
-  }, [selectedPriceRangeId])
-
-  const savedSearchLabel = useMemo(() => {
-    const labelParts: string[] = []
-
-    if (searchTerm.trim().length > 0) {
-      labelParts.push(`“${searchTerm.trim()}”`)
-    }
-
-    if (selectedCategory) {
-      labelParts.push(selectedCategory)
-    }
-
-    if (selectedPriceRangeId !== priceRangeOptions[0].id) {
-      labelParts.push(currentPriceRangeLabel)
-    }
-
-    if (showFreeOnly) {
-      labelParts.push('Free items only')
-    }
-
-    if (labelParts.length === 0) {
-      return 'All listings'
-    }
-
-    return labelParts.join(' · ')
-  }, [searchTerm, selectedCategory, selectedPriceRangeId, showFreeOnly, currentPriceRangeLabel])
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadCategories = async () => {
-      try {
-        const categories = await fetchListingCategories()
-        if (!isMounted) return
-        const categoryNames = categories
-          .map((category) => category.name?.trim())
-          .filter((name): name is string => Boolean(name && name.length > 0))
-        const uniqueNames = Array.from(new Set(categoryNames)).sort((a, b) => a.localeCompare(b))
-        setAvailableCategories(uniqueNames)
-      } catch (caughtError) {
-        console.error('Unable to load listing categories', caughtError)
-      }
-    }
-
-    void loadCategories()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
+    return Array.from(new Set(names)).sort()
+  }, [listings])
 
   const selectedPriceRange = useMemo(
     () => priceRangeOptions.find((option) => option.id === selectedPriceRangeId) ?? priceRangeOptions[0],
     [selectedPriceRangeId],
   )
 
-  const listingsFilters = useMemo<ListingsFilters>(() => {
-    const filters: ListingsFilters = {
-      searchTerm,
-      category: selectedCategory,
-    }
+  const filteredListings = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+    const maxPrice = selectedPriceRange.max ?? Number.POSITIVE_INFINITY
 
-    if (showFreeOnly) {
-      filters.isFree = true
-    }
-
-    if (selectedPriceRangeId !== priceRangeOptions[0].id) {
-      if (typeof selectedPriceRange.min === 'number' && Number.isFinite(selectedPriceRange.min)) {
-        filters.minPrice = selectedPriceRange.min
+    return listings.filter((listing) => {
+      const priceValue = parsePrice(listing.price)
+      if (showFreeOnly) {
+        if (listing.isFree) return true
+        if (priceValue !== null && priceValue === 0) return true
+        return false
       }
-      if (typeof selectedPriceRange.max === 'number' && Number.isFinite(selectedPriceRange.max)) {
-        filters.maxPrice = selectedPriceRange.max
-      }
-    }
 
-    return filters
-  }, [searchTerm, selectedCategory, selectedPriceRange, selectedPriceRangeId, showFreeOnly])
+      const matchesPrice =
+        listing.isFree || priceValue === null ? true : priceValue >= selectedPriceRange.min && priceValue <= maxPrice
 
-  const { listings, isLoading, isFetchingMore, isError, error, refetch, fetchNextPage, hasMore, total } =
-    useListings(listingsFilters)
+      const categoryName = listing.category?.name ?? ''
+      const ownerName = listing.owner?.name ?? ''
 
-  const fallbackCategories = useMemo(() => {
-    const names = listings
-      .map((listing) => listing.category?.name?.trim())
-      .filter((name): name is string => Boolean(name && name.length > 0))
+      const matchesCategory = !selectedCategory || categoryName === selectedCategory
 
-    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b))
-  }, [listings])
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        [listing.title, listing.description, categoryName, ownerName]
+          .map((value) => value.toLowerCase())
+          .some((value) => value.includes(normalizedSearch))
 
-  const categories = availableCategories.length > 0 ? availableCategories : fallbackCategories
+      return matchesSearch && matchesCategory && matchesPrice
+    })
+  }, [listings, searchTerm, selectedCategory, selectedPriceRange, showFreeOnly])
 
-  const showEmptyState = !isLoading && !isError && listings.length === 0
+  const showEmptyState = !isLoading && !isError && filteredListings.length === 0
 
   const handleResetFilters = () => {
     setSearchTerm('')
@@ -151,41 +76,11 @@ const Marketplace = () => {
     setShowFreeOnly(false)
   }
 
-  const handleSaveSearch = useCallback(() => {
-    try {
-      const updatedSavedSearches = saveMarketplaceSearch({
-        label: savedSearchLabel,
-        filters: {
-          searchTerm,
-          selectedCategory,
-          selectedPriceRangeId,
-          showFreeOnly,
-        },
-      })
-
-      setSavedSearches(updatedSavedSearches)
-      setFeedback({ type: 'success', message: `Saved search “${savedSearchLabel}”` })
-    } catch (saveError) {
-      console.error('Unable to save marketplace search', saveError)
-      setFeedback({ type: 'error', message: 'We could not save this search. Please try again.' })
-    }
-  }, [savedSearchLabel, searchTerm, selectedCategory, selectedPriceRangeId, showFreeOnly])
-
-  const handleApplySavedSearch = useCallback((savedSearch: SavedMarketplaceSearch) => {
-    setSearchTerm(savedSearch.searchTerm)
-    setSelectedCategory(savedSearch.selectedCategory)
-    setSelectedPriceRangeId(savedSearch.selectedPriceRangeId)
-    setShowFreeOnly(savedSearch.showFreeOnly)
-    setFeedback({ type: 'success', message: `Applied saved search “${savedSearch.label}”` })
-  }, [])
-
   const headerMessage = isLoading
     ? 'Fetching the latest marketplace updates...'
     : isError
       ? 'We were unable to load listings. Please try again.'
-      : total === 0
-        ? 'No listings match your filters yet.'
-        : `${total} result${total === 1 ? '' : 's'} ready for review.`
+      : `${filteredListings.length} result${filteredListings.length === 1 ? '' : 's'} ready for review.`
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 lg:px-8">
@@ -197,11 +92,10 @@ const Marketplace = () => {
               Olymarket Marketplace
             </span>
             <h1 className="text-3xl font-semibold leading-tight sm:text-4xl md:text-5xl">
-              Discover experiences crafted for the Olympic community
+              Free-of-charge Olydorf marketplace!
             </h1>
             <p className="max-w-xl text-base text-white/90 sm:text-lg">
-              Browse curated listings from trusted hosts, service providers, and local experts ready to elevate every
-              moment of the Games.
+              Browse curated listings from trusted hosts, service providers, and local residents.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -214,7 +108,7 @@ const Marketplace = () => {
                 type="button"
                 className="inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
               >
-                Become a partner
+                Sign up
               </button>
             </div>
           </div>
@@ -225,19 +119,19 @@ const Marketplace = () => {
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     1
                   </span>
-                  Hand-picked listings to inspire your Olympic journey.
+                  Hand-picked listings to buy or sell, or acquire/trade for free
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     2
                   </span>
-                  Flexible booking and service options designed for teams and fans alike.
+                  Easy communication via messages, all hosted here in OlyDorf by Olynet!
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     3
                   </span>
-                  Collaborate with vetted partners and locals who know the city best.
+                  Smooth user experience vibe-coded with Artificial Intelligence.
                 </li>
               </ul>
             </div>
@@ -277,7 +171,7 @@ const Marketplace = () => {
                 <input
                   type="checkbox"
                   checked={showFreeOnly}
-                  onChange={(event) => setShowFreeOnly(event.target.checked)}
+                  onChange={(e) => setShowFreeOnly(e.target.checked)}
                   className="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500"
                 />
                 <div className="flex-1">
@@ -303,18 +197,11 @@ const Marketplace = () => {
             </div>
             <button
               type="button"
-              onClick={handleSaveSearch}
               className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-primary hover:text-primary"
             >
               Save this search
             </button>
           </header>
-
-          <div aria-live="polite" className="min-h-[1.5rem] text-sm">
-            {feedback && (
-              <span className={feedback.type === 'success' ? 'text-green-600' : 'text-red-600'}>{feedback.message}</span>
-            )}
-          </div>
 
           {isError && (
             <div className="card flex flex-col gap-4 p-8">
@@ -330,7 +217,7 @@ const Marketplace = () => {
               <div>
                 <button
                   type="button"
-                  onClick={() => void refetch()}
+                  onClick={refetch}
                   className="btn-primary inline-flex items-center rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/60"
                 >
                   Try again
@@ -377,49 +264,13 @@ const Marketplace = () => {
 
           {!isLoading && !isError && !showEmptyState && (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {listings.map((listing) => (
+              {filteredListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
           )}
-
-          {!isLoading && !isError && hasMore && (
-            <div className="flex justify-center pt-4">
-              <button
-                type="button"
-                onClick={() => void fetchNextPage()}
-                disabled={isFetchingMore}
-                className="inline-flex items-center rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isFetchingMore ? 'Loading more listings…' : 'Load more listings'}
-              </button>
-            </div>
-          )}
         </section>
       </div>
-
-      {savedSearches.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Saved searches</h3>
-              <p className="text-sm text-slate-500">Quickly revisit filters you've saved.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {savedSearches.map((savedSearch) => (
-                <button
-                  key={savedSearch.id}
-                  type="button"
-                  onClick={() => handleApplySavedSearch(savedSearch)}
-                  className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-primary hover:text-primary"
-                >
-                  {savedSearch.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   )
 }

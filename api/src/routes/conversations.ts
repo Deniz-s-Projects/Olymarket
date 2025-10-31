@@ -13,14 +13,53 @@ const router = Router();
 
 router.use(authMiddleware);
 
+const serializeParticipant = (participant: ConversationParticipant) => ({
+  id: participant.id,
+  userId: participant.user.id,
+  name: participant.user.name,
+  email: participant.user.email,
+  lastReadAt: participant.lastReadAt,
+});
+
+const serializeConversation = (conversation: Conversation, unreadCount = 0) => ({
+  id: conversation.id,
+  topic: conversation.topic,
+  createdAt: conversation.createdAt,
+  updatedAt: conversation.updatedAt,
+  participants: conversation.participants.map(serializeParticipant),
+  unreadCount,
+});
+
 router.get("/", async (req: AuthenticatedRequest, res) => {
   const participantRepository = AppDataSource.getRepository(ConversationParticipant);
   const messageRepository = AppDataSource.getRepository(Message);
+  const conversationRepository = AppDataSource.getRepository(Conversation);
   const userId = req.user!.id;
-  const participants = await participantRepository.find({
-    where: { user: { id: userId } },
-    relations: { conversation: { participants: { user: true } } },
-  });
+  const parsePositiveInt = (value: unknown, defaultValue: number) => {
+    const parsed = Number.parseInt((value as string) ?? "", 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      return defaultValue;
+    }
+    return parsed;
+  };
+
+  const DEFAULT_LIMIT = 20;
+  const MAX_LIMIT = 100;
+
+  const page = parsePositiveInt(req.query.page, 1);
+  const requestedLimit = parsePositiveInt(req.query.limit, DEFAULT_LIMIT);
+  const limit = Math.min(requestedLimit, MAX_LIMIT);
+  const skip = (page - 1) * limit;
+
+  const baseQuery = participantRepository
+    .createQueryBuilder("participant")
+    .leftJoinAndSelect("participant.conversation", "conversation")
+    .where("participant.user_id = :userId", { userId })
+    .orderBy("conversation.updated_at", "DESC")
+    .addOrderBy("participant.id", "DESC");
+
+  const totalItems = await baseQuery.clone().getCount();
+  const participants = await baseQuery.clone().skip(skip).take(limit).getMany();
 
   const conversationIds = participants.map((participant) => participant.conversation.id);
   const unreadCounts: Record<string, number> = {};
@@ -59,34 +98,55 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
       .set({ lastReadAt: now })
       .where("id IN (:...participantIds)", { participantIds })
       .execute();
+  }
 
-    for (const participant of participants) {
-      participant.lastReadAt = now;
-      const participantInConversation = participant.conversation.participants.find(
-        (item) => item.id === participant.id,
-      );
-      if (participantInConversation) {
-        participantInConversation.lastReadAt = now;
+  const conversations = conversationIds.length
+    ? await conversationRepository.find({
+        where: { id: In(conversationIds) },
+        relations: { participants: { user: true } },
+      })
+    : [];
+
+  const conversationMap = new Map(conversations.map((conversation) => [conversation.id, conversation]));
+  const participantIdSet = new Set(participantIds);
+
+  for (const conversation of conversationMap.values()) {
+    for (const participant of conversation.participants) {
+      if (participantIdSet.has(participant.id)) {
+        participant.lastReadAt = now;
       }
     }
   }
 
-  const conversations = participants.map((participant) => ({
-    id: participant.conversation.id,
-    topic: participant.conversation.topic,
-    createdAt: participant.conversation.createdAt,
-    updatedAt: participant.conversation.updatedAt,
-    participants: participant.conversation.participants,
-    unreadCount: unreadCounts[participant.conversation.id] ?? 0,
-  }));
+  const serializedConversations = participants
+    .map((participant) => {
+      const conversation = conversationMap.get(participant.conversation.id);
+      if (!conversation) {
+        return null;
+      }
 
-  return res.json(conversations);
+      return serializeConversation(conversation, unreadCounts[conversation.id] ?? 0);
+    })
+    .filter((conversation): conversation is ReturnType<typeof serializeConversation> => conversation !== null);
+
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
+
+  return res.json({
+    data: serializedConversations,
+    pagination: {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+  });
 });
 
 router.post("/", validationMiddleware(ConversationDto), async (req: AuthenticatedRequest, res) => {
   const userRepository = AppDataSource.getRepository(User);
   const conversationRepository = AppDataSource.getRepository(Conversation);
-  const participantRepository = AppDataSource.getRepository(ConversationParticipant);
 
   const participantIds = Array.from(new Set([...req.body.participantIds, req.user!.id]));
   const users = await userRepository.find({ where: { id: In(participantIds) } });
@@ -94,13 +154,23 @@ router.post("/", validationMiddleware(ConversationDto), async (req: Authenticate
     return res.status(404).json({ message: "One or more participants not found" });
   }
 
-  const conversation = conversationRepository.create({ topic: req.body.topic });
-  await conversationRepository.save(conversation);
+  const conversation = await AppDataSource.transaction(async (manager) => {
+    const transactionalConversationRepository = manager.getRepository(Conversation);
+    const transactionalParticipantRepository = manager.getRepository(ConversationParticipant);
 
-  for (const user of users) {
-    const participant = participantRepository.create({ conversation, user });
-    await participantRepository.save(participant);
-  }
+    const createdConversation = transactionalConversationRepository.create({ topic: req.body.topic });
+    await transactionalConversationRepository.save(createdConversation);
+
+    const participants = users.map((user) =>
+      transactionalParticipantRepository.create({ conversation: createdConversation, user }),
+    );
+
+    if (participants.length > 0) {
+      await transactionalParticipantRepository.insert(participants);
+    }
+
+    return createdConversation;
+  });
 
   const created = await conversationRepository.findOne({
     where: { id: conversation.id },
@@ -110,14 +180,7 @@ router.post("/", validationMiddleware(ConversationDto), async (req: Authenticate
     return res.status(500).json({ message: "Failed to load created conversation" });
   }
 
-  return res.status(201).json({
-    id: created.id,
-    topic: created.topic,
-    createdAt: created.createdAt,
-    updatedAt: created.updatedAt,
-    participants: created.participants,
-    unreadCount: 0,
-  });
+  return res.status(201).json(serializeConversation(created, 0));
 });
 
 router.get("/:id/messages", async (req: AuthenticatedRequest, res) => {

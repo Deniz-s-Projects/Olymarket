@@ -1,7 +1,8 @@
-import { Entity, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { ListingCategory } from "./ListingCategory";
+import { Offer } from "./Offer";
 
 export type ListingStatus = "active" | "draft" | "sold";
 
@@ -25,10 +26,9 @@ export class Listing extends BaseModel {
   @Column({
     type: "enum",
     enum: ["active", "draft", "sold"],
-    enumName: "listing_status_enum",
     default: "active",
   })
-  status!: ListingStatus;
+  status!: "active" | "draft" | "sold";
 
   @Column({ type: "text", array: true, nullable: true, default: () => "ARRAY[]::text[]" })
   images!: string[] | null;
@@ -73,4 +73,7 @@ export class Listing extends BaseModel {
   })
   @JoinColumn({ name: "category_id" })
   category!: ListingCategory | null;
+
+  @OneToMany(() => Offer, (offer) => offer.listing)
+  offers!: Offer[];
 }

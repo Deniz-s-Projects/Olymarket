@@ -184,6 +184,24 @@ const respondWithPaginatedResults = async (
 
 const router = Router();
 
+const LISTING_STATUSES = ["active", "draft", "sold"] as const;
+type ListingStatus = (typeof LISTING_STATUSES)[number];
+
+const isListingStatus = (value: unknown): value is ListingStatus =>
+  typeof value === "string" && (LISTING_STATUSES as readonly string[]).includes(value);
+
+const resolveStatusFromBody = (body: any, fallback?: ListingStatus): ListingStatus | undefined => {
+  if (isListingStatus(body?.status)) {
+    return body.status;
+  }
+
+  if (typeof body?.isActive === "boolean") {
+    return body.isActive ? "active" : "draft";
+  }
+
+  return fallback;
+};
+
 router.post(
   "/",
   authMiddleware,
@@ -200,6 +218,8 @@ router.post(
       }
     }
 
+    const requestedStatus = resolveStatusFromBody(req.body) ?? "active";
+    const status: ListingStatus = requestedStatus === "sold" ? "active" : requestedStatus;
     const availability = typeof req.body.availability === "string" ? req.body.availability.trim() : "";
     const preferredContactMethod =
       typeof req.body.preferredContactMethod === "string" ? req.body.preferredContactMethod.trim() : "";
@@ -292,6 +312,19 @@ router.put(
     listing.description = req.body.description;
     listing.price = req.body.price;
     listing.isFree = req.body.isFree ?? listing.isFree;
+
+    const resolvedStatus = resolveStatusFromBody(req.body, listing.status) ?? listing.status;
+    if (
+      resolvedStatus === "sold" &&
+      listing.status !== "sold" &&
+      listing.owner.id !== req.user!.id &&
+      req.user!.role !== "admin"
+    ) {
+      return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
+    }
+
+    listing.status = resolvedStatus;
+    listing.isActive = listing.status === "active";
     listing.category = category ?? null;
     listing.availability = availability || null;
     listing.preferredContactMethod = preferredContactMethod || null;
@@ -315,37 +348,35 @@ router.put(
   }
 );
 
-router.patch(
-  "/:id/status",
-  authMiddleware,
-  validationMiddleware(ListingStatusDto),
-  async (req: AuthenticatedRequest, res) => {
-    const listingRepository = AppDataSource.getRepository(Listing);
-    const listing = await listingRepository.findOne({
-      where: { id: req.params.id },
-      relations: { owner: true },
-    });
+router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const listing = await listingRepository.findOne({
+    where: { id: req.params.id },
+    relations: { owner: true },
+  });
+  if (!listing) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
 
-    if (!listing) {
-      return res.status(404).json({ message: "Listing not found" });
-    }
+  if (listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
+    return res.status(403).json({ message: "Not allowed" });
+  }
 
-    if (listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
-      return res.status(403).json({ message: "Not allowed" });
-    }
+  const status = resolveStatusFromBody(req.body);
+  if (!status || !isListingStatus(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
 
-    const requestedStatus = req.body.status as ListingStatus;
-    if (requestedStatus === "sold" && listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
-      return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold." });
-    }
+  if (status === "sold" && listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
+    return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
+  }
 
-    listing.status = requestedStatus;
-    listing.isActive = listing.status === "active";
+  listing.status = status;
+  listing.isActive = status === "active";
 
-    const saved = await listingRepository.save(listing);
-    return res.json(saved);
-  },
-);
+  const saved = await listingRepository.save(listing);
+  return res.json(saved);
+});
 
 router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const listingRepository = AppDataSource.getRepository(Listing);

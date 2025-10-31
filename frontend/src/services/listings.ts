@@ -14,6 +14,8 @@ export type ListingOwner = {
   email: string
 }
 
+export type ListingStatus = 'active' | 'draft' | 'sold'
+
 export type Listing = {
   id: string
   title: string
@@ -31,6 +33,43 @@ export type Listing = {
   savesCount?: number
   availability: string | null
   preferredContactMethod: string | null
+}
+
+export type OfferStatus = 'pending' | 'accepted' | 'declined'
+export type OfferMessageType = 'offer' | 'counter' | 'note' | 'status'
+
+export type OfferParticipant = {
+  id: string
+  name: string
+  email: string
+}
+
+export type OfferMessage = {
+  id: string
+  body: string | null
+  amount: string | null
+  type: OfferMessageType
+  createdAt: string
+  updatedAt: string
+  sender: OfferParticipant | null
+}
+
+export type Offer = {
+  id: string
+  amount: string
+  status: OfferStatus
+  createdAt: string
+  updatedAt: string
+  listing: { id: string; title: string }
+  buyer: OfferParticipant
+  seller: OfferParticipant
+  lastActionBy: OfferParticipant | null
+  messages: OfferMessage[]
+}
+
+export type ListingOffersResponse = {
+  viewerRole: 'buyer' | 'seller'
+  offers: Offer[]
 }
 
 export type PaginatedResponse<T> = {
@@ -89,21 +128,22 @@ export type ListingPayload = {
 }
 
 const normalizeListingPayload = (payload: ListingPayload) => {
-  const { categoryId, availability, preferredContactMethod, status, ...rest } = payload
+  const { categoryId, status, ...rest } = payload
   const priceNum = Number(rest.price);
   // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
   const isFree = priceNum < 1 ? true : rest.isFree;
   rest.isFree = isFree
+  const normalizedStatus = status ?? (typeof rest.isActive === 'boolean' ? (rest.isActive ? 'active' : 'draft') : undefined)
   return {
     ...rest,
-    status,
-    availability: availability.trim(),
-    preferredContactMethod: preferredContactMethod.trim(),
+    status: normalizedStatus, 
+    availability: rest.availability?.trim() ?? "",
+    preferredContactMethod: rest.preferredContactMethod?.trim() ?? "",
     categoryId: categoryId ? categoryId : undefined,
   }
 }
 
-export const createListing = async (payload: ListingPayload) => {
+export const createListing = async (payload: ListingPayload) => { 
   return apiClient<Listing>('/listings', {
     method: 'POST',
     body: normalizeListingPayload(payload),
@@ -148,6 +188,63 @@ export const saveListing = async (id: string, token: string) => {
 export const unsaveListing = async (id: string, token: string) => {
   return apiClient<{ message: string; isSaved: boolean }>(`/listings/${id}/save`, {
     method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const fetchListingOffers = async (listingId: string, token: string) => {
+  return apiClient<ListingOffersResponse>(`/offers/listing/${listingId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export type SubmitOfferPayload = {
+  listingId: string
+  amount: number
+  message?: string
+}
+
+export const submitOffer = async (payload: SubmitOfferPayload, token: string) => {
+  return apiClient<{ offer: Offer }>('/offers', {
+    method: 'POST',
+    body: payload,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const acceptOffer = async (offerId: string, token: string) => {
+  return apiClient<{ offer: Offer }>(`/offers/${offerId}/accept`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const declineOffer = async (offerId: string, token: string) => {
+  return apiClient<{ offer: Offer }>(`/offers/${offerId}/decline`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export type CounterOfferPayload = {
+  amount: number
+  message?: string
+}
+
+export const counterOffer = async (offerId: string, payload: CounterOfferPayload, token: string) => {
+  return apiClient<{ offer: Offer }>(`/offers/${offerId}/counter`, {
+    method: 'POST',
+    body: payload,
     headers: {
       Authorization: `Bearer ${token}`,
     },
