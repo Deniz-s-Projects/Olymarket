@@ -158,6 +158,7 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
       currency: "EUR",
       status: effectiveStatus,
       updatedAt: listing.updatedAt.toISOString(),
+      soldAt: listing.soldAt ? listing.soldAt.toISOString() : null,
       thumbnailUrl: listing.images && listing.images.length > 0 ? listing.images[0] : undefined,
       actions: {
         editUrl: `/listings/${listing.id}/edit`,

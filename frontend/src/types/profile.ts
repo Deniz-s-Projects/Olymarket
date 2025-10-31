@@ -28,6 +28,7 @@ export interface ProfileListingSummary {
   currency: string
   status: ProfileListingStatus
   updatedAt: string
+  soldAt?: string | null
   thumbnailUrl?: string
   availability?: string
   preferredContactMethod?: string

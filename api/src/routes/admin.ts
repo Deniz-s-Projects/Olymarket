@@ -29,6 +29,20 @@ const resolveStatusFromBody = (body: any, fallback: ListingStatus): ListingStatu
   return fallback;
 };
 
+const applyStatusToListing = (listing: Listing, status: ListingStatus) => {
+  const previousStatus = listing.status;
+  listing.status = status;
+  listing.isActive = status === "active";
+
+  if (status === "sold") {
+    if (previousStatus !== "sold" || !listing.soldAt) {
+      listing.soldAt = new Date();
+    }
+  } else if (previousStatus === "sold") {
+    listing.soldAt = null;
+  }
+};
+
 // All routes below require auth + admin
 router.use(authMiddleware, requireAdmin);
 
@@ -179,8 +193,7 @@ router.patch(
     if (typeof req.body.title === "string") listing.title = req.body.title;
     if (typeof req.body.description === "string") listing.description = req.body.description;
     if (typeof req.body.price === "string") listing.price = req.body.price;
-    listing.status = resolveStatusFromBody(req.body, listing.status);
-    listing.isActive = listing.status === "active";
+    applyStatusToListing(listing, resolveStatusFromBody(req.body, listing.status));
 
     if (typeof req.body.categoryId !== "undefined") {
       if (req.body.categoryId === "") {

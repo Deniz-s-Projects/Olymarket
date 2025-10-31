@@ -57,6 +57,9 @@ export class Listing extends BaseModel {
   @Column({ name: "saves_count", type: "integer", default: 0 })
   savesCount!: number;
 
+  @Column({ name: "sold_at", type: "timestamp", nullable: true })
+  soldAt!: Date | null;
+
   @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: "reviewer_id" })
   reviewer!: User | null;
