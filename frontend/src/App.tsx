@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react'
+import { type ReactElement, useEffect, useRef, useState } from 'react'
 import {
   BrowserRouter,
   NavLink,
@@ -86,6 +86,30 @@ const App = () => {
   const { user, logout, isHydrated, isAdmin, isModerator, banNotice, clearBanNotice } =
     useAuth()
   const userInitial = (user?.name || user?.email || '').charAt(0).toUpperCase()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null)
+  const firstMobileLinkRef = useRef<HTMLAnchorElement | null>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      if (firstMobileLinkRef.current) {
+        firstMobileLinkRef.current.focus()
+      }
+    } else if (mobileMenuButtonRef.current) {
+      mobileMenuButtonRef.current.focus()
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMobileMenuOpen])
 
   return (
     <BrowserRouter>
@@ -129,7 +153,7 @@ const App = () => {
             <NavLink to="/" className="text-2xl font-semibold tracking-tight text-primary dark:text-white">
               Olymarket
             </NavLink>
-            <nav className="flex items-center gap-4 text-sm font-medium">
+            <nav className="hidden items-center gap-4 text-sm font-medium lg:flex">
               {navigation.map(({ to, label }) => (
                 <NavLink
                   key={to}
@@ -199,7 +223,135 @@ const App = () => {
                 </NavLink>
               )}
             </nav>
+            <button
+              type="button"
+              ref={mobileMenuButtonRef}
+              className="inline-flex items-center justify-center rounded-md p-2 text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:text-slate-300 dark:hover:bg-slate-700 dark:focus:ring-offset-slate-900 lg:hidden"
+              aria-label="Toggle navigation menu"
+              aria-controls="mobile-menu"
+              aria-expanded={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            >
+              <svg
+                className="h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5M3.75 12h16.5m-16.5 6.75h16.5" />
+                )}
+              </svg>
+            </button>
           </div>
+          {isMobileMenuOpen ? (
+            <div
+              id="mobile-menu"
+              className="lg:hidden"
+            >
+              <div className="border-t border-slate-200 bg-white/95 px-4 pb-6 pt-2 shadow-md backdrop-blur dark:border-slate-700 dark:bg-slate-800/95">
+                <div className="flex flex-col gap-3 text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {navigation.map(({ to, label }, index) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      ref={index === 0 ? firstMobileLinkRef : null}
+                      className={({ isActive }) =>
+                        `rounded-lg px-3 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+                          isActive
+                            ? 'bg-primary text-white dark:bg-slate-700'
+                            : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700'
+                        }`
+                      }
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {label}
+                    </NavLink>
+                  ))}
+                  {isAdmin ? (
+                    <NavLink
+                      to="/admin"
+                      className={({ isActive }) =>
+                        `rounded-lg px-3 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+                          isActive
+                            ? 'bg-primary text-white dark:bg-slate-700'
+                            : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700'
+                        }`
+                      }
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Admin
+                    </NavLink>
+                  ) : null}
+                  <div className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-2 dark:bg-slate-700">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                      Theme
+                    </span>
+                    <ThemeToggle />
+                  </div>
+                  {!isHydrated ? (
+                    <span className="rounded-lg px-3 py-2 text-slate-400 dark:text-slate-500">Loading...</span>
+                  ) : user ? (
+                    <div className="space-y-3 rounded-lg bg-slate-100 p-3 dark:bg-slate-700">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary dark:bg-slate-600 dark:text-slate-200">
+                          {userInitial || '?'}
+                        </span>
+                        <div className="flex flex-col text-slate-700 dark:text-slate-200">
+                          <span className="font-semibold">{user.name}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-300">
+                            {isAdmin ? 'Admin' : isModerator ? 'Moderator' : 'Member'}
+                          </span>
+                        </div>
+                      </div>
+                      <NavLink
+                        to="/profile"
+                        className={({ isActive }) =>
+                          `block rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+                            isActive
+                              ? 'bg-primary text-white dark:bg-slate-600'
+                              : 'bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-600'
+                          }`
+                        }
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        View Profile
+                      </NavLink>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false)
+                          logout()
+                        }}
+                        className="w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:bg-slate-900 dark:hover:bg-slate-800 dark:focus:ring-offset-slate-900"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <NavLink
+                      to="/auth"
+                      className={({ isActive }) =>
+                        `rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+                          isActive
+                            ? 'bg-primary text-white dark:bg-slate-700'
+                            : 'bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800'
+                        }`
+                      }
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </NavLink>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </header>
 
         <main className="flex-1">
