@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 
 import PreferenceToggleList from '../components/profile/PreferenceToggleList'
@@ -8,9 +8,11 @@ import ProfileListingsTab from '../components/profile/ProfileListingsTab'
 import ProfileTabs, { type ProfileTabConfig } from '../components/profile/ProfileTabs'
 import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
+import AnnouncementsBoard from '../components/announcements/AnnouncementsBoard'
 import { FEATURE_REQUEST_EMAIL, GENERAL_FEEDBACK_EMAIL } from '../constants/support'
 import { useAuth } from '../context/useAuth'
 import useProfile from '../hooks/useProfile'
+import useAnnouncements from '../hooks/useAnnouncements'
 import type { ProfileAccountInfo, ProfileListingStatus } from '../types/profile'
 import { updateListingStatus } from '../services/listings'
 import { ApiError } from '../lib/apiClient'
@@ -47,6 +49,32 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<string>(PROFILE_TABS[0]?.id ?? 'overview')
   const [pendingListingId, setPendingListingId] = useState<string | null>(null)
   const [listingActionError, setListingActionError] = useState<string | null>(null)
+  const {
+    announcements: communityAnnouncements,
+    isLoading: isLoadingCommunityAnnouncements,
+    error: communityAnnouncementsError,
+    communityNewsEnabled: communityNewsEnabledFromFeed,
+    refetch: refetchCommunityAnnouncements,
+  } = useAnnouncements({ enabled: activeTab === 'preferences' })
+
+  const communityNewsPreferenceToggle = useMemo(
+    () => preferences.find((toggle) => toggle.id === 'communityNews'),
+    [preferences]
+  )
+  const communityNewsPreferenceEnabled = communityNewsPreferenceToggle?.enabled
+  const effectiveCommunityNewsEnabled =
+    typeof communityNewsPreferenceEnabled === 'boolean'
+      ? communityNewsPreferenceEnabled
+      : communityNewsEnabledFromFeed
+  const communityAnnouncementsErrorMessage = communityAnnouncementsError?.message ?? null
+
+  useEffect(() => {
+    if (activeTab !== 'preferences') {
+      return
+    }
+
+    void refetchCommunityAnnouncements()
+  }, [activeTab, communityNewsPreferenceEnabled, refetchCommunityAnnouncements])
 
   const handleListingStatusChange = useCallback(
     async (listingId: string, status: ProfileListingStatus) => {
@@ -165,6 +193,16 @@ const Profile = () => {
               error={updatePreferenceError?.message ?? null}
               lastUpdatedPreferenceId={lastUpdatedPreferenceId}
               onChange={updatePreference}
+            />
+            <AnnouncementsBoard
+              announcements={communityAnnouncements}
+              isLoading={isLoadingCommunityAnnouncements}
+              error={communityAnnouncementsErrorMessage}
+              onRetry={() => {
+                void refetchCommunityAnnouncements()
+              }}
+              communityNewsEnabled={effectiveCommunityNewsEnabled}
+              showSubscriptionHint
             />
           </div>
         )
