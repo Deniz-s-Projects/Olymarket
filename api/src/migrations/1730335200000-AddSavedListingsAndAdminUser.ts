@@ -26,6 +26,8 @@ export class AddSavedListingsAndAdminUser1730335200000 implements MigrationInter
     `);
 
     // Insert hardcoded admin user
+    // SECURITY NOTE: This is a development/demo credential.
+    // In production, change this password immediately or use environment variables.
     // Email: admin@olymarket.com
     // Password: Admin@2024
     await queryRunner.query(`

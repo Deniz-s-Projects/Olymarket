@@ -6,11 +6,11 @@ import { Listing } from "./Listing";
 @Entity({ name: "saved_listings" })
 @Unique(["user", "listing"])
 export class SavedListing extends BaseModel {
-  @ManyToOne(() => User, { eager: true })
+  @ManyToOne(() => User)
   @JoinColumn({ name: "user_id" })
   user!: User;
 
-  @ManyToOne(() => Listing, { eager: true })
+  @ManyToOne(() => Listing)
   @JoinColumn({ name: "listing_id" })
   listing!: Listing;
 }

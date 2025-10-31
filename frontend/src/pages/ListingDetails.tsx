@@ -49,8 +49,9 @@ const ListingDetails = () => {
             if (mounted) {
               setIsSaved(savedStatus.isSaved)
             }
-          } catch {
-            // Ignore errors when checking saved status
+          } catch (err) {
+            // Log error but don't block page load
+            console.warn('Failed to check saved status:', err)
           }
         }
       } catch (err) {
