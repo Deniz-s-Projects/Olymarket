@@ -7,54 +7,79 @@ const router = Router();
 
 router.use(authMiddleware);
 
-const formatListingAnalytics = (listing: Listing) => {
-  const views = listing.viewsCount ?? 0;
-  const saves = listing.savesCount ?? 0;
+const buildListingAnalytics = (data: {
+  id: string;
+  title: string;
+  views: number;
+  saves: number;
+  createdAt: Date;
+  updatedAt: Date;
+}) => {
+  const { id, title, views, saves, createdAt, updatedAt } = data;
   const conversionRate = views > 0 ? saves / views : 0;
 
   return {
-    id: listing.id,
-    title: listing.title,
+    id,
+    title,
     views,
     saves,
     conversionRate,
-    createdAt: listing.createdAt,
-    updatedAt: listing.updatedAt,
+    createdAt,
+    updatedAt,
   };
 };
 
 router.get("/listings", async (req: AuthenticatedRequest, res) => {
   const listingRepository = AppDataSource.getRepository(Listing);
 
-  const listings = await listingRepository.find({
-    where:
-      req.user!.role === "admin"
-        ? undefined
-        : {
-            owner: { id: req.user!.id },
-          },
-    order: { createdAt: "DESC" },
-  });
+  const baseQuery = listingRepository.createQueryBuilder("listing");
 
-  const analytics = listings.map(formatListingAnalytics);
-  const totals = analytics.reduce(
-    (acc, item) => {
-      acc.views += item.views;
-      acc.saves += item.saves;
-      return acc;
-    },
-    { views: 0, saves: 0 },
+  if (req.user!.role !== "admin") {
+    baseQuery.where("listing.owner_id = :ownerId", { ownerId: req.user!.id });
+  }
+
+  const listingRows = await baseQuery
+    .clone()
+    .select("listing.id", "id")
+    .addSelect("listing.title", "title")
+    .addSelect("listing.viewsCount", "views")
+    .addSelect("listing.savesCount", "saves")
+    .addSelect("listing.createdAt", "createdAt")
+    .addSelect("listing.updatedAt", "updatedAt")
+    .orderBy("listing.createdAt", "DESC")
+    .getRawMany();
+
+  const totalsRow = await baseQuery
+    .clone()
+    .select("COALESCE(SUM(listing.viewsCount), 0)", "views")
+    .addSelect("COALESCE(SUM(listing.savesCount), 0)", "saves")
+    .addSelect("COUNT(*)", "listingCount")
+    .getRawOne();
+
+  const listings = listingRows.map((row) =>
+    buildListingAnalytics({
+      id: row.id as string,
+      title: row.title as string,
+      views: Number(row.views ?? 0),
+      saves: Number(row.saves ?? 0),
+      createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
+      updatedAt: row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt),
+    }),
   );
-  const conversionRate = totals.views > 0 ? totals.saves / totals.views : 0;
+
+  const totalViews = Number(totalsRow?.views ?? 0);
+  const totalSaves = Number(totalsRow?.saves ?? 0);
+  const listingCount = Number(totalsRow?.listingCount ?? listings.length);
+  const conversionRate = totalViews > 0 ? totalSaves / totalViews : 0;
 
   return res.json({
     totals: {
-      views: totals.views,
-      saves: totals.saves,
+      views: totalViews,
+      saves: totalSaves,
       conversionRate,
-      listingCount: analytics.length,
+      listingCount,
     },
-    listings: analytics,
+    listings,
   });
 });
 
@@ -70,7 +95,16 @@ router.get("/listings/:id", async (req: AuthenticatedRequest, res) => {
     return res.status(403).json({ message: "Not allowed" });
   }
 
-  return res.json(formatListingAnalytics(listing));
+  return res.json(
+    buildListingAnalytics({
+      id: listing.id,
+      title: listing.title,
+      views: listing.viewsCount ?? 0,
+      saves: listing.savesCount ?? 0,
+      createdAt: listing.createdAt,
+      updatedAt: listing.updatedAt,
+    }),
+  );
 });
 
 export default router;
