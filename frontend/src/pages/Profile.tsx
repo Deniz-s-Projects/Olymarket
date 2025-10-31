@@ -10,7 +10,7 @@ import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
 import { useAuth } from '../context/useAuth'
 import useProfile from '../hooks/useProfile'
-import type { ProfileAccountInfo, ProfileListingStatus } from '../types/profile'
+import type { ProfileAccountInfo, ProfileListingStatusAction } from '../types/profile'
 import { updateListingStatus } from '../services/listings'
 import { ApiError } from '../lib/apiClient'
 
@@ -48,7 +48,7 @@ const Profile = () => {
   const [listingActionError, setListingActionError] = useState<string | null>(null)
 
   const handleListingStatusChange = useCallback(
-    async (listingId: string, status: ProfileListingStatus) => {
+    async (listingId: string, status: ProfileListingStatusAction) => {
       setPendingListingId(listingId)
       setListingActionError(null)
 
