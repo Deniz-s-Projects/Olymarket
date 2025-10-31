@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import CategoryFilter from '../components/CategoryFilter'
 import ListingCard from '../components/ListingCard'
@@ -23,6 +24,7 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
   const [showFreeOnly, setShowFreeOnly] = useState(false)
+  const listingsRef = useRef<HTMLElement | null>(null)
 
   const categories = useMemo(() => {
     const names = listings
@@ -98,18 +100,22 @@ const Marketplace = () => {
               Browse curated listings from trusted hosts, service providers, and local residents.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
+              <a
+                href="#listings"
+                onClick={(event) => {
+                  event.preventDefault()
+                  listingsRef.current?.scrollIntoView({ behavior: 'smooth' })
+                }}
                 className="btn-primary inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/20 transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
               >
                 Explore listings
-              </button>
-              <button
-                type="button"
+              </a>
+              <Link
+                to="/auth"
                 className="inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
               >
                 Sign up
-              </button>
+              </Link>
             </div>
           </div>
           <div className="hidden md:block">
@@ -189,7 +195,7 @@ const Marketplace = () => {
           </div>
         </aside>
 
-        <section className="space-y-6">
+        <section id="listings" ref={listingsRef} className="space-y-6">
           <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">Featured listings</h2>
