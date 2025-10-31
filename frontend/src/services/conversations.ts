@@ -24,6 +24,7 @@ export interface ConversationSummary {
   participants: ConversationParticipant[]
   createdAt: string
   updatedAt: string
+  unreadCount: number
 }
 
 interface ConversationParticipantResponse {
@@ -42,6 +43,7 @@ interface ConversationResponse {
   createdAt: string
   updatedAt: string
   participants: ConversationParticipantResponse[]
+  unreadCount?: number
 }
 
 export interface ConversationMessage {
@@ -125,6 +127,7 @@ const mapConversation = (conversation: ConversationResponse): ConversationSummar
     name: participant.user.name ?? participant.user.email,
     email: participant.user.email,
   })),
+  unreadCount: conversation.unreadCount ?? 0,
 })
 
 const mapMessage = (message: ConversationMessageResponse): ConversationMessage => ({
@@ -196,4 +199,20 @@ export const postConversationMessage = async (
 
   const data = await handleResponse<ConversationMessageResponse>(response)
   return mapMessage(data)
+}
+
+interface MarkConversationReadResponse {
+  lastReadAt: string
+}
+
+export const markConversationRead = async (
+  conversationId: string,
+  token: string
+): Promise<MarkConversationReadResponse> => {
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/read`, {
+    method: 'PATCH',
+    headers: buildHeaders(token),
+  })
+
+  return handleResponse<MarkConversationReadResponse>(response)
 }
