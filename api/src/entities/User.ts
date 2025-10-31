@@ -5,6 +5,7 @@ import { ConversationParticipant } from "./ConversationParticipant";
 import { Message } from "./Message";
 import { SavedListing } from "./SavedListing";
 import { GroupMember } from "./GroupMember";
+import { Offer } from "./Offer";
 import { UserPreference } from "./UserPreference";
 import { WantedListing } from "./WantedListing";
 
@@ -60,6 +61,11 @@ export class User extends BaseModel {
   @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
   groupMemberships!: GroupMember[];
 
+  @OneToMany(() => Offer, (offer) => offer.buyer)
+  offersMade!: Offer[];
+
+  @OneToMany(() => Offer, (offer) => offer.seller)
+  offersReceived!: Offer[];
   @OneToOne(() => UserPreference, (preference) => preference.user)
   preference?: UserPreference | null;
 
