@@ -8,7 +8,7 @@ import { ThemeProvider } from './context/ThemeContext.tsx'
 import { readStoredTheme } from './context/themeStorage.ts'
 
 const initialAuth = readStoredAuth()
-const initialTheme = readStoredTheme() ?? undefined
+const initialTheme = readStoredTheme() || undefined
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
