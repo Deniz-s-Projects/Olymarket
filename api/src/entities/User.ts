@@ -4,6 +4,7 @@ import { Listing } from "./Listing";
 import { ConversationParticipant } from "./ConversationParticipant";
 import { Message } from "./Message";
 import { SavedListing } from "./SavedListing";
+import { GroupMember } from "./GroupMember";
 
 @Entity({ name: "users" })
 @Unique(["email"])
@@ -50,4 +51,7 @@ export class User extends BaseModel {
 
   @OneToMany(() => SavedListing, (savedListing) => savedListing.user)
   savedListings!: SavedListing[];
+
+  @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
+  groupMemberships!: GroupMember[];
 }
