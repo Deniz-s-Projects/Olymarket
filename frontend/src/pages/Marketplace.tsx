@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import CategoryFilter from '../components/CategoryFilter'
 import ListingCard from '../components/ListingCard'
 import PriceRangeFilter, { type PriceRangeOption } from '../components/PriceRangeFilter'
-import { useListings } from '../hooks/useListings'
+import { useListings, type ListingsFilters } from '../hooks/useListings'
+import { fetchListingCategories } from '../services/listings' 
 import {
   getSavedMarketplaceSearches,
   saveMarketplaceSearch,
@@ -17,18 +18,13 @@ const priceRangeOptions: PriceRangeOption[] = [
   { id: '150-plus', label: '$150 and up', min: 150 },
 ]
 
-const parsePrice = (value: string) => {
-  const numericValue = Number.parseFloat(value)
-  return Number.isNaN(numericValue) ? null : numericValue
-}
-
 const Marketplace = () => {
-  const { listings, isLoading, isError, error, refetch } = useListings()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
   const [showFreeOnly, setShowFreeOnly] = useState(false)
   const [savedSearches, setSavedSearches] = useState<SavedMarketplaceSearch[]>([])
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [feedback, setFeedback] = useState<
     | {
         type: 'success' | 'error'
@@ -82,50 +78,71 @@ const Marketplace = () => {
     return labelParts.join(' · ')
   }, [searchTerm, selectedCategory, selectedPriceRangeId, showFreeOnly, currentPriceRangeLabel])
 
-  const categories = useMemo(() => {
-    const names = listings
-      .map((listing) => listing.category?.name?.trim())
-      .filter((name): name is string => Boolean(name && name.length > 0))
+  useEffect(() => {
+    let isMounted = true
 
-    return Array.from(new Set(names)).sort()
-  }, [listings])
+    const loadCategories = async () => {
+      try {
+        const categories = await fetchListingCategories()
+        if (!isMounted) return
+        const categoryNames = categories
+          .map((category) => category.name?.trim())
+          .filter((name): name is string => Boolean(name && name.length > 0))
+        const uniqueNames = Array.from(new Set(categoryNames)).sort((a, b) => a.localeCompare(b))
+        setAvailableCategories(uniqueNames)
+      } catch (caughtError) {
+        console.error('Unable to load listing categories', caughtError)
+      }
+    }
+
+    void loadCategories()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const selectedPriceRange = useMemo(
     () => priceRangeOptions.find((option) => option.id === selectedPriceRangeId) ?? priceRangeOptions[0],
     [selectedPriceRangeId],
   )
 
-  const filteredListings = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase()
-    const maxPrice = selectedPriceRange.max ?? Number.POSITIVE_INFINITY
+  const listingsFilters = useMemo<ListingsFilters>(() => {
+    const filters: ListingsFilters = {
+      searchTerm,
+      category: selectedCategory,
+    }
 
-    return listings.filter((listing) => {
-      const priceValue = parsePrice(listing.price)
-      if (showFreeOnly) {
-        if (listing.isFree) return true
-        if (priceValue !== null && priceValue === 0) return true
-        return false
+    if (showFreeOnly) {
+      filters.isFree = true
+    }
+
+    if (selectedPriceRangeId !== priceRangeOptions[0].id) {
+      if (typeof selectedPriceRange.min === 'number' && Number.isFinite(selectedPriceRange.min)) {
+        filters.minPrice = selectedPriceRange.min
       }
+      if (typeof selectedPriceRange.max === 'number' && Number.isFinite(selectedPriceRange.max)) {
+        filters.maxPrice = selectedPriceRange.max
+      }
+    }
 
-      const matchesPrice =
-        listing.isFree || priceValue === null ? true : priceValue >= selectedPriceRange.min && priceValue <= maxPrice
+    return filters
+  }, [searchTerm, selectedCategory, selectedPriceRange, selectedPriceRangeId, showFreeOnly])
 
-      const categoryName = listing.category?.name ?? ''
-      const ownerName = listing.owner?.name ?? ''
+  const { listings, isLoading, isFetchingMore, isError, error, refetch, fetchNextPage, hasMore, total } =
+    useListings(listingsFilters)
 
-      const matchesCategory = !selectedCategory || categoryName === selectedCategory
+  const fallbackCategories = useMemo(() => {
+    const names = listings
+      .map((listing) => listing.category?.name?.trim())
+      .filter((name): name is string => Boolean(name && name.length > 0))
 
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        [listing.title, listing.description, categoryName, ownerName]
-          .map((value) => value.toLowerCase())
-          .some((value) => value.includes(normalizedSearch))
+    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b))
+  }, [listings])
 
-      return matchesSearch && matchesCategory && matchesPrice
-    })
-  }, [listings, searchTerm, selectedCategory, selectedPriceRange, showFreeOnly])
+  const categories = availableCategories.length > 0 ? availableCategories : fallbackCategories
 
-  const showEmptyState = !isLoading && !isError && filteredListings.length === 0
+  const showEmptyState = !isLoading && !isError && listings.length === 0
 
   const handleResetFilters = () => {
     setSearchTerm('')
@@ -166,7 +183,9 @@ const Marketplace = () => {
     ? 'Fetching the latest marketplace updates...'
     : isError
       ? 'We were unable to load listings. Please try again.'
-      : `${filteredListings.length} result${filteredListings.length === 1 ? '' : 's'} ready for review.`
+      : total === 0
+        ? 'No listings match your filters yet.'
+        : `${total} result${total === 1 ? '' : 's'} ready for review.`
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 lg:px-8">
@@ -258,7 +277,7 @@ const Marketplace = () => {
                 <input
                   type="checkbox"
                   checked={showFreeOnly}
-                  onChange={(e) => setShowFreeOnly(e.target.checked)}
+                  onChange={(event) => setShowFreeOnly(event.target.checked)}
                   className="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500"
                 />
                 <div className="flex-1">
@@ -311,7 +330,7 @@ const Marketplace = () => {
               <div>
                 <button
                   type="button"
-                  onClick={refetch}
+                  onClick={() => void refetch()}
                   className="btn-primary inline-flex items-center rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/60"
                 >
                   Try again
@@ -358,9 +377,22 @@ const Marketplace = () => {
 
           {!isLoading && !isError && !showEmptyState && (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredListings.map((listing) => (
+              {listings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
+            </div>
+          )}
+
+          {!isLoading && !isError && hasMore && (
+            <div className="flex justify-center pt-4">
+              <button
+                type="button"
+                onClick={() => void fetchNextPage()}
+                disabled={isFetchingMore}
+                className="inline-flex items-center rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isFetchingMore ? 'Loading more listings…' : 'Load more listings'}
+              </button>
             </div>
           )}
         </section>
