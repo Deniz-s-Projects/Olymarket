@@ -5,6 +5,7 @@ import type {
   ProfileListingsOverview,
   ProfileMetric,
   ProfilePreferenceToggle,
+  ProfilePreferenceUpdateInput,
   ProfileSavedItemSummary,
 } from '../types/profile'
 
@@ -26,6 +27,13 @@ export const fetchProfileSavedItems = async () => {
 
 export const fetchProfilePreferences = async () => {
   return apiClient<ProfilePreferenceToggle[]>('/profile/preferences')
+}
+
+export const updateProfilePreferences = async (input: ProfilePreferenceUpdateInput) => {
+  return apiClient<ProfilePreferenceToggle[]>('/profile/preferences', {
+    method: 'PATCH',
+    body: input,
+  })
 }
 
 export const updateProfileAccount = async (input: ProfileAccountUpdateInput) => {

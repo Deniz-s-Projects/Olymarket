@@ -80,9 +80,13 @@ export interface ProfileMetric {
   value: string | number
 }
 
+export type ProfilePreferenceKey = 'marketplaceAlerts' | 'savedSearchDigests' | 'communityNews'
+
 export interface ProfilePreferenceToggle {
-  id: string
+  id: ProfilePreferenceKey
   label: string
   description?: string
   enabled: boolean
 }
+
+export type ProfilePreferenceUpdateInput = Partial<Record<ProfilePreferenceKey, boolean>>

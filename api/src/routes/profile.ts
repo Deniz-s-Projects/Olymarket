@@ -4,6 +4,74 @@ import { User } from "../entities/User";
 import { Listing } from "../entities/Listing";
 import { SavedListing } from "../entities/SavedListing";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
+import { UserPreference } from "../entities/UserPreference";
+
+type PreferenceKey = keyof Pick<
+  UserPreference,
+  "marketplaceAlerts" | "savedSearchDigests" | "communityNews"
+>;
+
+type PreferenceDefinition = {
+  id: PreferenceKey;
+  label: string;
+  description: string;
+};
+
+const PREFERENCE_DEFINITIONS: PreferenceDefinition[] = [
+  {
+    id: "marketplaceAlerts",
+    label: "Marketplace alerts",
+    description: "Get notified when buyers interact with your listings or send offers.",
+  },
+  {
+    id: "savedSearchDigests",
+    label: "Saved search digests",
+    description: "Receive a weekly summary when new listings match your saved searches.",
+  },
+  {
+    id: "communityNews",
+    label: "Community news",
+    description: "Stay informed about product updates and important community announcements.",
+  },
+];
+
+const mapPreferencesToResponse = (preferences: UserPreference) =>
+  PREFERENCE_DEFINITIONS.map((definition) => {
+    const key = definition.id;
+    const value = (preferences as unknown as Record<PreferenceKey, boolean>)[key];
+
+    return {
+      id: definition.id,
+      label: definition.label,
+      description: definition.description,
+      enabled: Boolean(value),
+    };
+  });
+
+const ensureUserPreferences = async (userId: string) => {
+  const preferenceRepository = AppDataSource.getRepository(UserPreference);
+
+  let preferences = await preferenceRepository.findOne({
+    where: { user: { id: userId } },
+    relations: { user: true },
+  });
+
+  if (!preferences) {
+    preferences = preferenceRepository.create({
+      user: { id: userId } as User,
+      marketplaceAlerts: false,
+      savedSearchDigests: false,
+      communityNews: false,
+    });
+    preferences = await preferenceRepository.save(preferences);
+  }
+
+  if (!preferences.user) {
+    preferences.user = { id: userId } as User;
+  }
+
+  return preferences;
+};
 
 const router = Router();
 
@@ -129,8 +197,36 @@ router.get("/saved-items", authMiddleware, async (req: AuthenticatedRequest, res
   return res.json(items);
 });
 
-router.get("/preferences", authMiddleware, async (_req: AuthenticatedRequest, res) => {
-  return res.json([]);
+router.get("/preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const preferences = await ensureUserPreferences(req.user!.id);
+  return res.json(mapPreferencesToResponse(preferences));
+});
+
+router.patch("/preferences", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const preferenceRepository = AppDataSource.getRepository(UserPreference);
+  const preferences = await ensureUserPreferences(req.user!.id);
+  const preferenceRecord = preferences as unknown as Record<PreferenceKey, boolean>;
+
+  let hasUpdates = false;
+
+  for (const definition of PREFERENCE_DEFINITIONS) {
+    const key = definition.id;
+    if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+      const value = req.body[key];
+      if (typeof value === "boolean") {
+        if (preferenceRecord[key] !== value) {
+          preferenceRecord[key] = value;
+          hasUpdates = true;
+        }
+      }
+    }
+  }
+
+  const updatedPreferences = hasUpdates
+    ? await preferenceRepository.save(preferences)
+    : preferences;
+
+  return res.json(mapPreferencesToResponse(updatedPreferences));
 });
 
 export default router;

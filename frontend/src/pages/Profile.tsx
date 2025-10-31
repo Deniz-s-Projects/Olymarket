@@ -35,6 +35,10 @@ const Profile = () => {
     updateAccount,
     isUpdatingAccount,
     updateAccountError,
+    updatePreference,
+    isUpdatingPreference,
+    updatePreferenceError,
+    lastUpdatedPreferenceId,
   } = useProfile({ enabled: Boolean(user) })
 
   const [activeTab, setActiveTab] = useState<string>(PROFILE_TABS[0]?.id ?? 'overview')
@@ -122,7 +126,14 @@ const Profile = () => {
       case 'preferences':
         return (
           <div className="flex flex-col gap-6">
-            <PreferenceToggleList preferences={preferences} isLoading={isLoading} />
+            <PreferenceToggleList
+              preferences={preferences}
+              isLoading={isLoading}
+              isSaving={isUpdatingPreference}
+              error={updatePreferenceError?.message ?? null}
+              lastUpdatedPreferenceId={lastUpdatedPreferenceId}
+              onChange={updatePreference}
+            />
           </div>
         )
       case 'reputation':
