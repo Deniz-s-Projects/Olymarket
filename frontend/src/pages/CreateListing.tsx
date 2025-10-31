@@ -216,7 +216,14 @@ const CreateListing = () => {
     validators[field](value)
 
   const updateValue = <Field extends keyof ListingFormValues>(field: Field, value: ListingFormValues[Field]) => {
-    setValues((prev) => ({ ...prev, [field]: value }))
+    setValues((prev) => {
+      const updated = { ...prev, [field]: value }
+      // Clear price when marking as free
+      if (field === 'isFree' && value === true) {
+        updated.price = '0'
+      }
+      return updated
+    })
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: runValidator(field, value) }))
     }
