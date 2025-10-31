@@ -23,6 +23,7 @@ const parsePrice = (value: string) => {
 const Marketplace = () => {
   const [sortBy, setSortBy] = useState<'createdAt' | 'price'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const listingsParams = useMemo(() => ({ sortBy, sortOrder }), [sortBy, sortOrder])
 
   const {
     listings,
@@ -34,10 +35,8 @@ const Marketplace = () => {
     isFetchingMore,
     fetchNextPage,
     total,
-  } = useListings({
-    sortBy,
-    sortOrder,
-  })
+  } = useListings(listingsParams)
+
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
@@ -174,7 +173,7 @@ const Marketplace = () => {
 
       <div className="grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
         <aside className="space-y-8">
-          <div className="space-y-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+          <div className="space-y-3 rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700">
             <label className="flex flex-col gap-2">
               <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">Search</span>
               <div className="relative">
@@ -184,7 +183,7 @@ const Marketplace = () => {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Find tickets, stays, services..."
-                  className="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-700 py-2.5 pl-10 pr-4 text-sm text-slate-700 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </label>
@@ -204,19 +203,19 @@ const Marketplace = () => {
             className="lg:hidden"
           />
 
-          <div className="space-y-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+          <div className="space-y-6 rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700">
             <div className="space-y-3">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Free Items</h3>
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 transition hover:border-green-300 hover:bg-green-50">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-700 p-3 transition hover:border-green-300 dark:hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900">
                 <input
                   type="checkbox"
                   checked={showFreeOnly}
                   onChange={(e) => setShowFreeOnly(e.target.checked)}
-                  className="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500"
+                  className="h-5 w-5 rounded border-slate-300 dark:border-slate-600 text-green-600 focus:ring-2 focus:ring-green-500"
                 />
                 <div className="flex-1">
-                  <span className="text-sm font-medium text-slate-700">Show free items only</span>
-                  <p className="text-xs text-slate-500">Items being given away for free</p>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-100">Show free items only</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Items being given away for free</p>
                 </div>
               </label>
             </div>
