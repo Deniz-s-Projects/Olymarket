@@ -1,24 +1,31 @@
 import type { FC } from 'react'
 import { useState } from 'react'
-import type { Group } from '../../types/group'
+import type { GroupSummary } from '../../types/group'
+import { toGroupSummary } from '../../types/group'
 import { useAuth } from '../../context/useAuth'
 import { groupsService } from '../../services/groups'
 import EditGroupModal from './EditGroupModal'
 
 type Props = {
-  group: Group
-  onGroupUpdated: (group: Group) => void
-  onGroupDeleted: (groupId: string) => void
+  group: GroupSummary
+  onGroupUpdated: (group: GroupSummary) => void
+  onGroupDeleted: (groupId: string) => void 
+  isSelected?: boolean
 }
 
-const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
+const GroupCard: FC<Props> = ({
+  group,
+  onGroupUpdated,
+  onGroupDeleted, 
+  isSelected = false,
+}) => {
   const { token, user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
 
-  const isOwner = user?.id === group.owner.id
-  const isMember = group.members.some((m) => m.user.id === user?.id)
-  const memberCount = group.members.length
+  const isOwner = group.owner ? user?.id === group.owner.id : false
+  const isMember = Boolean(group.isMember)
+  const memberCount = group.memberCount
 
   const typeColors = {
     hobby: 'bg-blue-100 text-blue-800',
@@ -31,7 +38,11 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
     try {
       setLoading(true)
       const updated = await groupsService.joinGroup(group.id)
-      onGroupUpdated(updated)
+      const summary = toGroupSummary(updated, {
+        isMember: true,
+        membershipRole: 'member',
+      })
+      onGroupUpdated(summary)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to join group')
     } finally {
@@ -49,7 +60,11 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
     try {
       setLoading(true)
       const updated = await groupsService.leaveGroup(group.id)
-      onGroupUpdated(updated)
+      const summary = toGroupSummary(updated, {
+        isMember: false,
+        memberCount: Math.max(updated.members.length, 0),
+      })
+      onGroupUpdated(summary)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to leave group')
     } finally {
@@ -76,10 +91,16 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
       setLoading(false)
     }
   }
-
+ 
   return (
     <>
-      <div className="flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+      <div
+        className={`flex flex-col rounded-lg border bg-white p-6 shadow-sm transition hover:shadow-md ${
+          isSelected
+            ? 'border-primary ring-2 ring-primary/40'
+            : 'border-slate-200'
+        }`}
+      >
         <div className="mb-3 flex items-start justify-between">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-slate-800">{group.name}</h3>
@@ -116,8 +137,8 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
           </span>
         </div>
 
-        <div className="text-xs text-slate-400">
-          Created by {group.owner.name}
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <span>Created by {group.owner?.name ?? 'Unknown'}</span>
         </div>
 
         {user && (

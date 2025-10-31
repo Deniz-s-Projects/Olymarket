@@ -1,13 +1,14 @@
 import type { FC, FormEvent } from 'react'
 import { useState } from 'react'
-import type { Group, GroupType } from '../../types/group'
+import type { GroupSummary, GroupType } from '../../types/group'
+import { toGroupSummary } from '../../types/group'
 import { useAuth } from '../../context/useAuth'
 import { groupsService } from '../../services/groups'
 
 type Props = {
-  group: Group
+  group: GroupSummary
   onClose: () => void
-  onGroupUpdated: (group: Group) => void
+  onGroupUpdated: (group: GroupSummary) => void
 }
 
 const EditGroupModal: FC<Props> = ({ group, onClose, onGroupUpdated }) => {
@@ -35,7 +36,11 @@ const EditGroupModal: FC<Props> = ({ group, onClose, onGroupUpdated }) => {
         description: description.trim() || undefined,
         type,
       })
-      onGroupUpdated(updated)
+      const summary = toGroupSummary(updated, {
+        isMember: group.isMember,
+        membershipRole: group.membershipRole,
+      })
+      onGroupUpdated(summary)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update group')
     } finally {
