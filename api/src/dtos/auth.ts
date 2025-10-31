@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, MinLength } from "class-validator";
+import { IsEmail, IsNotEmpty, Matches, MinLength } from "class-validator";
 
 export class RegisterDto {
   @IsEmail()
@@ -9,6 +9,12 @@ export class RegisterDto {
 
   @IsNotEmpty()
   name!: string;
+
+  @IsNotEmpty()
+  @Matches(/^\+[0-9]{5,15}$/, {
+    message: "Phone number must include a leading + and 5-15 digits.",
+  })
+  phoneNumber!: string;
 }
 
 export class LoginDto {

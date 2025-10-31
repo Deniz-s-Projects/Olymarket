@@ -4,6 +4,7 @@ import {
   ApiError,
   getConversationMessages,
   getConversations,
+  markConversationRead,
   postConversationMessage,
 } from '../services/conversations'
 import type {
@@ -66,6 +67,28 @@ export const useConversations = (
 
   const [sendStatus, setSendStatus] = useState<Status>('idle')
   const [sendError, setSendError] = useState<string | null>(null)
+
+  const markConversationAsRead = useCallback(
+    async (conversationId: string) => {
+      if (!token) {
+        return
+      }
+
+      try {
+        await markConversationRead(conversationId, token)
+        setConversations((current) =>
+          current.map((conversation) =>
+            conversation.id === conversationId
+              ? { ...conversation, unreadCount: 0 }
+              : conversation
+          )
+        )
+      } catch {
+        // Best effort — surfacing this error would create unnecessary noise in the UI.
+      }
+    },
+    [token]
+  )
 
   const loadConversations = useCallback(async () => {
     if (!token) {
@@ -139,13 +162,14 @@ export const useConversations = (
 
   useEffect(() => {
     if (selectedConversationId) {
+      void markConversationAsRead(selectedConversationId)
       void loadMessages(selectedConversationId)
     } else {
       setMessages([])
       setMessagesStatus('idle')
       setMessagesError(null)
     }
-  }, [selectedConversationId, loadMessages])
+  }, [selectedConversationId, loadMessages, markConversationAsRead])
 
   const selectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId)
@@ -176,13 +200,14 @@ export const useConversations = (
         )
         setMessages((current) => [...current, message])
         setSendStatus('success')
+        void markConversationAsRead(selectedConversationId)
       } catch (error) {
         setSendStatus('error')
         setSendError(getErrorMessage(error))
         throw error
       }
     },
-    [selectedConversationId, token]
+    [selectedConversationId, token, markConversationAsRead]
   )
 
   const selectedConversation = useMemo(() => {

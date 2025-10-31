@@ -8,13 +8,16 @@ import {
   fetchProfilePreferences,
   fetchProfileSavedItems,
   updateProfileAccount,
+  updateProfilePreferences,
 } from '../services/profile'
 import type {
   ProfileAccountInfo,
   ProfileAccountUpdateInput,
   ProfileListingsOverview,
   ProfileMetric,
+  ProfilePreferenceKey,
   ProfilePreferenceToggle,
+  ProfilePreferenceUpdateInput,
   ProfileSavedItemSummary,
 } from '../types/profile'
 
@@ -38,6 +41,10 @@ type UseProfileState = ProfileData & {
   updateAccount: (input: ProfileAccountUpdateInput) => Promise<ProfileAccountInfo>
   isUpdatingAccount: boolean
   updateAccountError: Error | null
+  updatePreference: (id: ProfilePreferenceKey, enabled: boolean) => Promise<ProfilePreferenceToggle[]>
+  isUpdatingPreference: boolean
+  updatePreferenceError: Error | null
+  lastUpdatedPreferenceId: ProfilePreferenceKey | null
 }
 
 const EMPTY_PROFILE_DATA: ProfileData = {
@@ -72,16 +79,23 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
   const [error, setError] = useState<Error | null>(null)
   const [isUpdatingAccount, setIsUpdatingAccount] = useState(false)
   const [updateAccountError, setUpdateAccountError] = useState<Error | null>(null)
+  const [isUpdatingPreference, setIsUpdatingPreference] = useState(false)
+  const [updatePreferenceError, setUpdatePreferenceError] = useState<Error | null>(null)
+  const [lastUpdatedPreferenceId, setLastUpdatedPreferenceId] = useState<ProfilePreferenceKey | null>(null)
 
   const loadProfile = useCallback(async () => {
     if (!enabled) {
       setData(EMPTY_PROFILE_DATA)
       setError(null)
+      setLastUpdatedPreferenceId(null)
+      setUpdatePreferenceError(null)
       return
     }
 
     setIsLoading(true)
     setError(null)
+    setLastUpdatedPreferenceId(null)
+    setUpdatePreferenceError(null)
 
     try {
       const [account, metrics, listings, savedItems, preferences] = await Promise.all([
@@ -141,6 +155,39 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
     }
   }, [])
 
+  const updatePreference = useCallback(
+    async (id: ProfilePreferenceKey, enabled: boolean) => {
+      const payload: ProfilePreferenceUpdateInput = { [id]: enabled }
+      setIsUpdatingPreference(true)
+      setUpdatePreferenceError(null)
+      setLastUpdatedPreferenceId(null)
+
+      try {
+        const updatedPreferences = await updateProfilePreferences(payload)
+
+        setData((current) => ({
+          ...current,
+          preferences: updatedPreferences,
+        }))
+
+        setLastUpdatedPreferenceId(id)
+
+        return updatedPreferences
+      } catch (error) {
+        const normalizedError =
+          error instanceof Error
+            ? error
+            : new Error('We could not update your communication preferences. Please try again later.')
+
+        setUpdatePreferenceError(normalizedError)
+        throw normalizedError
+      } finally {
+        setIsUpdatingPreference(false)
+      }
+    },
+    [],
+  )
+
   useEffect(() => {
     loadProfile()
   }, [loadProfile])
@@ -155,8 +202,24 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       updateAccount,
       isUpdatingAccount,
       updateAccountError,
+      updatePreference,
+      isUpdatingPreference,
+      updatePreferenceError,
+      lastUpdatedPreferenceId,
     }),
-    [data, error, isLoading, loadProfile, updateAccount, isUpdatingAccount, updateAccountError],
+    [
+      data,
+      error,
+      isLoading,
+      loadProfile,
+      updateAccount,
+      isUpdatingAccount,
+      updateAccountError,
+      updatePreference,
+      isUpdatingPreference,
+      updatePreferenceError,
+      lastUpdatedPreferenceId,
+    ],
   )
 }
 

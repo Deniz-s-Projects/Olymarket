@@ -8,6 +8,8 @@ import profileRoutes from "./routes/profile";
 import adminRoutes from "./routes/admin";
 import groupRoutes from "./routes/groups";
 import reportRoutes from "./routes/reports";
+import wantedListingRoutes from "./routes/wanted-listings";
+import analyticsRoutes from "./routes/analytics";
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.use("/profile", profileRoutes);
 app.use("/admin", adminRoutes);
 app.use("/groups", groupRoutes);
 app.use("/reports", reportRoutes);
+app.use("/wanted-listings", wantedListingRoutes);
+app.use("/analytics", analyticsRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

@@ -24,15 +24,47 @@ export type Listing = {
   owner: ListingOwner
   category: ListingCategory | null
   images?: string[] | null
+  viewsCount?: number
+  savesCount?: number
+  availability: string | null
+  preferredContactMethod: string | null
 }
 
-export const fetchListings = async () => {
-  return apiClient<Listing[]>('/listings')
+export type PaginatedResponse<T> = {
+  data: T[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasMore: boolean
+  }
 }
 
-export const searchListings = async (term: string) => {
-  return apiClient<Listing[]>('/listings/search/query', {
-    params: { q: term },
+export type ListingsQueryParams = {
+  page?: number
+  limit?: number
+  q?: string
+  category?: string
+  isFree?: boolean
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: 'price' | 'createdAt'
+  sortOrder?: 'asc' | 'desc'
+}
+
+export const fetchListings = async (params: ListingsQueryParams = {}) => {
+  return apiClient<PaginatedResponse<Listing>>('/listings', {
+    params,
+  })
+}
+
+export const searchListings = async (term: string, params: Omit<ListingsQueryParams, 'q'> = {}) => {
+  return apiClient<PaginatedResponse<Listing>>('/listings/search/query', {
+    params: {
+      ...params,
+      q: term,
+    },
   })
 }
 
@@ -48,16 +80,20 @@ export type ListingPayload = {
   isActive?: boolean
   categoryId?: string | null
   images?: string[]
+  availability: string
+  preferredContactMethod: string
 }
 
 const normalizeListingPayload = (payload: ListingPayload) => {
-  const { categoryId, ...rest } = payload
+  const { categoryId, availability, preferredContactMethod, ...rest } = payload
   const priceNum = Number(rest.price);
   // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
   const isFree = priceNum < 1 ? true : rest.isFree;
   rest.isFree = isFree
   return {
     ...rest,
+    availability: availability.trim(),
+    preferredContactMethod: preferredContactMethod.trim(),
     categoryId: categoryId ? categoryId : undefined,
   }
 }
