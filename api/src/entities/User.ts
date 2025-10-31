@@ -19,6 +19,9 @@ export class User extends BaseModel {
   @Column({ length: 150 })
   name!: string;
 
+  @Column({ name: "phone_number", length: 32 })
+  phoneNumber!: string;
+
   @Column({ type: "varchar", length: 255, nullable: true })
   location!: string | null;
 

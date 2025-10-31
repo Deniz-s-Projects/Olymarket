@@ -20,6 +20,7 @@ router.post("/register", validationMiddleware(RegisterDto), async (req, res) => 
   const user = userRepository.create({
     email: req.body.email,
     name: req.body.name,
+    phoneNumber: req.body.phoneNumber,
     passwordHash,
   });
   await userRepository.save(user);
@@ -29,6 +30,7 @@ router.post("/register", validationMiddleware(RegisterDto), async (req, res) => 
       id: user.id,
       email: user.email,
       name: user.name,
+      phoneNumber: user.phoneNumber,
       role: user.role,
       isBanned: user.isBanned,
       bannedAt: user.bannedAt,
@@ -63,6 +65,7 @@ router.post("/login", validationMiddleware(LoginDto), async (req, res) => {
       id: user.id,
       email: user.email,
       name: user.name,
+      phoneNumber: user.phoneNumber,
       role: user.role,
       isBanned: user.isBanned,
       bannedAt: user.bannedAt,
@@ -82,6 +85,7 @@ router.get("/me", authMiddleware, (req: AuthenticatedRequest, res) => {
       id: req.user.id,
       email: req.user.email,
       name: req.user.name,
+      phoneNumber: req.user.phoneNumber,
       role: req.user.role,
       isBanned: req.user.isBanned,
       bannedAt: req.user.bannedAt,
