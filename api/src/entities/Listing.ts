@@ -23,10 +23,10 @@ export class Listing extends BaseModel {
 
   @Column({
     type: "enum",
-    enum: ["active", "draft", "sold"],
+    enum: ["active", "draft", "sold", "expired"],
     default: "active",
   })
-  status!: "active" | "draft" | "sold";
+  status!: "active" | "draft" | "sold" | "expired";
 
   @Column({ type: "text", array: true, nullable: true, default: () => "ARRAY[]::text[]" })
   images!: string[] | null;
@@ -36,6 +36,13 @@ export class Listing extends BaseModel {
 
   @Column({ name: "preferred_contact_method", type: "text", nullable: true })
   preferredContactMethod!: string | null;
+
+  @Column({
+    type: "enum",
+    enum: ["new", "good", "used_but_works", "fixer_upper"],
+    default: "used_but_works",
+  })
+  condition!: "new" | "good" | "used_but_works" | "fixer_upper";
 
   @Column({
     name: "moderation_status",
@@ -59,6 +66,9 @@ export class Listing extends BaseModel {
 
   @Column({ name: "sold_at", type: "timestamp", nullable: true })
   soldAt!: Date | null;
+
+  @Column({ name: "expires_at", type: "timestamp" })
+  expiresAt!: Date;
 
   @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: "reviewer_id" })

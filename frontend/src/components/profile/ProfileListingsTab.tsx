@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import ListingTable from './ListingTable'
 import type {
-  ProfileListingStatus,
+  ProfileListingStatusAction,
   ProfileListingStatusGroup,
   ProfileListingsOverview,
 } from '../../types/profile'
@@ -12,7 +12,7 @@ type ProfileListingsTabProps = {
   listings: ProfileListingsOverview
   isLoading?: boolean
   pendingListingId?: string | null
-  onStatusChange?: (listingId: string, status: ProfileListingStatus) => Promise<void> | void
+  onStatusChange?: (listingId: string, status: ProfileListingStatusAction) => Promise<void> | void
   actionError?: string | null
 }
 
@@ -34,6 +34,10 @@ const ProfileListingsTab = ({
   const groups = useMemo(() => listings.groups ?? [], [listings.groups])
   const [activeFilter, setActiveFilter] = useState<StatusFilterOption['id']>('all')
   const createListingUrl = listings.createListingUrl ?? DEFAULT_CREATE_URL
+  const expiredGroup = useMemo(
+    () => groups.find((group) => group.id === 'expired'),
+    [groups],
+  )
 
   useEffect(() => {
     if (activeFilter === 'all') {
@@ -111,6 +115,14 @@ const ProfileListingsTab = ({
           </Link>
         </div>
       </header>
+
+      {expiredGroup && expiredGroup.listings.length > 0 ? (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <strong className="font-semibold">Renew needed:</strong>{' '}
+          You have {expiredGroup.listings.length}{' '}
+          {expiredGroup.listings.length === 1 ? 'listing' : 'listings'} that expired. Renew them with a single click to make them visible again.
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {filterOptions.map((option) => {

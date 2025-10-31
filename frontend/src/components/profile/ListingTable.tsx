@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { ProfileListingStatus, ProfileListingWithActions } from '../../types/profile'
+import type {
+  ProfileListingStatusAction,
+  ProfileListingWithActions,
+} from '../../types/profile'
 
 type ListingTableProps = {
   listings: ProfileListingWithActions[]
@@ -8,7 +11,22 @@ type ListingTableProps = {
   emptyMessage?: string
   isLoading?: boolean
   pendingListingId?: string | null
-  onStatusChange?: (listingId: string, status: ProfileListingStatus) => Promise<void> | void
+  onStatusChange?: (listingId: string, status: ProfileListingStatusAction) => Promise<void> | void
+}
+
+const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
+
+const formatDate = (value?: string | null) => {
+  if (!value) {
+    return ''
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return value
+  }
+
+  return dateFormatter.format(parsed)
 }
 
 const ListingTable = ({
@@ -67,16 +85,40 @@ const ListingTable = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                {listings.map((listing) => (
-                  <tr key={listing.id} className="hover:bg-slate-50">
-                    <td className="px-3 py-3 font-medium text-slate-900">{listing.title}</td>
-                    <td className="px-3 py-3">{listing.category}</td>
-                    <td className="px-3 py-3 font-semibold text-slate-900">
-                      {listing.currency}
-                      {listing.price.toLocaleString()}
-                    </td>
-                    <td className="px-3 py-3 capitalize">{listing.status}</td>
-                    <td className="px-3 py-3 text-slate-500">{listing.updatedAt}</td>
+                {listings.map((listing) => {
+                  const isExpired = listing.status === 'expired'
+                  const isActive = listing.status === 'active'
+                  const renewalDetail = listing.expiresAt
+                    ? isExpired
+                      ? `Expired on ${formatDate(listing.expiresAt)}`
+                      : isActive
+                      ? `Expires on ${formatDate(listing.expiresAt)}`
+                      : null
+                    : null
+
+                  return (
+                    <tr key={listing.id} className="hover:bg-slate-50">
+                      <td className="px-3 py-3 font-medium text-slate-900">{listing.title}</td>
+                      <td className="px-3 py-3">{listing.category}</td>
+                      <td className="px-3 py-3 font-semibold text-slate-900">
+                        {listing.currency}
+                        {listing.price.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span
+                          className={`capitalize ${
+                            isExpired ? 'font-semibold text-red-600' : 'text-slate-700'
+                          }`}
+                        >
+                          {listing.status}
+                        </span>
+                        {renewalDetail ? (
+                          <span className={`block text-xs ${isExpired ? 'text-red-600' : 'text-slate-500'}`}>
+                            {renewalDetail}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-3 text-slate-500">{formatDate(listing.updatedAt)}</td>
                     <td className="px-3 py-3">
                       <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
                         <Link
@@ -114,88 +156,109 @@ const ListingTable = ({
                         })}
                       </div>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
           <div className="flex flex-col gap-4 md:hidden">
-            {listings.map((listing) => (
-              <article
-                key={listing.id}
-                className="rounded-xl border border-slate-100 bg-slate-50 p-4 shadow-sm"
-              >
-                <header className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-900">{listing.title}</h3>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
-                      {listing.category}
-                    </p>
-                  </div>
-                  <span className="text-sm font-semibold text-primary">
-                    {listing.currency}
-                    {listing.price.toLocaleString()}
-                  </span>
-                </header>
-                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
-                  <div>
-                    <dt className="font-semibold text-slate-500">Status</dt>
-                    <dd className="capitalize text-slate-700">{listing.status}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-slate-500">Updated</dt>
-                    <dd>{listing.updatedAt}</dd>
-                  </div>
-                  {listing.availability ? (
-                    <div className="col-span-2">
-                      <dt className="font-semibold text-slate-500">Availability</dt>
-                      <dd className="text-slate-700">{listing.availability}</dd>
-                    </div>
-                  ) : null}
-                  {listing.preferredContactMethod ? (
-                    <div className="col-span-2">
-                      <dt className="font-semibold text-slate-500">Preferred contact</dt>
-                      <dd className="text-slate-700">{listing.preferredContactMethod}</dd>
-                    </div>
-                  ) : null}
-                </dl>
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
-                  <Link
-                    to={listing.actions.editUrl}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-primary/40 hover:text-primary"
-                  >
-                    Edit listing
-                  </Link>
-                  {listing.actions.statusOptions?.map((option) => {
-                    const isPending = pendingListingId === listing.id
-                    const baseClasses =
-                      'inline-flex items-center justify-center rounded-full border px-3 py-1 transition'
-                    const variantClasses =
-                      option.status === 'sold'
-                        ? 'border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50'
-                        : option.status === 'active'
-                        ? 'border-emerald-200 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
-                        : 'border-slate-200 text-slate-600 hover:border-primary/40 hover:text-primary'
+            {listings.map((listing) => {
+              const isExpired = listing.status === 'expired'
+              const isActive = listing.status === 'active'
+              const renewalDetail = listing.expiresAt
+                ? isExpired
+                  ? `Expired on ${formatDate(listing.expiresAt)}`
+                  : isActive
+                  ? `Expires on ${formatDate(listing.expiresAt)}`
+                  : null
+                : null
 
-                    return (
-                      <button
-                        key={`${listing.id}-${option.status}`}
-                        type="button"
-                        disabled={isPending}
-                        className={`${baseClasses} ${variantClasses} disabled:cursor-not-allowed disabled:opacity-60`}
-                        onClick={() => {
-                          if (onStatusChange) {
-                            void onStatusChange(listing.id, option.status)
-                          }
-                        }}
-                      >
-                        {isPending ? 'Updating…' : option.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </article>
-            ))}
+              return (
+                <article
+                  key={listing.id}
+                  className="rounded-xl border border-slate-100 bg-slate-50 p-4 shadow-sm"
+                >
+                  <header className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">{listing.title}</h3>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        {listing.category}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-primary">
+                      {listing.currency}
+                      {listing.price.toLocaleString()}
+                    </span>
+                  </header>
+                  <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                    <div>
+                      <dt className="font-semibold text-slate-500">Status</dt>
+                      <dd className={`capitalize ${isExpired ? 'text-red-600' : 'text-slate-700'}`}>
+                        {listing.status}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-slate-500">Updated</dt>
+                      <dd>{formatDate(listing.updatedAt)}</dd>
+                    </div>
+                    {renewalDetail ? (
+                      <div className="col-span-2">
+                        <dt className="font-semibold text-slate-500">Renewal</dt>
+                        <dd className={isExpired ? 'text-red-600' : 'text-slate-700'}>{renewalDetail}</dd>
+                      </div>
+                    ) : null}
+                    {listing.availability ? (
+                      <div className="col-span-2">
+                        <dt className="font-semibold text-slate-500">Availability</dt>
+                        <dd className="text-slate-700">{listing.availability}</dd>
+                      </div>
+                    ) : null}
+                    {listing.preferredContactMethod ? (
+                      <div className="col-span-2">
+                        <dt className="font-semibold text-slate-500">Preferred contact</dt>
+                        <dd className="text-slate-700">{listing.preferredContactMethod}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
+                    <Link
+                      to={listing.actions.editUrl}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-primary/40 hover:text-primary"
+                    >
+                      Edit listing
+                    </Link>
+                    {listing.actions.statusOptions?.map((option) => {
+                      const isPending = pendingListingId === listing.id
+                      const baseClasses =
+                        'inline-flex items-center justify-center rounded-full border px-3 py-1 transition'
+                      const variantClasses =
+                        option.status === 'sold'
+                          ? 'border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50'
+                          : option.status === 'active'
+                          ? 'border-emerald-200 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
+                          : 'border-slate-200 text-slate-600 hover:border-primary/40 hover:text-primary'
+
+                      return (
+                        <button
+                          key={`${listing.id}-${option.status}`}
+                          type="button"
+                          disabled={isPending}
+                          className={`${baseClasses} ${variantClasses} disabled:cursor-not-allowed disabled:opacity-60`}
+                          onClick={() => {
+                            if (onStatusChange) {
+                              void onStatusChange(listing.id, option.status)
+                            }
+                          }}
+                        >
+                          {isPending ? 'Updating…' : option.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </article>
+              )
+            })}
           </div>
         </div>
       )}

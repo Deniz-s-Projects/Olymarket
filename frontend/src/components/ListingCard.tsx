@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { Listing } from '../services/listings'
+import { LISTING_CONDITION_CONFIG, DEFAULT_LISTING_CONDITION } from '../constants/listingConditions'
 
 type ListingWithMedia = Listing & { imageUrl?: string | null }
 
@@ -57,12 +58,27 @@ type ListingCardProps = {
 }
 
 const ListingCard: FC<ListingCardProps> = ({ listing }) => {
-  const { id, title, description, price, isFree, owner, category, createdAt, images, availability, preferredContactMethod } = listing
+  const {
+    id,
+    title,
+    description,
+    price,
+    isFree,
+    owner,
+    category,
+    createdAt,
+    images,
+    availability,
+    preferredContactMethod,
+    condition,
+  } = listing
   const imageUrl = images?.[0] ?? ('imageUrl' in listing ? listing.imageUrl : null)
   const categoryLabel = category?.name ?? 'Uncategorized'
   const ownerName = owner?.name ?? 'Marketplace partner'
   const availabilityLabel = availability?.trim() ?? ''
   const contactLabel = preferredContactMethod?.trim() ?? ''
+  const conditionDetails =
+    LISTING_CONDITION_CONFIG[condition] ?? LISTING_CONDITION_CONFIG[DEFAULT_LISTING_CONDITION]
 
   return (
     <article className="card group h-full overflow-hidden">
@@ -95,6 +111,10 @@ const ListingCard: FC<ListingCardProps> = ({ listing }) => {
           <time dateTime={createdAt}>{formatDateLabel(createdAt)}</time>
         </div>
         <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+          <span aria-hidden="true">{conditionDetails.icon}</span>
+          {conditionDetails.label}
+        </div>
         <p className="text-sm text-slate-600 line-clamp-3">{description}</p>
         {(availabilityLabel || contactLabel) && (
           <div className="space-y-1 text-xs text-slate-500">

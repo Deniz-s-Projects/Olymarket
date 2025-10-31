@@ -149,6 +149,9 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
     } else if (effectiveStatus === "sold") {
       statusOptions.push({ status: "active", label: "Mark as available" });
       statusOptions.push({ status: "draft", label: "Move to draft" });
+    } else if (effectiveStatus === "expired") {
+      statusOptions.push({ status: "active", label: "Renew listing" });
+      statusOptions.push({ status: "draft", label: "Move to draft" });
     }
 
     return {
@@ -161,6 +164,7 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
       updatedAt: listing.updatedAt.toISOString(),
       soldAt: listing.soldAt ? listing.soldAt.toISOString() : null,
       thumbnailUrl: listing.images && listing.images.length > 0 ? listing.images[0] : undefined,
+      expiresAt: listing.expiresAt ? listing.expiresAt.toISOString() : null,
       actions: {
         editUrl: `/listings/${listing.id}/edit`,
         viewUrl: `/listings/${listing.id}`,
@@ -190,6 +194,20 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
         label: "Sold",
         description: "Completed listings you can archive or relist",
         listings: mappedListings.filter((listing) => listing.status === "sold"),
+      },
+      {
+        id: "expired",
+        label: "Expired",
+        description: "Listings that need renewal to become visible again",
+        listings: mappedListings.filter((listing) => listing.status === "expired"),
+        emptyState: {
+          title: "No expired listings",
+          description: "You'll see listings here when it's time to renew them.",
+          action: {
+            label: "Create a new listing",
+            url: "/listings/new",
+          },
+        },
       },
     ],
     createListingUrl: "/listings/new",

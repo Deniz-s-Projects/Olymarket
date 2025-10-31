@@ -42,4 +42,9 @@ export class ListingDto {
   @IsNotEmpty()
   @MaxLength(100)
   preferredContactMethod!: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(["new", "good", "used_but_works", "fixer_upper"])
+  condition?: "new" | "good" | "used_but_works" | "fixer_upper";
 }

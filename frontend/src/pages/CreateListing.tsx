@@ -5,6 +5,7 @@ import PriceInput from "../components/forms/PriceInput"
 import TextArea from "../components/forms/TextArea"
 import TextInput from "../components/forms/TextInput"
 import ToggleSwitch from "../components/forms/ToggleSwitch"
+import ConditionSelector from "../components/forms/ConditionSelector"
 import PhotoUploadField, {
   type PhotoPreview,
 } from "../components/forms/PhotoUploadField"
@@ -17,8 +18,10 @@ import {
   fetchListingById,
   updateListing,
   type ListingCategory,
+  type ListingCondition,
 } from "../services/listings"
 import type { ListingStatus } from '../services/listings'
+import { DEFAULT_LISTING_CONDITION } from "../constants/listingConditions"
 type ListingFormValues = {
   title: string
   description: string
@@ -28,6 +31,7 @@ type ListingFormValues = {
   availability: string
   preferredContactMethod: string
   active: boolean
+  condition: ListingCondition
 }
 
 type ListingFormErrors = Partial<Record<keyof ListingFormValues, string>>
@@ -41,6 +45,7 @@ const INITIAL_VALUES: ListingFormValues = {
   availability: "",
   preferredContactMethod: "",
   active: true,
+  condition: DEFAULT_LISTING_CONDITION,
 }
 
 const DEFAULT_CONTACT_METHOD_OPTIONS = ["Email", "Phone", "In-app messaging"]
@@ -137,6 +142,7 @@ const CreateListing = () => {
         availability: listing.availability?.trim() ?? "",
         preferredContactMethod: listing.preferredContactMethod?.trim() ?? "",
         active: listing.isActive,
+        condition: listing.condition ?? DEFAULT_LISTING_CONDITION,
       })
 
       if (listing.images && listing.images.length > 0) {
@@ -197,6 +203,9 @@ const CreateListing = () => {
       availability: (value: string) => {
         if (!value.trim()) return "Let buyers know when this listing is available."
         return ""
+      },
+      condition: (value: ListingCondition) => {
+        return value ? "" : "Select the item condition."
       },
       preferredContactMethod: (value: string) => {
         if (!value.trim()) return "Choose how you prefer to be contacted."
@@ -310,6 +319,7 @@ const CreateListing = () => {
           images: allImages,
           availability: values.availability.trim(),
           preferredContactMethod: values.preferredContactMethod.trim(),
+          condition: values.condition,
         }
 
         let listing
@@ -477,6 +487,12 @@ const CreateListing = () => {
             error={errors.description}
             required
             rows={6}
+          />
+          <ConditionSelector
+            value={values.condition}
+            onChange={(nextValue) => updateValue("condition", nextValue)}
+            error={errors.condition}
+            description="Choose the tag that best matches your item."
           />
         </section>
 
