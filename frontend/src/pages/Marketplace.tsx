@@ -4,9 +4,9 @@ import { Link } from 'react-router-dom'
 import CategoryFilter from '../components/CategoryFilter'
 import ListingCard from '../components/ListingCard'
 import PriceRangeFilter, { type PriceRangeOption } from '../components/PriceRangeFilter'
-import SortMenu from '../components/SortMenu'
 import { getSortOptionSummary } from '../components/sortOptions'
 import { useListings } from '../hooks/useListings'
+import { type FC } from 'react'
 
 const priceRangeOptions: PriceRangeOption[] = [
   { id: 'all', label: 'Any budget', min: 0 },
@@ -18,6 +18,44 @@ const priceRangeOptions: PriceRangeOption[] = [
 const parsePrice = (value: string) => {
   const numericValue = Number.parseFloat(value)
   return Number.isNaN(numericValue) ? null : numericValue
+}
+
+// Small inline sort button group for clearer options
+type SortProps = {
+  sortBy: 'createdAt' | 'price'
+  sortOrder: 'asc' | 'desc'
+  onChange: (next: { sortBy: SortProps['sortBy']; sortOrder: SortProps['sortOrder'] }) => void
+  className?: string
+}
+
+const SortButtons: FC<SortProps> = ({ sortBy, sortOrder, onChange, className = '' }) => {
+  const options: { id: string; label: string; sortBy: SortProps['sortBy']; sortOrder: SortProps['sortOrder'] }[] = [
+    { id: 'newest', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
+    { id: 'oldest', label: 'Oldest first', sortBy: 'createdAt', sortOrder: 'asc' },
+    { id: 'low-high', label: 'Price: low → high', sortBy: 'price', sortOrder: 'asc' },
+    { id: 'high-low', label: 'Price: high → low', sortBy: 'price', sortOrder: 'desc' },
+  ]
+
+  return (
+    <div className={`inline-flex flex-wrap items-center gap-2 ${className}`}>
+      {options.map((opt) => {
+        const selected = opt.sortBy === sortBy && opt.sortOrder === sortOrder
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange({ sortBy: opt.sortBy, sortOrder: opt.sortOrder })}
+            className={`text-xs font-semibold rounded-full px-3 py-1 transition-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+              ${selected ? 'bg-primary text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'}
+            `}
+            aria-pressed={selected}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 const Marketplace = () => {
@@ -196,13 +234,6 @@ const Marketplace = () => {
             </button>
           </div>
 
-          <SortMenu
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onChange={handleSortChange}
-            className="lg:hidden"
-          />
-
           <div className="space-y-6 rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700">
             <div className="space-y-3">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Free Items</h3>
@@ -225,6 +256,10 @@ const Marketplace = () => {
               selectedId={selectedPriceRangeId}
               onSelect={(option) => setSelectedPriceRangeId(option.id)}
             />
+            {/* Sort buttons placed under the budget picker */}
+            <div className="mt-4">
+              <SortButtons sortBy={sortBy} sortOrder={sortOrder} onChange={handleSortChange} className="w-full" />
+            </div>
           </div>
         </aside>
 
@@ -235,12 +270,6 @@ const Marketplace = () => {
               <p className="text-sm text-slate-500">{headerMessage}</p>
             </div>
             <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-center lg:gap-4">
-              <SortMenu
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                onChange={handleSortChange}
-                className="hidden lg:flex lg:flex-row lg:items-center lg:gap-3"
-              />
               <button
                 type="button"
                 className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-primary hover:text-primary"
