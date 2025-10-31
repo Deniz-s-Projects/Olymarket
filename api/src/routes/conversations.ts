@@ -86,7 +86,6 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
 router.post("/", validationMiddleware(ConversationDto), async (req: AuthenticatedRequest, res) => {
   const userRepository = AppDataSource.getRepository(User);
   const conversationRepository = AppDataSource.getRepository(Conversation);
-  const participantRepository = AppDataSource.getRepository(ConversationParticipant);
 
   const participantIds = Array.from(new Set([...req.body.participantIds, req.user!.id]));
   const users = await userRepository.find({ where: { id: In(participantIds) } });
@@ -94,13 +93,23 @@ router.post("/", validationMiddleware(ConversationDto), async (req: Authenticate
     return res.status(404).json({ message: "One or more participants not found" });
   }
 
-  const conversation = conversationRepository.create({ topic: req.body.topic });
-  await conversationRepository.save(conversation);
+  const conversation = await AppDataSource.transaction(async (manager) => {
+    const transactionalConversationRepository = manager.getRepository(Conversation);
+    const transactionalParticipantRepository = manager.getRepository(ConversationParticipant);
 
-  for (const user of users) {
-    const participant = participantRepository.create({ conversation, user });
-    await participantRepository.save(participant);
-  }
+    const createdConversation = transactionalConversationRepository.create({ topic: req.body.topic });
+    await transactionalConversationRepository.save(createdConversation);
+
+    const participants = users.map((user) =>
+      transactionalParticipantRepository.create({ conversation: createdConversation, user }),
+    );
+
+    if (participants.length > 0) {
+      await transactionalParticipantRepository.insert(participants);
+    }
+
+    return createdConversation;
+  });
 
   const created = await conversationRepository.findOne({
     where: { id: conversation.id },
