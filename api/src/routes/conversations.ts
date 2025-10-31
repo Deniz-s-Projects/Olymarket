@@ -55,7 +55,7 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
     .createQueryBuilder("participant")
     .leftJoinAndSelect("participant.conversation", "conversation")
     .where("participant.user_id = :userId", { userId })
-    .orderBy("conversation.updated_at", "DESC")
+    .orderBy("conversation.updatedAt", "DESC")
     .addOrderBy("participant.id", "DESC");
 
   const totalItems = await baseQuery.clone().getCount();
