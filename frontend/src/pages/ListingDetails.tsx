@@ -98,7 +98,7 @@ const ListingDetails = () => {
     }
 
     // Don't allow contacting yourself
-    if (user?.id === owner.id) {
+    if (user && String(user.id) === owner.id) {
       setContactError('You cannot contact yourself.')
       return
     }
@@ -192,10 +192,10 @@ const ListingDetails = () => {
             <button
               type="button"
               onClick={handleContactSeller}
-              disabled={isContactingSeller || (user?.id === owner.id)}
+              disabled={isContactingSeller || Boolean(user && String(user.id) === owner.id)}
               className="btn-primary mt-5 inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isContactingSeller ? 'Connecting...' : user?.id === owner.id ? 'Your listing' : 'Contact seller'}
+              {isContactingSeller ? 'Connecting...' : (user && String(user.id) === owner.id) ? 'Your listing' : 'Contact seller'}
             </button>
             {contactError ? (
               <p className="mt-2 text-xs text-red-600">{contactError}</p>
