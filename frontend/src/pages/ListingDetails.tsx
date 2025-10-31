@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { fetchListingById, checkListingSaved, saveListing, unsaveListing, type Listing } from '../services/listings'
 import { createConversation } from '../services/conversations'
 import { useAuth } from '../context/useAuth'
+import ReportModal from '../components/ReportModal'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -29,6 +30,8 @@ const ListingDetails = () => {
   const [contactError, setContactError] = useState<string | null>(null)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportSuccess, setReportSuccess] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -168,6 +171,25 @@ const ListingDetails = () => {
     }
   }
 
+  const handleReportClick = () => {
+    if (!token) {
+      navigate('/auth', {
+        state: {
+          from: `/listings/${id}`,
+          message: 'Please sign in to report listings.',
+        },
+      })
+      return
+    }
+    setShowReportModal(true)
+  }
+
+  const handleReportSuccess = () => {
+    setShowReportModal(false)
+    setReportSuccess(true)
+    setTimeout(() => setReportSuccess(false), 5000)
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8">
       <nav className="mb-6 text-sm text-slate-500">
@@ -272,9 +294,39 @@ const ListingDetails = () => {
             </div>
           </div>
 
+          <div className="rounded-2xl bg-white p-6 shadow">
+            <h2 className="text-base font-semibold text-slate-900">Need help?</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              If you find this listing inappropriate or suspicious, you can report it to our moderation team.
+            </p>
+            <button
+              type="button"
+              onClick={handleReportClick}
+              className="mt-3 inline-flex w-full justify-center rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+            >
+              🚩 Report this listing
+            </button>
+          </div>
+
           <Link to="/" className="btn-primary inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold text-white">Back to marketplace</Link>
         </aside>
       </div>
+
+      {reportSuccess && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white shadow-lg">
+          Report submitted successfully. Our team will review it soon.
+        </div>
+      )}
+
+      {showReportModal && listing && (
+        <ReportModal
+          reportType="listing"
+          targetId={listing.id}
+          targetTitle={listing.title}
+          onClose={() => setShowReportModal(false)}
+          onSuccess={handleReportSuccess}
+        />
+      )}
     </div>
   )
 }
