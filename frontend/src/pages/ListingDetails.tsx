@@ -913,3 +913,4 @@ const ListingDetails = () => {
 }
 
 export default ListingDetails
+}
