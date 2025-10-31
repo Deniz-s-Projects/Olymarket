@@ -25,7 +25,7 @@ type ListingFormValues = {
   isFree: boolean
   category: string
   availability: string
-  contactPreference: string
+  preferredContactMethod: string
   active: boolean
 }
 
@@ -38,11 +38,11 @@ const INITIAL_VALUES: ListingFormValues = {
   isFree: false,
   category: "",
   availability: "",
-  contactPreference: "",
+  preferredContactMethod: "",
   active: true,
 }
 
-const CONTACT_OPTIONS = ["Email", "Phone", "In-app messaging"]
+const DEFAULT_CONTACT_METHOD_OPTIONS = ["Email", "Phone", "In-app messaging"]
 const MAX_PHOTOS = 6
 
 type ValidatorMap = {
@@ -133,8 +133,8 @@ const CreateListing = () => {
         price: listing.price,
         isFree: listing.isFree,
         category: listing.category?.id || "",
-        availability: "",
-        contactPreference: "",
+        availability: listing.availability?.trim() ?? "",
+        preferredContactMethod: listing.preferredContactMethod?.trim() ?? "",
         active: listing.isActive,
       })
 
@@ -197,14 +197,26 @@ const CreateListing = () => {
         if (!value.trim()) return "Let buyers know when this listing is available."
         return ""
       },
-      contactPreference: (value: string) => {
-        if (!value) return "Choose how you prefer to be contacted."
+      preferredContactMethod: (value: string) => {
+        if (!value.trim()) return "Choose how you prefer to be contacted."
         return ""
       },
       active: () => "",
     }),
     [categories]
   )
+
+  const contactMethodOptions = useMemo(() => {
+    if (!values.preferredContactMethod) {
+      return DEFAULT_CONTACT_METHOD_OPTIONS
+    }
+
+    if (DEFAULT_CONTACT_METHOD_OPTIONS.includes(values.preferredContactMethod)) {
+      return DEFAULT_CONTACT_METHOD_OPTIONS
+    }
+
+    return [...DEFAULT_CONTACT_METHOD_OPTIONS, values.preferredContactMethod]
+  }, [values.preferredContactMethod])
 
   useEffect(() => {
     return () => {
@@ -294,6 +306,8 @@ const CreateListing = () => {
           isActive: values.active,
           categoryId: values.category || undefined,
           images: allImages,
+          availability: values.availability.trim(),
+          preferredContactMethod: values.preferredContactMethod.trim(),
         }
 
         let listing
@@ -520,27 +534,27 @@ const CreateListing = () => {
           />
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             <span>
-              Contact preference<span className="ml-1 text-red-500">*</span>
+              Preferred contact method<span className="ml-1 text-red-500">*</span>
             </span>
             <select
-              name="contactPreference"
-              value={values.contactPreference}
-              onChange={(event) => updateValue("contactPreference", event.target.value)}
-              onBlur={() => validateField("contactPreference")}
+              name="preferredContactMethod"
+              value={values.preferredContactMethod}
+              onChange={(event) => updateValue("preferredContactMethod", event.target.value)}
+              onBlur={() => validateField("preferredContactMethod")}
               className="rounded-md border border-slate-300 px-3 py-2 text-base text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              aria-invalid={Boolean(errors.contactPreference)}
+              aria-invalid={Boolean(errors.preferredContactMethod)}
             >
               <option value="" disabled>
                 Select a contact method
               </option>
-              {CONTACT_OPTIONS.map((option) => (
+              {contactMethodOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
               ))}
             </select>
-            {errors.contactPreference ? (
-              <span className="text-xs font-normal text-red-600">{errors.contactPreference}</span>
+            {errors.preferredContactMethod ? (
+              <span className="text-xs font-normal text-red-600">{errors.preferredContactMethod}</span>
             ) : null}
           </label>
           <ToggleSwitch

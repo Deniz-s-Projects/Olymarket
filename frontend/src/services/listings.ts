@@ -26,6 +26,8 @@ export type Listing = {
   images?: string[] | null
   viewsCount?: number
   savesCount?: number
+  availability: string | null
+  preferredContactMethod: string | null
 }
 
 export type PaginatedResponse<T> = {
@@ -78,16 +80,20 @@ export type ListingPayload = {
   isActive?: boolean
   categoryId?: string | null
   images?: string[]
+  availability: string
+  preferredContactMethod: string
 }
 
 const normalizeListingPayload = (payload: ListingPayload) => {
-  const { categoryId, ...rest } = payload
+  const { categoryId, availability, preferredContactMethod, ...rest } = payload
   const priceNum = Number(rest.price);
   // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
   const isFree = priceNum < 1 ? true : rest.isFree;
   rest.isFree = isFree
   return {
     ...rest,
+    availability: availability.trim(),
+    preferredContactMethod: preferredContactMethod.trim(),
     categoryId: categoryId ? categoryId : undefined,
   }
 }

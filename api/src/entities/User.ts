@@ -1,10 +1,11 @@
-import { Entity, Column, OneToMany, Unique } from "typeorm";
+import { Entity, Column, OneToMany, Unique, OneToOne } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { Listing } from "./Listing";
 import { ConversationParticipant } from "./ConversationParticipant";
 import { Message } from "./Message";
 import { SavedListing } from "./SavedListing";
 import { GroupMember } from "./GroupMember";
+import { UserPreference } from "./UserPreference";
 
 @Entity({ name: "users" })
 @Unique(["email"])
@@ -54,4 +55,7 @@ export class User extends BaseModel {
 
   @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
   groupMemberships!: GroupMember[];
+
+  @OneToOne(() => UserPreference, (preference) => preference.user)
+  preference?: UserPreference | null;
 }
