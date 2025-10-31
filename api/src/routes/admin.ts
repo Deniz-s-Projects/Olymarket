@@ -26,14 +26,14 @@ router.get("/listings", async (req, res) => {
     .createQueryBuilder("listing")
     .leftJoinAndSelect("listing.owner", "owner")
     .leftJoinAndSelect("listing.category", "category")
-    .orderBy("listing.created_at", "DESC")
+    .orderBy("listing.createdAt", "DESC")
     .skip(offset)
     .take(limit);
 
-  if (status) qb.andWhere("listing.moderation_status = :status", { status });
+  if (status) qb.andWhere("listing.moderationStatus = :status", { status });
   if (owner) qb.andWhere("owner.id = :owner", { owner });
-  if (from) qb.andWhere("listing.created_at >= :from", { from });
-  if (to) qb.andWhere("listing.created_at <= :to", { to });
+  if (from) qb.andWhere("listing.createdAt >= :from", { from });
+  if (to) qb.andWhere("listing.createdAt <= :to", { to });
 
   const [items, total] = await qb.getManyAndCount();
   return res.json({ items, total, page, limit });
