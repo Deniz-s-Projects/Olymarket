@@ -6,7 +6,9 @@ export class AddStatusToListings1762000000000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."listings_status_enum" AS ENUM('active', 'draft', 'sold')`);
         await queryRunner.query(`ALTER TABLE "listings" ADD "status" "public"."listings_status_enum" NOT NULL DEFAULT 'active'`);
-        await queryRunner.query(`UPDATE "listings" SET "status" = CASE WHEN "is_active" = true THEN 'active' ELSE 'draft' END`);
+        await queryRunner.query(
+          `UPDATE "listings" SET "status" = CASE WHEN "is_active" = true THEN 'active'::"public"."listings_status_enum" ELSE 'draft'::"public"."listings_status_enum" END`
+        );
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {

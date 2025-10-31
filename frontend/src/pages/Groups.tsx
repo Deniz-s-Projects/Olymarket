@@ -214,40 +214,28 @@ const Groups: FC = () => {
 
     useEffect(() => {
     let cancelled = false
-    const ensureFullSelectedGroup = async () => {
-      if (groups.length === 0) {
-        setSelectedGroup(null)
-        return
-      }
-
-      // If we already have a selected group and it's still present in the list,
-      // try to load the full group details (members, owner, etc.)
-      if (selectedGroup) {
-        const found = groups.find((g) => g.id === selectedGroup.id)
-        if (found) {
-          try {
-            const full = await groupsService.getGroup(found.id)
-            if (!cancelled) setSelectedGroup(full)
-            return
-          } catch {
-            // fall through and try to load the first group
-          }
-        }
-      }
-
+  const loadFullGroup = async (id: string) => {
       try {
-        const full = await groupsService.getGroup(groups[0].id)
+        const full = await groupsService.getGroup(id)
         if (!cancelled) setSelectedGroup(full)
       } catch {
         if (!cancelled) setSelectedGroup(null)
       }
     }
 
-    void ensureFullSelectedGroup()
-    return () => {
-      cancelled = true
+    const selectedId = selectedGroup?.id ?? null
+    if (selectedId) {
+      void loadFullGroup(selectedId)
+    } else if (groups.length > 0) {
+      void loadFullGroup(groups[0].id)
+    } else {
+      setSelectedGroup(null)
     }
-  }, [groups, selectedGroup])
+
+    return () => {
+       cancelled = true
+    } 
+  }, [groups.length, selectedGroup?.id])
 
   useEffect(() => {
     if (filterType === 'all') {

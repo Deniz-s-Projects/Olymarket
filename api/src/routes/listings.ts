@@ -141,11 +141,11 @@ const buildListingsQuery = (
 
   const sortBy = normalizeSortBy(req.query.sortBy);
   const sortOrder = normalizeSortOrder(req.query.sortOrder);
-  const sortColumn = sortBy === "price" ? "listing.price" : "listing.created_at";
+  const sortColumn = sortBy === "price" ? "listing.price" : "listing.createdAt";
 
   query.orderBy(sortColumn, sortOrder);
-  if (sortColumn !== "listing.created_at") {
-    query.addOrderBy("listing.created_at", "DESC");
+  if (sortColumn !== "listing.createdAt") {
+    query.addOrderBy("listing.createdAt", "DESC");
   }
 
   const rawPage = parseNumberParam(req.query.page);

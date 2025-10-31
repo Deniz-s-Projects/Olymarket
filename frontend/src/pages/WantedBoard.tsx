@@ -173,11 +173,11 @@ const WantedBoard = () => {
               Connect with buyers looking for your expertise
             </h1>
             <p className="max-w-xl text-base text-white/90 sm:text-lg">
-              Browse active requests from Olympic fans, teams, and partners searching for trusted sellers. Offer solutions
+              Browse active requests from residents, clubs, and partners searching for items. Offer prices
               that fit their needs and start a conversation instantly.
             </p>
             <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
-              <span>• Respond directly with tailored offers</span>
+              <span>• Respond directly with offers</span>
               <span>• Convert matches into conversations</span>
               <span>• Build relationships across the community</span>
             </div>
