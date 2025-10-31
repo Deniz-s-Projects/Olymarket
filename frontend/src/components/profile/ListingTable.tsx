@@ -1,15 +1,24 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { ProfileListingWithActions } from '../../types/profile'
+import type { ProfileListingStatus, ProfileListingWithActions } from '../../types/profile'
 
 type ListingTableProps = {
   listings: ProfileListingWithActions[]
   title: string
   emptyMessage?: string
   isLoading?: boolean
+  pendingListingId?: string | null
+  onStatusChange?: (listingId: string, status: ProfileListingStatus) => Promise<void> | void
 }
 
-const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: ListingTableProps) => {
+const ListingTable = ({
+  listings,
+  title,
+  emptyMessage,
+  isLoading = false,
+  pendingListingId,
+  onStatusChange,
+}: ListingTableProps) => {
   const [isOpen, setIsOpen] = useState(true)
 
   const toggleVisibility = () => {
@@ -69,21 +78,40 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                     <td className="px-3 py-3 capitalize">{listing.status}</td>
                     <td className="px-3 py-3 text-slate-500">{listing.updatedAt}</td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center justify-end gap-2 text-sm">
+                      <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
                         <Link
                           to={listing.actions.editUrl}
                           className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-primary/40 hover:text-primary"
                         >
                           Edit
                         </Link>
-                        {listing.actions.archiveUrl ? (
-                          <Link
-                            to={listing.actions.archiveUrl}
-                            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-red-200 hover:text-red-600"
-                          >
-                            Archive
-                          </Link>
-                        ) : null}
+                        {listing.actions.statusOptions?.map((option) => {
+                          const isPending = pendingListingId === listing.id
+                          const baseClasses =
+                            'inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium transition'
+                          const variantClasses =
+                            option.status === 'sold'
+                              ? 'border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50'
+                              : option.status === 'active'
+                              ? 'border-emerald-200 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
+                              : 'border-slate-200 text-slate-600 hover:border-primary/40 hover:text-primary'
+
+                          return (
+                            <button
+                              key={`${listing.id}-${option.status}`}
+                              type="button"
+                              disabled={isPending}
+                              className={`${baseClasses} ${variantClasses} disabled:cursor-not-allowed disabled:opacity-60`}
+                              onClick={() => {
+                                if (onStatusChange) {
+                                  void onStatusChange(listing.id, option.status)
+                                }
+                              }}
+                            >
+                              {isPending ? 'Updating…' : option.label}
+                            </button>
+                          )
+                        })}
                       </div>
                     </td>
                   </tr>
@@ -126,14 +154,33 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                   >
                     Edit listing
                   </Link>
-                  {listing.actions.archiveUrl ? (
-                    <Link
-                      to={listing.actions.archiveUrl}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-red-200 hover:text-red-600"
-                    >
-                      Archive
-                    </Link>
-                  ) : null}
+                  {listing.actions.statusOptions?.map((option) => {
+                    const isPending = pendingListingId === listing.id
+                    const baseClasses =
+                      'inline-flex items-center justify-center rounded-full border px-3 py-1 transition'
+                    const variantClasses =
+                      option.status === 'sold'
+                        ? 'border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50'
+                        : option.status === 'active'
+                        ? 'border-emerald-200 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
+                        : 'border-slate-200 text-slate-600 hover:border-primary/40 hover:text-primary'
+
+                    return (
+                      <button
+                        key={`${listing.id}-${option.status}`}
+                        type="button"
+                        disabled={isPending}
+                        className={`${baseClasses} ${variantClasses} disabled:cursor-not-allowed disabled:opacity-60`}
+                        onClick={() => {
+                          if (onStatusChange) {
+                            void onStatusChange(listing.id, option.status)
+                          }
+                        }}
+                      >
+                        {isPending ? 'Updating…' : option.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </article>
             ))}

@@ -135,7 +135,7 @@ const CreateListing = () => {
         category: listing.category?.id || "",
         availability: "",
         contactPreference: "",
-        active: listing.isActive,
+        active: listing.status === 'active',
       })
 
       if (listing.images && listing.images.length > 0) {
@@ -292,6 +292,7 @@ const CreateListing = () => {
           price: values.price.trim(),
           isFree: values.isFree,
           isActive: values.active,
+          status: values.active ? 'active' : 'draft',
           categoryId: values.category || undefined,
           images: allImages,
         }

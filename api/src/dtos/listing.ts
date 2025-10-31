@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsNumberString, IsOptional, IsString, MaxLength, ArrayMaxSize, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsIn, IsNumberString, IsOptional, IsString, MaxLength, ArrayMaxSize } from "class-validator";
 
 export class ListingDto {
   @IsString()
@@ -18,6 +18,10 @@ export class ListingDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsIn(["active", "draft", "sold"])
+  status?: "active" | "draft" | "sold";
 
   @IsOptional()
   @IsString()

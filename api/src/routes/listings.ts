@@ -9,6 +9,24 @@ import { SavedListing } from "../entities/SavedListing";
 
 const router = Router();
 
+const LISTING_STATUSES = ["active", "draft", "sold"] as const;
+type ListingStatus = (typeof LISTING_STATUSES)[number];
+
+const isListingStatus = (value: unknown): value is ListingStatus =>
+  typeof value === "string" && (LISTING_STATUSES as readonly string[]).includes(value);
+
+const resolveStatusFromBody = (body: any, fallback?: ListingStatus): ListingStatus | undefined => {
+  if (isListingStatus(body?.status)) {
+    return body.status;
+  }
+
+  if (typeof body?.isActive === "boolean") {
+    return body.isActive ? "active" : "draft";
+  }
+
+  return fallback;
+};
+
 router.post(
   "/",
   authMiddleware,
@@ -25,12 +43,16 @@ router.post(
       }
     }
 
+    const requestedStatus = resolveStatusFromBody(req.body) ?? "active";
+    const status: ListingStatus = requestedStatus === "sold" ? "active" : requestedStatus;
+
     const listing = listingRepository.create({
       title: req.body.title,
       description: req.body.description,
       price: req.body.price,
       isFree: req.body.isFree ?? false,
-      isActive: req.body.isActive ?? true,
+      isActive: status === "active",
+      status,
       owner: req.user!,
       category,
       images: Array.isArray(req.body.images) ? req.body.images : [],
@@ -48,6 +70,7 @@ router.get("/", async (_req, res) => {
     .leftJoinAndSelect("listing.owner", "owner")
     .leftJoinAndSelect("listing.category", "category")
     .where("listing.moderation_status = :status", { status: "approved" })
+    .andWhere("listing.status = :listingStatus", { listingStatus: "active" })
     .andWhere("owner.is_banned = false")
     .orderBy("listing.created_at", "DESC")
     .getMany();
@@ -62,6 +85,7 @@ router.get("/search/query", async (req, res) => {
     .leftJoinAndSelect("listing.owner", "owner")
     .leftJoinAndSelect("listing.category", "category")
     .where("listing.moderation_status = :status", { status: "approved" })
+    .andWhere("listing.status = :listingStatus", { listingStatus: "active" })
     .andWhere("owner.is_banned = false")
     .andWhere("(listing.title ILIKE :term OR listing.description ILIKE :term)", { term: `%${term}%` })
     .orderBy("listing.created_at", "DESC")
@@ -116,7 +140,19 @@ router.put(
     listing.description = req.body.description;
     listing.price = req.body.price;
     listing.isFree = req.body.isFree ?? listing.isFree;
-    listing.isActive = req.body.isActive ?? listing.isActive;
+
+    const resolvedStatus = resolveStatusFromBody(req.body, listing.status) ?? listing.status;
+    if (
+      resolvedStatus === "sold" &&
+      listing.status !== "sold" &&
+      listing.owner.id !== req.user!.id &&
+      req.user!.role !== "admin"
+    ) {
+      return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
+    }
+
+    listing.status = resolvedStatus;
+    listing.isActive = listing.status === "active";
     listing.category = category ?? null;
     if (Array.isArray(req.body.images)) {
       listing.images = req.body.images;
@@ -126,6 +162,36 @@ router.put(
     return res.json(saved);
   }
 );
+
+router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const listing = await listingRepository.findOne({
+    where: { id: req.params.id },
+    relations: { owner: true },
+  });
+  if (!listing) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
+
+  if (listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  const status = resolveStatusFromBody(req.body);
+  if (!status || !isListingStatus(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  if (status === "sold" && listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
+    return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
+  }
+
+  listing.status = status;
+  listing.isActive = status === "active";
+
+  const saved = await listingRepository.save(listing);
+  return res.json(saved);
+});
 
 router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const listingRepository = AppDataSource.getRepository(Listing);

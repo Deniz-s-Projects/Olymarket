@@ -634,7 +634,7 @@ const EditListingModal = ({
   const [description, setDescription] = useState(listing.description)
   const [price, setPrice] = useState(listing.price)
   const [categoryId, setCategoryId] = useState(listing.category?.id || '')
-  const [isActive, setIsActive] = useState(listing.isActive)
+  const [status, setStatus] = useState(listing.status)
   const [moderationStatus, setModerationStatus] = useState(listing.moderationStatus)
   const [moderationNotes, setModerationNotes] = useState(listing.moderationNotes || '')
 
@@ -645,7 +645,8 @@ const EditListingModal = ({
       description,
       price,
       categoryId: categoryId || undefined,
-      isActive,
+      isActive: status === 'active',
+      status,
       moderationStatus,
       moderationNotes: moderationNotes || undefined,
     })
@@ -705,14 +706,17 @@ const EditListingModal = ({
             </select>
           </label>
 
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4"
-            />
-            <span>Active listing</span>
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            <span>Status</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as AdminListing['status'])}
+              className="rounded-md border border-slate-300 px-3 py-2"
+            >
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="sold">Sold</option>
+            </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
@@ -1184,7 +1188,11 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
           Status:
           <select
             value={statusFilter}
-            onChange={(e) => handleStatusFilterChange(e.target.value as any)}
+            onChange={(e) =>
+              handleStatusFilterChange(
+                e.target.value as '' | 'pending' | 'under_review' | 'resolved' | 'dismissed',
+              )
+            }
             className="rounded-md border border-slate-300 px-3 py-1 text-sm"
           >
             <option value="">All</option>
@@ -1198,7 +1206,7 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
           Type:
           <select
             value={typeFilter}
-            onChange={(e) => handleTypeFilterChange(e.target.value as any)}
+            onChange={(e) => handleTypeFilterChange(e.target.value as '' | 'listing' | 'user')}
             className="rounded-md border border-slate-300 px-3 py-1 text-sm"
           >
             <option value="">All</option>

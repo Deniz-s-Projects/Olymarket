@@ -11,6 +11,24 @@ import { AdminListingUpdateDto } from "../dtos/admin";
 
 const router = Router();
 
+const LISTING_STATUSES = ["active", "draft", "sold"] as const;
+type ListingStatus = (typeof LISTING_STATUSES)[number];
+
+const isListingStatus = (value: unknown): value is ListingStatus =>
+  typeof value === "string" && (LISTING_STATUSES as readonly string[]).includes(value);
+
+const resolveStatusFromBody = (body: any, fallback: ListingStatus): ListingStatus => {
+  if (isListingStatus(body?.status)) {
+    return body.status;
+  }
+
+  if (typeof body?.isActive === "boolean") {
+    return body.isActive ? "active" : fallback === "sold" ? "sold" : "draft";
+  }
+
+  return fallback;
+};
+
 // All routes below require auth + admin
 router.use(authMiddleware, requireAdmin);
 
@@ -35,7 +53,7 @@ router.get("/stats", async (_req, res) => {
     pending: 0,
     approved: 0,
     rejected: 0,
-    active: await listingRepo.count({ where: { isActive: true } }),
+    active: await listingRepo.count({ where: { status: "active" } }),
   };
   
   listingsByStatus.forEach((stat) => {
@@ -131,7 +149,8 @@ router.patch(
     if (typeof req.body.title === "string") listing.title = req.body.title;
     if (typeof req.body.description === "string") listing.description = req.body.description;
     if (typeof req.body.price === "string") listing.price = req.body.price;
-    if (typeof req.body.isActive === "boolean") listing.isActive = req.body.isActive;
+    listing.status = resolveStatusFromBody(req.body, listing.status);
+    listing.isActive = listing.status === "active";
 
     if (typeof req.body.categoryId !== "undefined") {
       if (req.body.categoryId === "") {
