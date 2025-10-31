@@ -8,6 +8,7 @@ export class Report extends BaseModel {
   @Column({
     type: "enum",
     enum: ["listing", "user"],
+    name: "report_type"
   })
   reportType!: "listing" | "user";
 

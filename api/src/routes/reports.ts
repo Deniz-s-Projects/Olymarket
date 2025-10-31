@@ -90,7 +90,7 @@ router.get("/", async (req, res) => {
     .leftJoinAndSelect("report.reportedListing", "reportedListing")
     .leftJoinAndSelect("reportedListing.owner", "listingOwner")
     .leftJoinAndSelect("report.reviewedBy", "reviewedBy")
-    .orderBy("report.created_at", "DESC")
+    .orderBy("report.createdAt", "DESC")
     .skip(offset)
     .take(limit);
 
