@@ -92,11 +92,10 @@ const Marketplace = () => {
               Olymarket Marketplace
             </span>
             <h1 className="text-3xl font-semibold leading-tight sm:text-4xl md:text-5xl">
-              Discover experiences crafted for the Olympic community
+              Free-of-charge Olydorf marketplace!
             </h1>
             <p className="max-w-xl text-base text-white/90 sm:text-lg">
-              Browse curated listings from trusted hosts, service providers, and local experts ready to elevate every
-              moment of the Games.
+              Browse curated listings from trusted hosts, service providers, and local residents.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -109,7 +108,7 @@ const Marketplace = () => {
                 type="button"
                 className="inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
               >
-                Become a partner
+                Sign up
               </button>
             </div>
           </div>
@@ -120,19 +119,19 @@ const Marketplace = () => {
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     1
                   </span>
-                  Hand-picked listings to inspire your Olympic journey.
+                  Hand-picked listings to buy or sell, or acquire/trade for free
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     2
                   </span>
-                  Flexible booking and service options designed for teams and fans alike.
+                  Easy communication via messages, all hosted here in OlyDorf by Olynet!
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     3
                   </span>
-                  Collaborate with vetted partners and locals who know the city best.
+                  Smooth user experience vibe-coded with Artificial Intelligence.
                 </li>
               </ul>
             </div>
