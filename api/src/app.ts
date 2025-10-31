@@ -6,6 +6,7 @@ import conversationRoutes from "./routes/conversations";
 import categoryRoutes from "./routes/categories";
 import profileRoutes from "./routes/profile";
 import adminRoutes from "./routes/admin";
+import reportRoutes from "./routes/reports";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use("/conversations", conversationRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/profile", profileRoutes);
 app.use("/admin", adminRoutes);
+app.use("/reports", reportRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

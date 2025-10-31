@@ -1,5 +1,6 @@
 import { apiClient } from '../lib/apiClient'
 import type { Listing, ListingOwner } from './listings'
+import type { Report, AdminReportUpdatePayload } from './reports'
 
 // Admin-specific listing type with moderation fields
 export type AdminListing = Listing & {
@@ -128,7 +129,45 @@ export type UsageStats = {
   }
   popularCategories: PopularCategory[]
 }
+// Reports response type
+export type AdminReportsResponse = {
+  items: Report[]
+  total: number
+  page: number
+  limit: number
+}
 
+// Fetch all reports with optional filters (admin)
+export const fetchAdminReports = async (params?: {
+  status?: 'pending' | 'under_review' | 'resolved' | 'dismissed'
+  reportType?: 'listing' | 'user'
+  page?: number
+  limit?: number
+}) => {
+  return apiClient<AdminReportsResponse>('/reports', { params })
+}
+
+// Fetch a specific report (admin)
+export const fetchAdminReport = async (id: string) => {
+  return apiClient<Report>(`/reports/${id}`)
+}
+
+// Update a report (admin)
+export const updateAdminReport = async (
+  id: string,
+  payload: AdminReportUpdatePayload,
+) => {
+  return apiClient<Report>(`/reports/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+// Delete a report (admin)
+export const deleteAdminReport = async (id: string) => {
+  return apiClient<void>(`/reports/${id}`, {
+    method: 'DELETE',
+  })
 // Fetch usage statistics
 export const fetchUsageStats = async () => {
   return apiClient<UsageStats>('/admin/stats')
