@@ -166,6 +166,12 @@ type MutableListingStatus = (typeof MUTABLE_LISTING_STATUSES)[number];
 const isMutableListingStatus = (value: unknown): value is MutableListingStatus =>
   typeof value === "string" && (MUTABLE_LISTING_STATUSES as readonly string[]).includes(value);
 
+const LISTING_CONDITIONS = ["new", "good", "used_but_works", "fixer_upper"] as const;
+type ListingCondition = (typeof LISTING_CONDITIONS)[number];
+
+const isListingCondition = (value: unknown): value is ListingCondition =>
+  typeof value === "string" && (LISTING_CONDITIONS as readonly string[]).includes(value);
+
 const resolveStatusFromBody = (body: any, fallback?: ListingStatus): ListingStatus | undefined => {
   if (isMutableListingStatus(body?.status)) {
     return body.status;
@@ -213,6 +219,7 @@ router.post(
     const availability = typeof req.body.availability === "string" ? req.body.availability.trim() : "";
     const preferredContactMethod =
       typeof req.body.preferredContactMethod === "string" ? req.body.preferredContactMethod.trim() : "";
+    const condition = isListingCondition(req.body.condition) ? req.body.condition : "used_but_works";
 
     const listing = listingRepository.create({
       title: req.body.title,
@@ -227,6 +234,7 @@ router.post(
       images: Array.isArray(req.body.images) ? req.body.images : [],
       availability: availability || null,
       preferredContactMethod: preferredContactMethod || null,
+      condition,
       moderationStatus: "approved",
     });
     listing.expiresAt = getNextExpiryDate();
@@ -321,6 +329,9 @@ router.put(
     listing.category = category ?? null;
     listing.availability = availability || null;
     listing.preferredContactMethod = preferredContactMethod || null;
+    if (typeof req.body.condition !== "undefined" && isListingCondition(req.body.condition)) {
+      listing.condition = req.body.condition;
+    }
     if (Array.isArray(req.body.images)) {
       listing.images = req.body.images;
     }

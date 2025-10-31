@@ -38,6 +38,13 @@ export class Listing extends BaseModel {
   preferredContactMethod!: string | null;
 
   @Column({
+    type: "enum",
+    enum: ["new", "good", "used_but_works", "fixer_upper"],
+    default: "used_but_works",
+  })
+  condition!: "new" | "good" | "used_but_works" | "fixer_upper";
+
+  @Column({
     name: "moderation_status",
     type: "enum",
     enum: ["pending", "approved", "rejected"],

@@ -19,6 +19,8 @@ import ReportModal from '../components/ReportModal'
 import OfferStatusBadge from '../components/offers/OfferStatusBadge'
 import OfferTimeline from '../components/offers/OfferTimeline'
 import { shareListing } from '../lib/shareListing'
+import { LISTING_CONDITION_CONFIG, DEFAULT_LISTING_CONDITION } from '../constants/listingConditions'
+import PickupLocationsMap from '../components/PickupLocationsMap'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -167,13 +169,15 @@ const ListingDetails = () => {
     )
   }
 
-  const { title, description, price, isFree, category, owner, createdAt } = listing
+  const { title, description, price, isFree, category, owner, createdAt, condition } = listing
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
   const viewerRole = offersData?.viewerRole ?? null
   const offers = offersData?.offers ?? []
   const hasPendingOffer = offers.some((offerItem) => offerItem.status === 'pending')
   const currentUserId = user ? String(user.id) : null
-  const isSold = listing.status === 'sold' 
+  const isSold = listing.status === 'sold'
+  const conditionDetails =
+    LISTING_CONDITION_CONFIG[condition] ?? LISTING_CONDITION_CONFIG[DEFAULT_LISTING_CONDITION]
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -481,15 +485,19 @@ const ListingDetails = () => {
           ) : null}
 
           <article className="rounded-2xl bg-white p-6 shadow">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                {category ? category.name : 'Uncategorized'}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              {category ? category.name : 'Uncategorized'}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+              <span aria-hidden="true">{conditionDetails.icon}</span>
+              {conditionDetails.label}
+            </span>
+            {isSold ? (
+              <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Sold
               </span>
-              {isSold ? (
-                <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Sold
-                </span>
-              ) : null}
+            ) : null}
               {createdAt ? (
                 <span className="text-xs text-slate-500">Posted {formatDate(createdAt)}</span>
               ) : null}
@@ -497,6 +505,10 @@ const ListingDetails = () => {
             <h1 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">{title}</h1>
             <p className="mt-3 whitespace-pre-line text-slate-700">{description}</p>
           </article>
+
+          <section className="rounded-2xl bg-white p-6 shadow">
+            <PickupLocationsMap />
+          </section>
 
           <section className="rounded-2xl bg-white p-6 shadow">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -814,11 +826,11 @@ const ListingDetails = () => {
                     <div className="mt-1 text-sm text-slate-500">All prices in EUR</div>
                   </>
                 )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleToggleSave}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleToggleSave}
                   disabled={isSaving}
                   title={isSaved ? "Unsave listing" : "Save listing"}
                   className={`rounded-full border px-3 py-1 text-sm transition ${
@@ -838,6 +850,15 @@ const ListingDetails = () => {
                 >
                   {isSharing ? 'Sharing…' : 'Share'}
                 </button>
+              </div>
+            </div>
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <span className="text-xl" aria-hidden="true">
+                {conditionDetails.icon}
+              </span>
+              <div>
+                <p className="font-semibold text-slate-700">Condition: {conditionDetails.label}</p>
+                <p className="text-xs text-slate-500">{conditionDetails.description}</p>
               </div>
             </div>
             {isSold ? (
