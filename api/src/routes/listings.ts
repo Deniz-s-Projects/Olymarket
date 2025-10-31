@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import { validationMiddleware } from "../middleware/validate";
 import { ListingDto } from "../dtos/listing";
@@ -6,6 +6,152 @@ import { AppDataSource } from "../config";
 import { Listing } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
 import { SavedListing } from "../entities/SavedListing";
+import type { SelectQueryBuilder } from "typeorm";
+
+type ListingQueryFilters = {
+  searchTerm?: string;
+};
+
+const MAX_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 12;
+
+const parseNumberParam = (value: unknown): number | undefined => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      return undefined;
+    }
+    const parsed = Number(trimmed);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+};
+
+const parseBooleanParam = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes"].includes(normalized)) {
+      return true;
+    }
+    if (["false", "0", "no"].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeSortBy = (value: unknown): "price" | "createdAt" => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "price") {
+      return "price";
+    }
+  }
+  return "createdAt";
+};
+
+const normalizeSortOrder = (value: unknown): "ASC" | "DESC" => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toUpperCase();
+    if (normalized === "ASC") {
+      return "ASC";
+    }
+  }
+  return "DESC";
+};
+
+const buildListingsQuery = (
+  req: Request,
+  filters: ListingQueryFilters = {},
+): { query: SelectQueryBuilder<Listing>; page: number; limit: number } => {
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const query = listingRepository
+    .createQueryBuilder("listing")
+    .leftJoinAndSelect("listing.owner", "owner")
+    .leftJoinAndSelect("listing.category", "category")
+    .where("listing.moderation_status = :status", { status: "approved" })
+    .andWhere("owner.is_banned = false");
+
+  const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+  if (category) {
+    query.andWhere("LOWER(category.name) = :categoryName", { categoryName: category.toLowerCase() });
+  }
+
+  const isFree = parseBooleanParam(req.query.isFree);
+  if (typeof isFree === "boolean") {
+    query.andWhere("listing.is_free = :isFree", { isFree });
+  }
+
+  const minPrice = parseNumberParam(req.query.minPrice);
+  if (typeof minPrice === "number") {
+    query.andWhere("listing.price >= :minPrice", { minPrice });
+  }
+
+  const maxPrice = parseNumberParam(req.query.maxPrice);
+  if (typeof maxPrice === "number") {
+    query.andWhere("listing.price <= :maxPrice", { maxPrice });
+  }
+
+  if (filters.searchTerm) {
+    query.andWhere("(listing.title ILIKE :term OR listing.description ILIKE :term)", {
+      term: `%${filters.searchTerm}%`,
+    });
+  }
+
+  const sortBy = normalizeSortBy(req.query.sortBy);
+  const sortOrder = normalizeSortOrder(req.query.sortOrder);
+  const sortColumn = sortBy === "price" ? "listing.price" : "listing.created_at";
+
+  query.orderBy(sortColumn, sortOrder);
+  if (sortColumn !== "listing.created_at") {
+    query.addOrderBy("listing.created_at", "DESC");
+  }
+
+  const rawPage = parseNumberParam(req.query.page);
+  const page = rawPage && rawPage > 0 ? Math.floor(rawPage) : 1;
+
+  const rawLimit = parseNumberParam(req.query.limit);
+  const limitCandidate = rawLimit && rawLimit > 0 ? Math.floor(rawLimit) : DEFAULT_PAGE_SIZE;
+  const limit = Math.min(limitCandidate, MAX_PAGE_SIZE);
+
+  query.skip((page - 1) * limit).take(limit);
+
+  return { query, page, limit };
+};
+
+const respondWithPaginatedResults = async (
+  req: Request,
+  res,
+  filters: ListingQueryFilters = {},
+) => {
+  const { query, page, limit } = buildListingsQuery(req, filters);
+  const [results, total] = await query.getManyAndCount();
+  const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+  const hasMore = totalPages > 0 && page < totalPages;
+
+  return res.json({
+    data: results,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasMore,
+    },
+  });
+};
 
 const router = Router();
 
@@ -41,32 +187,13 @@ router.post(
   }
 );
 
-router.get("/", async (_req, res) => {
-  const listingRepository = AppDataSource.getRepository(Listing);
-  const listings = await listingRepository
-    .createQueryBuilder("listing")
-    .leftJoinAndSelect("listing.owner", "owner")
-    .leftJoinAndSelect("listing.category", "category")
-    .where("listing.moderation_status = :status", { status: "approved" })
-    .andWhere("owner.is_banned = false")
-    .orderBy("listing.created_at", "DESC")
-    .getMany();
-  return res.json(listings);
+router.get("/", async (req, res) => {
+  return respondWithPaginatedResults(req, res);
 });
 
 router.get("/search/query", async (req, res) => {
-  const term = (req.query.q as string) || "";
-  const listingRepository = AppDataSource.getRepository(Listing);
-  const listings = await listingRepository
-    .createQueryBuilder("listing")
-    .leftJoinAndSelect("listing.owner", "owner")
-    .leftJoinAndSelect("listing.category", "category")
-    .where("listing.moderation_status = :status", { status: "approved" })
-    .andWhere("owner.is_banned = false")
-    .andWhere("(listing.title ILIKE :term OR listing.description ILIKE :term)", { term: `%${term}%` })
-    .orderBy("listing.created_at", "DESC")
-    .getMany();
-  return res.json(listings);
+  const term = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  return respondWithPaginatedResults(req, res, { searchTerm: term });
 });
 
 router.get("/:id", async (req, res) => {

@@ -26,13 +26,41 @@ export type Listing = {
   images?: string[] | null
 }
 
-export const fetchListings = async () => {
-  return apiClient<Listing[]>('/listings')
+export type PaginatedResponse<T> = {
+  data: T[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasMore: boolean
+  }
 }
 
-export const searchListings = async (term: string) => {
-  return apiClient<Listing[]>('/listings/search/query', {
-    params: { q: term },
+export type ListingsQueryParams = {
+  page?: number
+  limit?: number
+  q?: string
+  category?: string
+  isFree?: boolean
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: 'price' | 'createdAt'
+  sortOrder?: 'asc' | 'desc'
+}
+
+export const fetchListings = async (params: ListingsQueryParams = {}) => {
+  return apiClient<PaginatedResponse<Listing>>('/listings', {
+    params,
+  })
+}
+
+export const searchListings = async (term: string, params: Omit<ListingsQueryParams, 'q'> = {}) => {
+  return apiClient<PaginatedResponse<Listing>>('/listings/search/query', {
+    params: {
+      ...params,
+      q: term,
+    },
   })
 }
 
