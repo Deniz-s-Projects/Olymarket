@@ -211,6 +211,13 @@ router.get("/:id", async (req, res) => {
   if (!listing) {
     return res.status(404).json({ message: "Listing not found" });
   }
+  await listingRepository
+    .createQueryBuilder()
+    .update(Listing)
+    .set({ viewsCount: () => '"views_count" + 1' })
+    .where("id = :id", { id: listing.id })
+    .execute();
+  listing.viewsCount = (listing.viewsCount ?? 0) + 1;
   return res.json(listing);
 });
 
@@ -313,7 +320,11 @@ router.post("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) 
   });
 
   if (existing) {
-    return res.json({ message: "Already saved", isSaved: true });
+    return res.json({
+      message: "Already saved",
+      isSaved: true,
+      savesCount: listing.savesCount ?? 0,
+    });
   }
 
   const savedListing = savedListingRepository.create({
@@ -322,12 +333,30 @@ router.post("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) 
   });
   await savedListingRepository.save(savedListing);
 
-  return res.status(201).json({ message: "Listing saved", isSaved: true });
+  await listingRepository
+    .createQueryBuilder()
+    .update(Listing)
+    .set({ savesCount: () => '"saves_count" + 1' })
+    .where("id = :id", { id: listing.id })
+    .execute();
+  listing.savesCount = (listing.savesCount ?? 0) + 1;
+
+  return res.status(201).json({
+    message: "Listing saved",
+    isSaved: true,
+    savesCount: listing.savesCount,
+  });
 });
 
 // Unsave a listing
 router.delete("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const listingRepository = AppDataSource.getRepository(Listing);
   const savedListingRepository = AppDataSource.getRepository(SavedListing);
+
+  const listing = await listingRepository.findOne({ where: { id: req.params.id } });
+  if (!listing) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
 
   const saved = await savedListingRepository.findOne({
     where: {
@@ -341,7 +370,21 @@ router.delete("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res
   }
 
   await savedListingRepository.remove(saved);
-  return res.json({ message: "Listing unsaved", isSaved: false });
+  await listingRepository
+    .createQueryBuilder()
+    .update(Listing)
+    .set({
+      savesCount: () => 'CASE WHEN "saves_count" > 0 THEN "saves_count" - 1 ELSE 0 END',
+    })
+    .where("id = :id", { id: listing.id })
+    .execute();
+  listing.savesCount = Math.max((listing.savesCount ?? 0) - 1, 0);
+
+  return res.json({
+    message: "Listing unsaved",
+    isSaved: false,
+    savesCount: listing.savesCount,
+  });
 });
 
 export default router;

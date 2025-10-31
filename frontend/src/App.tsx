@@ -19,6 +19,7 @@ import WantedBoard from './pages/WantedBoard'
 import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
 import ThemeToggle from './components/ThemeToggle'
+import SellerAnalytics from './pages/SellerAnalytics'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
@@ -218,6 +219,14 @@ const App = () => {
               }
             />
             <Route path="/profile" element={<Profile />} />
+            <Route
+              path="/seller/analytics"
+              element={
+                <RequireAuth>
+                  <SellerAnalytics />
+                </RequireAuth>
+              }
+            />
             <Route path="/auth" element={<Auth />} />
             <Route
               path="/admin"
