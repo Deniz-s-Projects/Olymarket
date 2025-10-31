@@ -12,6 +12,14 @@ export type ListingOwner = {
   email: string
 }
 
+export type ListingComment = {
+  id: string
+  body: string
+  createdAt: string
+  updatedAt: string
+  author: ListingOwner
+}
+
 export type ListingStatus = 'active' | 'draft' | 'sold'
 
 export const LISTING_CONDITIONS = ['new', 'good', 'used_but_works', 'fixer_upper'] as const
@@ -115,6 +123,25 @@ export const searchListings = async (term: string, params: Omit<ListingsQueryPar
 
 export const fetchListingById = async (id: string) => {
   return apiClient<Listing>(`/listings/${id}`)
+}
+
+export const fetchListingComments = async (listingId: string) => {
+  const response = await apiClient<{ comments: ListingComment[] }>(`/listings/${listingId}/comments`)
+  return response.comments
+}
+
+export const createListingComment = async (
+  listingId: string,
+  payload: { body: string },
+  token: string
+) => {
+  return apiClient<ListingComment>(`/listings/${listingId}/comments`, {
+    method: 'POST',
+    body: payload,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
 }
 
 export type ListingPayload = {

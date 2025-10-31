@@ -3,6 +3,7 @@ import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { ListingCategory } from "./ListingCategory";
 import { Offer } from "./Offer";
+import { ListingComment } from "./ListingComment";
 
 @Entity({ name: "listings" })
 export class Listing extends BaseModel {
@@ -84,4 +85,7 @@ export class Listing extends BaseModel {
 
   @OneToMany(() => Offer, (offer) => offer.listing)
   offers!: Offer[];
+
+  @OneToMany(() => ListingComment, (comment) => comment.listing)
+  comments!: ListingComment[];
 }
