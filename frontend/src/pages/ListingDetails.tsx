@@ -93,7 +93,7 @@ const ListingDetails = () => {
     )
   }
 
-  const { title, description, price, category, owner, createdAt } = listing
+  const { title, description, price, isFree, category, owner, createdAt } = listing
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
 
   const handleContactSeller = async () => {
@@ -220,8 +220,20 @@ const ListingDetails = () => {
           <div className="rounded-2xl bg-white p-6 shadow">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-3xl font-semibold text-primary">{currencyFormatter.format(Number.parseFloat(price))}</div>
-                <div className="mt-1 text-sm text-slate-500">All prices in EUR</div>
+                {isFree ? (
+                  <>
+                    <div className="text-3xl font-semibold text-green-600">FREE</div>
+                    <div className="mt-1 flex items-center gap-2 text-sm text-green-600">
+                      <span>🎁</span>
+                      <span>Being given away for free!</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-3xl font-semibold text-primary">{currencyFormatter.format(Number.parseFloat(price))}</div>
+                    <div className="mt-1 text-sm text-slate-500">All prices in EUR</div>
+                  </>
+                )}
               </div>
               <div className="flex gap-2">
                 <button

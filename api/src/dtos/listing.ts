@@ -13,6 +13,10 @@ export class ListingDto {
 
   @IsOptional()
   @IsBoolean()
+  isFree?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   isActive?: boolean;
 
   @IsOptional()

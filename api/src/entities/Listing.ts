@@ -14,6 +14,9 @@ export class Listing extends BaseModel {
   @Column({ type: "numeric", precision: 10, scale: 2 })
   price!: string;
 
+  @Column({ name: "is_free", default: false })
+  isFree!: boolean;
+
   @Column({ name: "is_active", default: true })
   isActive!: boolean;
 

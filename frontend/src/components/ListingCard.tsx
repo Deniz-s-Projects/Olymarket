@@ -11,7 +11,11 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 })
 
-const formatPrice = (price: string) => {
+const formatPrice = (price: string, isFree: boolean) => {
+  if (isFree) {
+    return 'FREE'
+  }
+
   const numericValue = Number.parseFloat(price)
   if (Number.isNaN(numericValue)) {
     return price
@@ -53,7 +57,7 @@ type ListingCardProps = {
 }
 
 const ListingCard: FC<ListingCardProps> = ({ listing }) => {
-  const { id, title, description, price, owner, category, createdAt, images } = listing
+  const { id, title, description, price, isFree, owner, category, createdAt, images } = listing
   const imageUrl = images?.[0] ?? ('imageUrl' in listing ? listing.imageUrl : null)
   const categoryLabel = category?.name ?? 'Uncategorized'
   const ownerName = owner?.name ?? 'Marketplace partner'
@@ -73,9 +77,15 @@ const ListingCard: FC<ListingCardProps> = ({ listing }) => {
             {getInitials(title)}
           </div>
         )}
-        <span className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-          {categoryLabel}
-        </span>
+        {isFree ? (
+          <span className="absolute left-3 top-3 rounded-full bg-green-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-lg">
+            🎁 Free
+          </span>
+        ) : (
+          <span className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+            {categoryLabel}
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex items-center justify-between text-sm text-slate-500">
@@ -85,7 +95,9 @@ const ListingCard: FC<ListingCardProps> = ({ listing }) => {
         <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
         <p className="text-sm text-slate-600 line-clamp-3">{description}</p>
         <div className="mt-auto flex items-center justify-between pt-3">
-          <span className="text-lg font-semibold text-primary">{formatPrice(price)}</span>
+          <span className={`text-lg font-semibold ${isFree ? 'text-green-600' : 'text-primary'}`}>
+            {formatPrice(price, isFree)}
+          </span>
           <Link
             to={`/listings/${id}`}
             className="btn-primary hidden rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/80 sm:inline-flex"
