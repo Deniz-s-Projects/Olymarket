@@ -1,25 +1,72 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { ProfileListingWithActions } from '../../types/profile'
+import type { ProfileListingStatus, ProfileListingWithActions } from '../../types/profile'
 
 type ListingTableProps = {
   listings: ProfileListingWithActions[]
   title: string
   emptyMessage?: string
   isLoading?: boolean
+  onStatusChange?: (listingId: string, status: ProfileListingStatus) => void | Promise<void>
+  isStatusUpdating?: boolean
+  pendingListingId?: string | null
 }
 
-const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: ListingTableProps) => {
+const STATUS_LABELS: Record<ProfileListingStatus, string> = {
+  active: 'Active',
+  draft: 'Draft',
+  sold: 'Sold',
+}
+
+const ListingTable = ({
+  listings,
+  title,
+  emptyMessage,
+  isLoading = false,
+  onStatusChange,
+  isStatusUpdating = false,
+  pendingListingId = null,
+}: ListingTableProps) => {
   const [isOpen, setIsOpen] = useState(true)
 
   const toggleVisibility = () => {
     setIsOpen((current) => !current)
   }
 
-  const containerClasses =
-    'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition'
-
+  const containerClasses = 'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition'
   const contentWrapperClasses = `${isOpen ? 'mt-4 block' : 'hidden'} md:mt-4 md:block`
+
+  const renderStatusActions = (listing: ProfileListingWithActions) => {
+    if (!onStatusChange || !listing.statusTransitions?.length) {
+      return null
+    }
+
+    const isDisabled = Boolean(isStatusUpdating && pendingListingId !== null)
+
+    return listing.statusTransitions.map((transition) => {
+      const isPending = pendingListingId === listing.id && isStatusUpdating
+      const baseClasses =
+        'inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+      const styleClasses =
+        transition.status === 'sold'
+          ? 'border-amber-200 text-amber-700 hover:border-amber-300 hover:text-amber-800'
+          : 'border-slate-200 text-slate-600 hover:border-primary/40 hover:text-primary'
+
+      return (
+        <button
+          key={`${listing.id}-${transition.status}`}
+          type="button"
+          onClick={() => onStatusChange(listing.id, transition.status)}
+          disabled={isDisabled}
+          className={`${baseClasses} ${styleClasses} ${
+            isPending || isDisabled ? 'opacity-70' : ''
+          } ${isDisabled ? 'cursor-not-allowed' : ''}`}
+        >
+          {isPending ? 'Updating…' : transition.label}
+        </button>
+      )
+    })
+  }
 
   return (
     <section className={containerClasses}>
@@ -66,7 +113,7 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                       {listing.currency}
                       {listing.price.toLocaleString()}
                     </td>
-                    <td className="px-3 py-3 capitalize">{listing.status}</td>
+                    <td className="px-3 py-3 capitalize">{STATUS_LABELS[listing.status]}</td>
                     <td className="px-3 py-3 text-slate-500">{listing.updatedAt}</td>
                     <td className="px-3 py-3">
                       <div className="flex items-center justify-end gap-2 text-sm">
@@ -76,14 +123,7 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                         >
                           Edit
                         </Link>
-                        {listing.actions.archiveUrl ? (
-                          <Link
-                            to={listing.actions.archiveUrl}
-                            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-red-200 hover:text-red-600"
-                          >
-                            Archive
-                          </Link>
-                        ) : null}
+                        {renderStatusActions(listing)}
                       </div>
                     </td>
                   </tr>
@@ -112,7 +152,7 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
                   <div>
                     <dt className="font-semibold text-slate-500">Status</dt>
-                    <dd className="capitalize text-slate-700">{listing.status}</dd>
+                    <dd className="capitalize text-slate-700">{STATUS_LABELS[listing.status]}</dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-slate-500">Updated</dt>
@@ -138,14 +178,7 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                   >
                     Edit listing
                   </Link>
-                  {listing.actions.archiveUrl ? (
-                    <Link
-                      to={listing.actions.archiveUrl}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-red-200 hover:text-red-600"
-                    >
-                      Archive
-                    </Link>
-                  ) : null}
+                  {renderStatusActions(listing)}
                 </div>
               </article>
             ))}

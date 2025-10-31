@@ -37,10 +37,18 @@ export interface ProfileListingActionLinks {
   editUrl: string
   archiveUrl?: string
   viewUrl?: string
+  restoreUrl?: string
+  markSoldUrl?: string
 }
 
 export interface ProfileListingWithActions extends ProfileListingSummary {
   actions: ProfileListingActionLinks
+  statusTransitions?: ProfileListingStatusTransition[]
+}
+
+export interface ProfileListingStatusTransition {
+  label: string
+  status: ProfileListingStatus
 }
 
 export interface ProfileListingStatusEmptyStateAction {

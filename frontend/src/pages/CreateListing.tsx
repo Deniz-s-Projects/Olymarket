@@ -16,6 +16,7 @@ import {
   fetchListingById,
   updateListing,
   type ListingCategory,
+  type ListingStatus,
 } from "../services/listings"
 
 type ListingFormValues = {
@@ -26,7 +27,7 @@ type ListingFormValues = {
   category: string
   availability: string
   preferredContactMethod: string
-  active: boolean
+  status: ListingStatus
 }
 
 type ListingFormErrors = Partial<Record<keyof ListingFormValues, string>>
@@ -39,7 +40,7 @@ const INITIAL_VALUES: ListingFormValues = {
   category: "",
   availability: "",
   preferredContactMethod: "",
-  active: true,
+  status: "active",
 }
 
 const DEFAULT_CONTACT_METHOD_OPTIONS = ["Email", "Phone", "In-app messaging"]
@@ -135,7 +136,7 @@ const CreateListing = () => {
         category: listing.category?.id || "",
         availability: listing.availability?.trim() ?? "",
         preferredContactMethod: listing.preferredContactMethod?.trim() ?? "",
-        active: listing.isActive,
+        status: listing.status,
       })
 
       if (listing.images && listing.images.length > 0) {
@@ -201,7 +202,7 @@ const CreateListing = () => {
         if (!value.trim()) return "Choose how you prefer to be contacted."
         return ""
       },
-      active: () => "",
+      status: () => "",
     }),
     [categories]
   )
@@ -303,7 +304,7 @@ const CreateListing = () => {
           description: values.description.trim(),
           price: values.price.trim(),
           isFree: values.isFree,
-          isActive: values.active,
+          status: values.status,
           categoryId: values.category || undefined,
           images: allImages,
           availability: values.availability.trim(),
@@ -559,11 +560,11 @@ const CreateListing = () => {
           </label>
           <ToggleSwitch
             label="Active listing"
-            name="active"
+            name="status"
             description="Disable this to hide the listing from buyers without deleting it."
             hint="You can update this status at any time."
-            checked={values.active}
-            onChange={(checked) => updateValue("active", checked)}
+            checked={values.status === "active"}
+            onChange={(checked) => updateValue("status", checked ? "active" : "draft")}
           />
         </section>
 

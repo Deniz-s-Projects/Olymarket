@@ -19,6 +19,10 @@ export class AdminListingUpdateDto {
   isActive?: boolean;
 
   @IsOptional()
+  @IsIn(["active", "draft", "sold"])
+  status?: "active" | "draft" | "sold";
+
+  @IsOptional()
   @IsString()
   categoryId?: string;
 

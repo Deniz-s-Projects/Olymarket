@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { fetchListingById, checkListingSaved, saveListing, unsaveListing, type Listing } from '../services/listings'
 import { createConversation } from '../services/conversations'
@@ -88,8 +88,7 @@ const ListingDetails = () => {
   }, [id, token])
 
   // Hooks must be called unconditionally: compute gallery before any early returns
-  const images = listing?.images ?? []
-  const gallery = useMemo(() => (images && images.length > 0 ? images : []), [images])
+  const gallery = listing?.images ?? []
   const activeImage = gallery[activeImageIndex]
 
   if (status === 'loading') {
@@ -118,8 +117,33 @@ const ListingDetails = () => {
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
   const availabilityInfo = availability?.trim() ?? ''
   const preferredContactInfo = preferredContactMethod?.trim() ?? ''
+  const isSold = listing.status === 'sold'
+  const isDraftListing = listing.status === 'draft'
+  const isListingUnavailable = isSold || isDraftListing
+  const isOwner = user && String(user.id) === owner.id
+  const contactButtonLabel = isContactingSeller
+    ? 'Connecting...'
+    : isOwner
+      ? 'Your listing'
+      : isSold
+        ? 'Sold out'
+        : isDraftListing
+          ? 'Unavailable'
+          : 'Contact seller'
 
   const handleContactSeller = async () => {
+    setContactError(null)
+
+    if (listing.status === 'sold') {
+      setContactError('This listing has been marked as sold and is no longer available.')
+      return
+    }
+
+    if (listing.status === 'draft') {
+      setContactError('This listing is not currently available to buyers.')
+      return
+    }
+
     if (!token) {
       navigate('/auth', {
         state: {
@@ -136,13 +160,12 @@ const ListingDetails = () => {
     }
 
     // Don't allow contacting yourself
-    if (user && String(user.id) === owner.id) {
+    if (isOwner) {
       setContactError('You cannot contact yourself.')
       return
     }
 
     setIsContactingSeller(true)
-    setContactError(null)
 
     try {
       const conversation = await createConversation(
@@ -284,6 +307,15 @@ const ListingDetails = () => {
               ) : null}
             </div>
             <h1 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">{title}</h1>
+            {isListingUnavailable ? (
+              <div
+                className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                  isSold ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {isSold ? 'Sold' : 'Draft'}
+              </div>
+            ) : null}
             <p className="mt-3 whitespace-pre-line text-slate-700">{description}</p>
           </article>
         </section>
@@ -307,15 +339,26 @@ const ListingDetails = () => {
                   </>
                 )}
               </div>
+              {isListingUnavailable ? (
+                <div
+                  className={`mt-4 rounded-lg border px-3 py-2 text-xs ${
+                    isSold ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {isSold
+                    ? 'This item has been marked as sold and is no longer accepting new inquiries.'
+                    : 'This listing is currently hidden from buyers.'}
+                </div>
+              ) : null}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleToggleSave}
-                  disabled={isSaving}
+                  disabled={isSaving || isListingUnavailable}
                   title={isSaved ? "Unsave listing" : "Save listing"}
                   className={`rounded-full border px-3 py-1 text-sm transition ${
-                    isSaved 
-                      ? 'border-primary bg-primary text-white hover:bg-primary/90' 
+                    isSaved
+                      ? 'border-primary bg-primary text-white hover:bg-primary/90'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
                   } disabled:cursor-not-allowed disabled:opacity-60`}
                 >
@@ -348,10 +391,14 @@ const ListingDetails = () => {
             <button
               type="button"
               onClick={handleContactSeller}
-              disabled={isContactingSeller || Boolean(user && String(user.id) === owner.id)}
-              className="btn-primary mt-5 inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isContactingSeller || isOwner || isListingUnavailable}
+              className={`mt-5 inline-flex w-full justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isOwner || isListingUnavailable
+                  ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                  : 'bg-primary text-white hover:-translate-y-0.5 focus-visible:outline-primary/70'
+              } ${isContactingSeller ? 'opacity-80' : ''}`}
             >
-              {isContactingSeller ? 'Connecting...' : (user && String(user.id) === owner.id) ? 'Your listing' : 'Contact seller'}
+              {contactButtonLabel}
             </button>
             {contactError ? (
               <p className="mt-2 text-xs text-red-600">{contactError}</p>

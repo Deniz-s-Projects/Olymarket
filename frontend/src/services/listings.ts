@@ -1,5 +1,7 @@
 import { apiClient } from '../lib/apiClient'
 
+export type ListingStatus = 'active' | 'draft' | 'sold'
+
 export type ListingCategory = {
   id: string
   name: string
@@ -19,6 +21,7 @@ export type Listing = {
   price: string
   isFree: boolean
   isActive: boolean
+  status: ListingStatus
   createdAt: string
   updatedAt: string
   owner: ListingOwner
@@ -78,6 +81,7 @@ export type ListingPayload = {
   price: string
   isFree?: boolean
   isActive?: boolean
+  status?: ListingStatus
   categoryId?: string | null
   images?: string[]
   availability: string
@@ -85,13 +89,14 @@ export type ListingPayload = {
 }
 
 const normalizeListingPayload = (payload: ListingPayload) => {
-  const { categoryId, availability, preferredContactMethod, ...rest } = payload
+  const { categoryId, availability, preferredContactMethod, status, ...rest } = payload
   const priceNum = Number(rest.price);
   // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
   const isFree = priceNum < 1 ? true : rest.isFree;
   rest.isFree = isFree
   return {
     ...rest,
+    status,
     availability: availability.trim(),
     preferredContactMethod: preferredContactMethod.trim(),
     categoryId: categoryId ? categoryId : undefined,
@@ -109,6 +114,13 @@ export const updateListing = async (id: string, payload: ListingPayload) => {
   return apiClient<Listing>(`/listings/${id}`, {
     method: 'PUT',
     body: normalizeListingPayload(payload),
+  })
+}
+
+export const updateListingStatus = async (id: string, status: ListingStatus) => {
+  return apiClient<Listing>(`/listings/${id}/status`, {
+    method: 'PATCH',
+    body: { status },
   })
 }
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { AppDataSource } from "../config";
 import { authMiddleware, requireAdmin, AuthenticatedRequest } from "../middleware/auth";
-import { Listing } from "../entities/Listing";
+import { Listing, ListingStatus } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
 import { User } from "../entities/User";
 import { Conversation } from "../entities/Conversation";
@@ -13,6 +13,36 @@ const router = Router();
 
 // All routes below require auth + admin
 router.use(authMiddleware, requireAdmin);
+
+const ADMIN_LISTING_STATUSES: ListingStatus[] = ["active", "draft", "sold"];
+
+const parseAdminListingStatus = (value: unknown): ListingStatus | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return ADMIN_LISTING_STATUSES.find((status) => status === normalized);
+};
+
+const resolveAdminStatusFromBody = (
+  body: Record<string, unknown>,
+  current: ListingStatus,
+): ListingStatus => {
+  const status = parseAdminListingStatus(body.status);
+  if (status) {
+    return status;
+  }
+
+  if (typeof body.isActive === "boolean") {
+    if (body.isActive) {
+      return "active";
+    }
+    return current === "sold" ? "sold" : "draft";
+  }
+
+  return current;
+};
 
 // GET /admin/stats - Get usage statistics
 router.get("/stats", async (_req, res) => {
@@ -35,7 +65,8 @@ router.get("/stats", async (_req, res) => {
     pending: 0,
     approved: 0,
     rejected: 0,
-    active: await listingRepo.count({ where: { isActive: true } }),
+    active: await listingRepo.count({ where: { status: "active" } }),
+    sold: await listingRepo.count({ where: { status: "sold" } }),
   };
   
   listingsByStatus.forEach((stat) => {
@@ -131,7 +162,9 @@ router.patch(
     if (typeof req.body.title === "string") listing.title = req.body.title;
     if (typeof req.body.description === "string") listing.description = req.body.description;
     if (typeof req.body.price === "string") listing.price = req.body.price;
-    if (typeof req.body.isActive === "boolean") listing.isActive = req.body.isActive;
+
+    listing.status = resolveAdminStatusFromBody(req.body ?? {}, listing.status);
+    listing.isActive = listing.status === "active";
 
     if (typeof req.body.categoryId !== "undefined") {
       if (req.body.categoryId === "") {

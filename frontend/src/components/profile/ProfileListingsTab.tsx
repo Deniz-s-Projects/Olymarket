@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import ListingTable from './ListingTable'
 import type {
+  ProfileListingStatus,
   ProfileListingStatusGroup,
   ProfileListingsOverview,
 } from '../../types/profile'
@@ -10,6 +11,10 @@ import type {
 type ProfileListingsTabProps = {
   listings: ProfileListingsOverview
   isLoading?: boolean
+  onStatusChange?: (listingId: string, status: ProfileListingStatus) => Promise<void>
+  isStatusUpdating?: boolean
+  statusUpdateError?: string | null
+  pendingListingId?: string | null
 }
 
 type StatusFilterOption = {
@@ -20,10 +25,18 @@ type StatusFilterOption = {
 
 const DEFAULT_CREATE_URL = '/listings/new'
 
-const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabProps) => {
-  const groups = listings.groups ?? []
+const ProfileListingsTab = ({
+  listings,
+  isLoading = false,
+  onStatusChange,
+  isStatusUpdating = false,
+  statusUpdateError = null,
+  pendingListingId = null,
+}: ProfileListingsTabProps) => {
+  const groups = useMemo(() => listings.groups ?? [], [listings.groups])
   const [activeFilter, setActiveFilter] = useState<StatusFilterOption['id']>('all')
   const createListingUrl = listings.createListingUrl ?? DEFAULT_CREATE_URL
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     if (activeFilter === 'all') {
@@ -77,6 +90,31 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
       : 'Create your first listing to start reaching buyers on Olymarket.')
   const emptyAction = activeGroup?.emptyState?.action
 
+  const handleStatusTransition = async (listingId: string, status: ProfileListingStatus) => {
+    if (!onStatusChange) {
+      return
+    }
+
+    setActionError(null)
+    try {
+      await onStatusChange(listingId, status)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'We were unable to update the listing status. Please try again.'
+      setActionError(message)
+    }
+  }
+
+  useEffect(() => {
+    if (statusUpdateError) {
+      setActionError(statusUpdateError)
+    } else {
+      setActionError(null)
+    }
+  }, [statusUpdateError])
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -126,6 +164,12 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
         })}
       </div>
 
+      {actionError ? (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {actionError}
+        </div>
+      ) : null}
+
       {shouldShowTable ? (
         <div className="mt-6">
           <ListingTable
@@ -133,6 +177,9 @@ const ProfileListingsTab = ({ listings, isLoading = false }: ProfileListingsTabP
             title={activeFilter === 'all' ? 'All Listings' : `${activeGroup?.label ?? 'Listings'}`}
             emptyMessage={emptyDescription}
             isLoading={isLoading}
+            onStatusChange={onStatusChange ? handleStatusTransition : undefined}
+            isStatusUpdating={isStatusUpdating}
+            pendingListingId={pendingListingId}
           />
         </div>
       ) : (

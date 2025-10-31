@@ -3,10 +3,11 @@ import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import { validationMiddleware } from "../middleware/validate";
 import { ListingDto } from "../dtos/listing";
 import { AppDataSource } from "../config";
-import { Listing } from "../entities/Listing";
+import { Listing, ListingStatus } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
 import { SavedListing } from "../entities/SavedListing";
 import type { SelectQueryBuilder } from "typeorm";
+import { ListingStatusDto } from "../dtos/listing-status";
 
 type ListingQueryFilters = {
   searchTerm?: string;
@@ -14,6 +15,33 @@ type ListingQueryFilters = {
 
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 12;
+
+const LISTING_STATUSES: ListingStatus[] = ["active", "draft", "sold"];
+
+const parseStatusParam = (value: unknown): ListingStatus | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return LISTING_STATUSES.find((status) => status === normalized) ?? undefined;
+};
+
+const resolveStatusFromBody = (
+  body: Record<string, unknown>,
+  defaultStatus: ListingStatus = "active",
+): ListingStatus => {
+  const status = parseStatusParam(body.status);
+  if (status) {
+    return status;
+  }
+
+  if (typeof body.isActive === "boolean") {
+    return body.isActive ? "active" : "draft";
+  }
+
+  return defaultStatus;
+};
 
 const parseNumberParam = (value: unknown): number | undefined => {
   if (typeof value === "number") {
@@ -82,6 +110,7 @@ const buildListingsQuery = (
     .leftJoinAndSelect("listing.owner", "owner")
     .leftJoinAndSelect("listing.category", "category")
     .where("listing.moderation_status = :status", { status: "approved" })
+    .andWhere("listing.status = :statusFilter", { statusFilter: "active" })
     .andWhere("owner.is_banned = false");
 
   const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
@@ -175,12 +204,15 @@ router.post(
     const preferredContactMethod =
       typeof req.body.preferredContactMethod === "string" ? req.body.preferredContactMethod.trim() : "";
 
+    const status = resolveStatusFromBody(req.body ?? {}, "active");
+
     const listing = listingRepository.create({
       title: req.body.title,
       description: req.body.description,
       price: req.body.price,
       isFree: req.body.isFree ?? false,
-      isActive: req.body.isActive ?? true,
+      isActive: status === "active",
+      status,
       owner: req.user!,
       category,
       images: Array.isArray(req.body.images) ? req.body.images : [],
@@ -260,7 +292,6 @@ router.put(
     listing.description = req.body.description;
     listing.price = req.body.price;
     listing.isFree = req.body.isFree ?? listing.isFree;
-    listing.isActive = req.body.isActive ?? listing.isActive;
     listing.category = category ?? null;
     listing.availability = availability || null;
     listing.preferredContactMethod = preferredContactMethod || null;
@@ -268,9 +299,52 @@ router.put(
       listing.images = req.body.images;
     }
 
+    const nextStatus = resolveStatusFromBody(req.body ?? {}, listing.status);
+    if (nextStatus !== listing.status) {
+      if (nextStatus === "sold" && listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold." });
+      }
+
+      listing.status = nextStatus;
+    }
+
+    listing.isActive = listing.status === "active";
+
     const saved = await listingRepository.save(listing);
     return res.json(saved);
   }
+);
+
+router.patch(
+  "/:id/status",
+  authMiddleware,
+  validationMiddleware(ListingStatusDto),
+  async (req: AuthenticatedRequest, res) => {
+    const listingRepository = AppDataSource.getRepository(Listing);
+    const listing = await listingRepository.findOne({
+      where: { id: req.params.id },
+      relations: { owner: true },
+    });
+
+    if (!listing) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    if (listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    const requestedStatus = req.body.status as ListingStatus;
+    if (requestedStatus === "sold" && listing.owner.id !== req.user!.id && req.user!.role !== "admin") {
+      return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold." });
+    }
+
+    listing.status = requestedStatus;
+    listing.isActive = listing.status === "active";
+
+    const saved = await listingRepository.save(listing);
+    return res.json(saved);
+  },
 );
 
 router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {

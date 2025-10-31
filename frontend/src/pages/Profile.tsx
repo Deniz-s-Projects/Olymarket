@@ -39,6 +39,10 @@ const Profile = () => {
     isUpdatingPreference,
     updatePreferenceError,
     lastUpdatedPreferenceId,
+    updateListingStatus,
+    isUpdatingListingStatus,
+    updateListingStatusError,
+    updatingListingId,
   } = useProfile({ enabled: Boolean(user) })
 
   const [activeTab, setActiveTab] = useState<string>(PROFILE_TABS[0]?.id ?? 'overview')
@@ -114,7 +118,14 @@ const Profile = () => {
       case 'listings':
         return (
           <div className="flex flex-col gap-6">
-            <ProfileListingsTab listings={listings} isLoading={isLoading} />
+            <ProfileListingsTab
+              listings={listings}
+              isLoading={isLoading}
+              onStatusChange={updateListingStatus}
+              isStatusUpdating={isUpdatingListingStatus}
+              statusUpdateError={updateListingStatusError?.message ?? null}
+              pendingListingId={updatingListingId}
+            />
           </div>
         )
       case 'saved':

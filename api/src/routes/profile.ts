@@ -128,25 +128,55 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
     order: { createdAt: "DESC" },
   });
 
-  const activeListings = listings.filter((l) => l.isActive && l.moderationStatus === "approved");
-  const inactiveListings = listings.filter((l) => !l.isActive || l.moderationStatus !== "approved");
+  const determineStatus = (listing: Listing): "active" | "draft" | "sold" => {
+    if (listing.status === "sold") {
+      return "sold";
+    }
 
-  const mapListing = (listing: Listing) => ({
-    id: listing.id,
-    title: listing.title,
-    category: listing.category?.name || "Uncategorized",
-    price: parseFloat(listing.price),
-    currency: "EUR",
-    status: listing.isActive && listing.moderationStatus === "approved" ? "active" : "draft",
-    updatedAt: listing.updatedAt.toISOString(),
-    thumbnailUrl: listing.images && listing.images.length > 0 ? listing.images[0] : undefined,
-    availability: listing.availability ?? undefined,
-    preferredContactMethod: listing.preferredContactMethod ?? undefined,
-    actions: {
-      editUrl: `/listings/${listing.id}/edit`,
-      viewUrl: `/listings/${listing.id}`,
-    },
-  });
+    if (listing.status === "draft" || listing.moderationStatus !== "approved") {
+      return "draft";
+    }
+
+    return "active";
+  };
+
+  const activeListings = listings.filter((listing) => determineStatus(listing) === "active");
+  const draftListings = listings.filter((listing) => determineStatus(listing) === "draft");
+  const soldListings = listings.filter((listing) => determineStatus(listing) === "sold");
+
+  const mapListing = (listing: Listing) => {
+    const status = determineStatus(listing);
+    const statusEndpoint = `/listings/${listing.id}/status`;
+
+    return {
+      id: listing.id,
+      title: listing.title,
+      category: listing.category?.name || "Uncategorized",
+      price: parseFloat(listing.price),
+      currency: "EUR",
+      status,
+      updatedAt: listing.updatedAt.toISOString(),
+      thumbnailUrl: listing.images && listing.images.length > 0 ? listing.images[0] : undefined,
+      availability: listing.availability ?? undefined,
+      preferredContactMethod: listing.preferredContactMethod ?? undefined,
+      actions: {
+        editUrl: `/listings/${listing.id}/edit`,
+        viewUrl: `/listings/${listing.id}`,
+        archiveUrl: status === "active" ? statusEndpoint : undefined,
+        restoreUrl: status === "draft" || status === "sold" ? statusEndpoint : undefined,
+        markSoldUrl: status === "active" ? statusEndpoint : undefined,
+      },
+      statusTransitions:
+        status === "active"
+          ? [
+              { label: "Mark as sold", status: "sold" as const },
+              { label: "Move to drafts", status: "draft" as const },
+            ]
+          : status === "draft"
+            ? [{ label: "Publish listing", status: "active" as const }]
+            : [{ label: "Restore to active", status: "active" as const }],
+    };
+  };
 
   return res.json({
     groups: [
@@ -158,9 +188,23 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
       },
       {
         id: "draft",
-        label: "Inactive",
-        description: "Listings not currently visible",
-        listings: inactiveListings.map(mapListing),
+        label: "Drafts",
+        description: "Listings saved for later or awaiting approval",
+        listings: draftListings.map(mapListing),
+      },
+      {
+        id: "sold",
+        label: "Sold",
+        description: "Listings you've marked as sold",
+        listings: soldListings.map(mapListing),
+        emptyState: {
+          title: "No sold listings yet",
+          description: "Mark listings as sold to keep track of completed transactions.",
+          action: {
+            label: "Create a new listing",
+            url: "/listings/new",
+          },
+        },
       },
     ],
     createListingUrl: "/listings/new",

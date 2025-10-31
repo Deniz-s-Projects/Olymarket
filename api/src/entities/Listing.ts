@@ -3,6 +3,8 @@ import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { ListingCategory } from "./ListingCategory";
 
+export type ListingStatus = "active" | "draft" | "sold";
+
 @Entity({ name: "listings" })
 export class Listing extends BaseModel {
   @Column({ length: 150 })
@@ -19,6 +21,14 @@ export class Listing extends BaseModel {
 
   @Column({ name: "is_active", default: true })
   isActive!: boolean;
+
+  @Column({
+    type: "enum",
+    enum: ["active", "draft", "sold"],
+    enumName: "listing_status_enum",
+    default: "active",
+  })
+  status!: ListingStatus;
 
   @Column({ type: "text", array: true, nullable: true, default: () => "ARRAY[]::text[]" })
   images!: string[] | null;

@@ -10,9 +10,11 @@ import {
   updateProfileAccount,
   updateProfilePreferences,
 } from '../services/profile'
+import { updateListingStatus as updateListingStatusRequest } from '../services/listings'
 import type {
   ProfileAccountInfo,
   ProfileAccountUpdateInput,
+  ProfileListingStatus,
   ProfileListingsOverview,
   ProfileMetric,
   ProfilePreferenceKey,
@@ -45,6 +47,10 @@ type UseProfileState = ProfileData & {
   isUpdatingPreference: boolean
   updatePreferenceError: Error | null
   lastUpdatedPreferenceId: ProfilePreferenceKey | null
+  updateListingStatus: (listingId: string, status: ProfileListingStatus) => Promise<void>
+  isUpdatingListingStatus: boolean
+  updateListingStatusError: Error | null
+  updatingListingId: string | null
 }
 
 const EMPTY_PROFILE_DATA: ProfileData = {
@@ -82,6 +88,9 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
   const [isUpdatingPreference, setIsUpdatingPreference] = useState(false)
   const [updatePreferenceError, setUpdatePreferenceError] = useState<Error | null>(null)
   const [lastUpdatedPreferenceId, setLastUpdatedPreferenceId] = useState<ProfilePreferenceKey | null>(null)
+  const [isUpdatingListingStatus, setIsUpdatingListingStatus] = useState(false)
+  const [updateListingStatusError, setUpdateListingStatusError] = useState<Error | null>(null)
+  const [updatingListingId, setUpdatingListingId] = useState<string | null>(null)
 
   const loadProfile = useCallback(async () => {
     if (!enabled) {
@@ -116,10 +125,10 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
         savedItems,
         preferences,
       })
-    } catch (error) {
+    } catch (caughtError) {
       const normalizedError =
-        error instanceof Error
-          ? error
+        caughtError instanceof Error
+          ? caughtError
           : new Error('Something went wrong while loading your profile data.')
 
       setError(normalizedError)
@@ -128,6 +137,18 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       setIsLoading(false)
     }
   }, [enabled])
+
+  const refreshListings = useCallback(async () => {
+    const listings = await resolveOrFallback<ProfileListingsOverview>(fetchProfileListings, {
+      groups: [],
+      createListingUrl: undefined,
+    })
+
+    setData((current) => ({
+      ...current,
+      listings,
+    }))
+  }, [])
 
   const updateAccount = useCallback(async (input: ProfileAccountUpdateInput) => {
     setIsUpdatingAccount(true)
@@ -142,10 +163,10 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       }))
 
       return updatedAccount
-    } catch (error) {
+    } catch (caughtError) {
       const normalizedError =
-        error instanceof Error
-          ? error
+        caughtError instanceof Error
+          ? caughtError
           : new Error('We could not update your profile details. Please try again later.')
 
       setUpdateAccountError(normalizedError)
@@ -156,8 +177,8 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
   }, [])
 
   const updatePreference = useCallback(
-    async (id: ProfilePreferenceKey, enabled: boolean) => {
-      const payload: ProfilePreferenceUpdateInput = { [id]: enabled }
+    async (id: ProfilePreferenceKey, preferenceEnabled: boolean) => {
+      const payload: ProfilePreferenceUpdateInput = { [id]: preferenceEnabled }
       setIsUpdatingPreference(true)
       setUpdatePreferenceError(null)
       setLastUpdatedPreferenceId(null)
@@ -173,10 +194,10 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
         setLastUpdatedPreferenceId(id)
 
         return updatedPreferences
-      } catch (error) {
+      } catch (caughtError) {
         const normalizedError =
-          error instanceof Error
-            ? error
+          caughtError instanceof Error
+            ? caughtError
             : new Error('We could not update your communication preferences. Please try again later.')
 
         setUpdatePreferenceError(normalizedError)
@@ -186,6 +207,31 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       }
     },
     [],
+  )
+
+  const changeListingStatus = useCallback(
+    async (listingId: string, status: ProfileListingStatus) => {
+      setIsUpdatingListingStatus(true)
+      setUpdateListingStatusError(null)
+      setUpdatingListingId(listingId)
+
+      try {
+        await updateListingStatusRequest(listingId, status)
+        await refreshListings()
+      } catch (caughtError) {
+        const normalizedError =
+          caughtError instanceof Error
+            ? caughtError
+            : new Error('We could not update the listing status. Please try again later.')
+
+        setUpdateListingStatusError(normalizedError)
+        throw normalizedError
+      } finally {
+        setIsUpdatingListingStatus(false)
+        setUpdatingListingId(null)
+      }
+    },
+    [refreshListings],
   )
 
   useEffect(() => {
@@ -206,6 +252,10 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       isUpdatingPreference,
       updatePreferenceError,
       lastUpdatedPreferenceId,
+      updateListingStatus: changeListingStatus,
+      isUpdatingListingStatus,
+      updateListingStatusError,
+      updatingListingId,
     }),
     [
       data,
@@ -219,6 +269,10 @@ export const useProfile = ({ enabled = true }: UseProfileOptions = {}): UseProfi
       isUpdatingPreference,
       updatePreferenceError,
       lastUpdatedPreferenceId,
+      changeListingStatus,
+      isUpdatingListingStatus,
+      updateListingStatusError,
+      updatingListingId,
     ],
   )
 }
