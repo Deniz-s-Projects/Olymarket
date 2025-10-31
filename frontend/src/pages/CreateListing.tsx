@@ -17,7 +17,7 @@ import {
   updateListing,
   type ListingCategory,
 } from "../services/listings"
-
+import type { ListingStatus } from '../services/listings'
 type ListingFormValues = {
   title: string
   description: string
@@ -304,7 +304,7 @@ const CreateListing = () => {
           price: values.price.trim(),
           isFree: values.isFree,
           isActive: values.active,
-          status: values.active ? 'active' : 'draft',
+          status: (values.active ? 'active' : 'draft') as ListingStatus,
           categoryId: values.category || undefined,
           images: allImages,
           availability: values.availability.trim(),

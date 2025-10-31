@@ -167,14 +167,13 @@ const ListingDetails = () => {
     )
   }
 
-  const { title, description, price, isFree, category, owner, createdAt, availability, preferredContactMethod } = listing
+  const { title, description, price, isFree, category, owner, createdAt } = listing
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
   const viewerRole = offersData?.viewerRole ?? null
   const offers = offersData?.offers ?? []
   const hasPendingOffer = offers.some((offerItem) => offerItem.status === 'pending')
   const currentUserId = user ? String(user.id) : null
-  const availabilityInfo = availability?.trim() ?? ''
-  const preferredContactInfo = preferredContactMethod?.trim() ?? ''
+  const isSold = listing.status === 'sold'
 
   const handleContactSeller = async () => {
     if (!token) {

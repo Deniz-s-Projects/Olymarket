@@ -134,14 +134,14 @@ const normalizeListingPayload = (payload: ListingPayload) => {
   const normalizedStatus = status ?? (typeof rest.isActive === 'boolean' ? (rest.isActive ? 'active' : 'draft') : undefined)
   return {
     ...rest,
-    status: normalizedStatus,
-    availability: availability.trim(),
-    preferredContactMethod: preferredContactMethod.trim(),
+    status: normalizedStatus, 
+    availability: rest.availability?.trim() ?? "",
+    preferredContactMethod: rest.preferredContactMethod?.trim() ?? "",
     categoryId: categoryId ? categoryId : undefined,
   }
 }
 
-export const createListing = async (payload: ListingPayload) => {
+export const createListing = async (payload: ListingPayload) => { 
   return apiClient<Listing>('/listings', {
     method: 'POST',
     body: normalizeListingPayload(payload),
