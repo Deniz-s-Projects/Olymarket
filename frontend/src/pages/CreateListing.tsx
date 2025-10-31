@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import PriceInput from "../components/forms/PriceInput"
 import TextArea from "../components/forms/TextArea"
 import TextInput from "../components/forms/TextInput"
@@ -13,6 +13,8 @@ import { useAuth } from "../context/useAuth"
 import {
   createListing,
   fetchListingCategories,
+  fetchListingById,
+  updateListing,
   type ListingCategory,
 } from "../services/listings"
 
@@ -47,6 +49,8 @@ type ValidatorMap = {
 
 const CreateListing = () => {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const isEditMode = Boolean(id)
   const { token } = useAuth()
   const isMountedRef = useRef(true)
   const [values, setValues] = useState<ListingFormValues>(INITIAL_VALUES)
@@ -60,6 +64,8 @@ const CreateListing = () => {
   const [categoriesError, setCategoriesError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isLoadingListing, setIsLoadingListing] = useState(isEditMode)
+  const [loadListingError, setLoadListingError] = useState<string | null>(null)
 
   useEffect(() => {
     return () => {
@@ -107,9 +113,62 @@ const CreateListing = () => {
     }
   }, [])
 
+  const loadListing = useCallback(async () => {
+    if (!id || !isMountedRef.current) {
+      return
+    }
+
+    setIsLoadingListing(true)
+    setLoadListingError(null)
+
+    try {
+      const listing = await fetchListingById(id)
+      if (!isMountedRef.current) {
+        return
+      }
+
+      setValues({
+        title: listing.title,
+        description: listing.description,
+        price: listing.price,
+        category: listing.category?.id || "",
+        availability: "",
+        contactPreference: "",
+        active: listing.isActive,
+      })
+
+      if (listing.images && listing.images.length > 0) {
+        const existingPhotos: PhotoPreview[] = listing.images.map((url, index) => ({
+          id: `existing-${index}`,
+          url,
+          fileName: `Image ${index + 1}`,
+        }))
+        setPhotos(existingPhotos)
+      }
+
+      setIsLoadingListing(false)
+    } catch (error) {
+      if (!isMountedRef.current) {
+        return
+      }
+      setIsLoadingListing(false)
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to load listing. Please try again."
+      setLoadListingError(message)
+    }
+  }, [id])
+
   useEffect(() => {
     loadCategories()
   }, [loadCategories])
+
+  useEffect(() => {
+    if (isEditMode) {
+      loadListing()
+    }
+  }, [isEditMode, loadListing])
 
   const validators = useMemo<ValidatorMap>(
     () => ({
@@ -211,15 +270,27 @@ const CreateListing = () => {
       setIsSubmitting(true)
 
       try {
-        const images = await readFilesAsDataUrls(photoFiles.slice(0, MAX_PHOTOS))
-        const listing = await createListing({
+        const newImages = await readFilesAsDataUrls(photoFiles.slice(0, MAX_PHOTOS))
+        const existingImages = photos
+          .filter((photo) => photo.id.startsWith("existing-"))
+          .map((photo) => photo.url)
+        const allImages = [...existingImages, ...newImages]
+
+        const payload = {
           title: values.title.trim(),
           description: values.description.trim(),
           price: values.price.trim(),
           isActive: values.active,
           categoryId: values.category || undefined,
-          images,
-        })
+          images: allImages,
+        }
+
+        let listing
+        if (isEditMode && id) {
+          listing = await updateListing(id, payload)
+        } else {
+          listing = await createListing(payload)
+        }
 
         navigate("/listings/" + listing.id)
       } catch (error) {
@@ -227,8 +298,8 @@ const CreateListing = () => {
           navigate("/auth", {
             replace: true,
             state: {
-              from: "/listings/new",
-              message: "Please sign in to create a listing.",
+              from: isEditMode ? `/listings/${id}/edit` : "/listings/new",
+              message: "Please sign in to continue.",
             },
           })
           return
@@ -272,23 +343,52 @@ const CreateListing = () => {
     })
   }
 
-  const handleRemovePhoto = (id: string) => {
+  const handleRemovePhoto = (photoId: string) => {
     setPhotos((prev) => {
-      const removed = prev.find((preview) => preview.id === id)
-      if (removed) {
+      const removed = prev.find((preview) => preview.id === photoId)
+      if (removed && !photoId.startsWith("existing-")) {
         URL.revokeObjectURL(removed.url)
       }
-      return prev.filter((preview) => preview.id !== id)
+      return prev.filter((preview) => preview.id !== photoId)
     })
-    setPhotoFiles((prev) => prev.filter((file) => !id.startsWith(file.name + '-' + file.lastModified)))
+    if (!photoId.startsWith("existing-")) {
+      setPhotoFiles((prev) => prev.filter((file) => !photoId.startsWith(file.name + '-' + file.lastModified)))
+    }
+  }
+
+  if (isLoadingListing) {
+    return (
+      <section className="mx-auto flex max-w-4xl flex-col items-center justify-center px-4 py-24 text-slate-500">
+        Loading listing...
+      </section>
+    )
+  }
+
+  if (loadListingError) {
+    return (
+      <section className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-4 px-4 py-24">
+        <p className="text-red-600">{loadListingError}</p>
+        <button
+          type="button"
+          onClick={() => navigate("/profile")}
+          className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
+        >
+          Back to Profile
+        </button>
+      </section>
+    )
   }
 
   return (
     <section className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold text-primary">Create a Listing</h1>
+        <h1 className="text-3xl font-semibold text-primary">
+          {isEditMode ? "Edit Listing" : "Create a Listing"}
+        </h1>
         <p className="text-base text-slate-600">
-          Share the details of what you&apos;re offering so buyers know exactly what to expect.
+          {isEditMode
+            ? "Update the details of your listing."
+            : "Share the details of what you're offering so buyers know exactly what to expect."}
         </p>
       </header>
 
@@ -458,7 +558,7 @@ const CreateListing = () => {
             disabled={isSubmitting}
             className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-primary/70"
           >
-            {isSubmitting ? "Creating…" : "Create listing"}
+            {isSubmitting ? (isEditMode ? "Updating…" : "Creating…") : (isEditMode ? "Update listing" : "Create listing")}
           </button>
           {isSubmitting ? (
             <span className="text-xs text-slate-500" role="status" aria-live="polite">
