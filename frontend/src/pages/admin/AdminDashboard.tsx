@@ -1056,6 +1056,9 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
   const [operationInProgress, setOperationInProgress] = useState(false)
   const [showResolutionForm, setShowResolutionForm] = useState<'resolved' | 'dismissed' | null>(null)
   const [resolutionNotes, setResolutionNotes] = useState('')
+  const [reportPendingDeletion, setReportPendingDeletion] = useState<
+    import('../../services/reports').Report | null
+  >(null)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -1139,16 +1142,16 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
     handleUpdateStatus(viewingReport.id, status, resolutionNotes.trim() || undefined)
   }
 
-  const handleDelete = async (reportId: string) => {
-    if (operationInProgress) return
-    if (!window.confirm('Are you sure you want to delete this report?')) return
+  const handleDelete = async () => {
+    if (operationInProgress || !reportPendingDeletion) return
 
     setOperationInProgress(true)
     try {
       const { deleteAdminReport } = await import('../../services/admin')
-      await deleteAdminReport(reportId)
+      await deleteAdminReport(reportPendingDeletion.id)
       await loadReports()
       setViewingReport(null)
+      setReportPendingDeletion(null)
       addToast('Report deleted successfully', 'success')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete report'
@@ -1353,7 +1356,12 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
               <h2 className="text-xl font-semibold text-gray-900">Report Details</h2>
               <button
                 type="button"
-                onClick={() => setViewingReport(null)}
+                onClick={() => {
+                  setViewingReport(null)
+                  setShowResolutionForm(null)
+                  setResolutionNotes('')
+                  setReportPendingDeletion(null)
+                }}
                 className="text-gray-400 hover:text-gray-600"
                 disabled={operationInProgress}
               >
@@ -1535,7 +1543,7 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
                     )}
                     <button
                       type="button"
-                      onClick={() => handleDelete(viewingReport.id)}
+                      onClick={() => setReportPendingDeletion(viewingReport)}
                       disabled={operationInProgress}
                       className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
@@ -1544,6 +1552,38 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reportPendingDeletion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900">Delete Report</h2>
+            <p className="mb-6 text-sm text-slate-600">
+              Are you sure you want to delete this report? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (operationInProgress) return
+                  setReportPendingDeletion(null)
+                }}
+                disabled={operationInProgress}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={operationInProgress}
+                className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {operationInProgress ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>
