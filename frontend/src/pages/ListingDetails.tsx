@@ -409,6 +409,9 @@ const ListingDetails = () => {
       setOfferActionError(err instanceof Error ? err.message : 'Failed to counter the offer')
     } finally {
       setActiveAction(null)
+    }
+  }
+  
   const handleShareListing = async () => {
     if (!listing) return
     if (typeof window === 'undefined') {
@@ -913,5 +916,3 @@ const ListingDetails = () => {
 }
 
 export default ListingDetails
-}
-}
