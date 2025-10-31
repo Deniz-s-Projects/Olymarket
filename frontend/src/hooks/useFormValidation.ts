@@ -1,4 +1,11 @@
-import { type ChangeEvent, useCallback, useMemo, useState } from "react"
+import {
+  type ChangeEvent,
+  useCallback,
+  useMemo,
+  useState,
+} from "react"
+
+type FormElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
 
 type ValidatorResult = {
   error?: string
@@ -55,7 +62,7 @@ export const useFormValidation = <T extends Record<string, string>>(
 
   const handleChange = useCallback(
     (field: keyof T) =>
-      (event: ChangeEvent<HTMLInputElement>) => {
+      (event: ChangeEvent<FormElement>) => {
         setFieldValue(field, event.target.value)
       },
     [setFieldValue]

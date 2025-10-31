@@ -19,10 +19,11 @@ const isValidStoredAuth = (value: unknown): value is StoredAuth => {
 
   return (
     typeof maybeUser.id === "number" &&
-    typeof maybeUser.email === "string" &&
-    typeof maybeUser.name === "string" &&
-    typeof maybeUser.role === "string" &&
-    typeof maybeUser.isBanned === "boolean"
+      typeof maybeUser.email === "string" &&
+      typeof maybeUser.name === "string" &&
+      typeof maybeUser.phoneNumber === "string" &&
+      typeof maybeUser.role === "string" &&
+      typeof maybeUser.isBanned === "boolean"
   )
 }
 

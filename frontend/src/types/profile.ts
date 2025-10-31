@@ -29,6 +29,8 @@ export interface ProfileListingSummary {
   status: ProfileListingStatus
   updatedAt: string
   thumbnailUrl?: string
+  availability?: string
+  preferredContactMethod?: string
 }
 
 export interface ProfileListingActionLinks {
@@ -81,9 +83,13 @@ export interface ProfileMetric {
   value: string | number
 }
 
+export type ProfilePreferenceKey = 'marketplaceAlerts' | 'savedSearchDigests' | 'communityNews'
+
 export interface ProfilePreferenceToggle {
-  id: string
+  id: ProfilePreferenceKey
   label: string
   description?: string
   enabled: boolean
 }
+
+export type ProfilePreferenceUpdateInput = Partial<Record<ProfilePreferenceKey, boolean>>

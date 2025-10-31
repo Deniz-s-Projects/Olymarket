@@ -1,7 +1,8 @@
-import { Entity, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { ListingCategory } from "./ListingCategory";
+import { Offer } from "./Offer";
 
 @Entity({ name: "listings" })
 export class Listing extends BaseModel {
@@ -30,6 +31,12 @@ export class Listing extends BaseModel {
   @Column({ type: "text", array: true, nullable: true, default: () => "ARRAY[]::text[]" })
   images!: string[] | null;
 
+  @Column({ type: "text", nullable: true })
+  availability!: string | null;
+
+  @Column({ name: "preferred_contact_method", type: "text", nullable: true })
+  preferredContactMethod!: string | null;
+
   @Column({
     name: "moderation_status",
     type: "enum",
@@ -43,6 +50,12 @@ export class Listing extends BaseModel {
 
   @Column({ name: "reviewed_at", type: "timestamp", nullable: true })
   reviewedAt!: Date | null;
+
+  @Column({ name: "views_count", type: "integer", default: 0 })
+  viewsCount!: number;
+
+  @Column({ name: "saves_count", type: "integer", default: 0 })
+  savesCount!: number;
 
   @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: "reviewer_id" })
@@ -58,4 +71,7 @@ export class Listing extends BaseModel {
   })
   @JoinColumn({ name: "category_id" })
   category!: ListingCategory | null;
+
+  @OneToMany(() => Offer, (offer) => offer.listing)
+  offers!: Offer[];
 }

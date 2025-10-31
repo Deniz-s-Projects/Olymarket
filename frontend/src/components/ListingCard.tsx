@@ -57,10 +57,12 @@ type ListingCardProps = {
 }
 
 const ListingCard: FC<ListingCardProps> = ({ listing }) => {
-  const { id, title, description, price, isFree, owner, category, createdAt, images } = listing
+  const { id, title, description, price, isFree, owner, category, createdAt, images, availability, preferredContactMethod } = listing
   const imageUrl = images?.[0] ?? ('imageUrl' in listing ? listing.imageUrl : null)
   const categoryLabel = category?.name ?? 'Uncategorized'
   const ownerName = owner?.name ?? 'Marketplace partner'
+  const availabilityLabel = availability?.trim() ?? ''
+  const contactLabel = preferredContactMethod?.trim() ?? ''
 
   return (
     <article className="card group h-full overflow-hidden">
@@ -94,6 +96,20 @@ const ListingCard: FC<ListingCardProps> = ({ listing }) => {
         </div>
         <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
         <p className="text-sm text-slate-600 line-clamp-3">{description}</p>
+        {(availabilityLabel || contactLabel) && (
+          <div className="space-y-1 text-xs text-slate-500">
+            {availabilityLabel ? (
+              <p className="line-clamp-1">
+                <span className="font-semibold text-slate-600">Availability:</span> {availabilityLabel}
+              </p>
+            ) : null}
+            {contactLabel ? (
+              <p className="line-clamp-1">
+                <span className="font-semibold text-slate-600">Contact:</span> {contactLabel}
+              </p>
+            ) : null}
+          </div>
+        )}
         <div className="mt-auto flex items-center justify-between pt-3">
           <span className={`text-lg font-semibold ${isFree ? 'text-green-600' : 'text-primary'}`}>
             {formatPrice(price, isFree)}
