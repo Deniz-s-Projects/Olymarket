@@ -1,34 +1,87 @@
 import { type FC, useState, useEffect } from 'react'
 import { groupsService } from '../services/groups'
-import type { Group, GroupType } from '../types/group'
+import type { Group, GroupSummary, GroupType, PaginationMeta } from '../types/group'
+import { toGroupSummary } from '../types/group'
 import { useAuth } from '../context/useAuth'
 import GroupCard from '../components/groups/GroupCard'
 import CreateGroupModal from '../components/groups/CreateGroupModal'
 
 const Groups: FC = () => {
   const { token, user } = useAuth()
-  const [groups, setGroups] = useState<Group[]>([])
-  const [filteredGroups, setFilteredGroups] = useState<Group[]>([])
+  const [groups, setGroups] = useState<GroupSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<GroupType | 'all'>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [viewMode, setViewMode] = useState<'all' | 'my'>('all')
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [membershipMap, setMembershipMap] = useState<Record<string, GroupSummary['membershipRole'] | undefined>>({})
 
   const fetchGroups = async () => {
     try {
       setLoading(true)
       setError(null)
-      let data: Group[]
-      
-      if (viewMode === 'my' && token) {
-        data = await groupsService.getMyGroups()
-      } else {
-        data = await groupsService.getGroups()
+      const params = {
+        page: 1,
+        limit: 24,
+        type: filterType === 'all' ? undefined : filterType,
       }
-      
+
+      if (viewMode === 'my') {
+        if (!token) {
+          setGroups([])
+          setPagination(null)
+          setMembershipMap({})
+          return
+        }
+
+        const response = await groupsService.getMyGroups(params)
+        const data = response.data.map((group) => ({
+          ...group,
+          isMember: true,
+        }))
+        const map = data.reduce<Record<string, GroupSummary['membershipRole'] | undefined>>(
+          (acc, group) => {
+            acc[group.id] = group.membershipRole
+            return acc
+          },
+          {}
+        )
+
+        setMembershipMap(map)
+        setGroups(data)
+        setPagination(response.meta)
+        return
+      }
+
+      const response = await groupsService.getGroups(params)
+
+      let map: Record<string, GroupSummary['membershipRole'] | undefined> = {}
+      if (token) {
+        map = {}
+        let currentPage = 1
+        let hasMore = true
+        while (hasMore) {
+          const membershipResponse = await groupsService.getMyGroups({ page: currentPage, limit: 100 })
+          membershipResponse.data.forEach((group) => {
+            map[group.id] = group.membershipRole
+          })
+          hasMore = membershipResponse.meta.hasMore
+          currentPage += 1
+        }
+        setMembershipMap(map)
+      } else {
+        setMembershipMap({})
+      }
+
+      const data = response.data.map((group) => ({
+        ...group,
+        isMember: Boolean(map[group.id]),
+        membershipRole: map[group.id],
+      }))
+
       setGroups(data)
-      setFilteredGroups(data)
+      setPagination(response.meta)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load groups')
     } finally {
@@ -39,29 +92,56 @@ const Groups: FC = () => {
   useEffect(() => {
     fetchGroups()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, token])
-
-  useEffect(() => {
-    if (filterType === 'all') {
-      setFilteredGroups(groups)
-    } else {
-      setFilteredGroups(groups.filter((g) => g.type === filterType))
-    }
-  }, [filterType, groups])
+  }, [viewMode, token, filterType])
 
   const handleGroupCreated = (newGroup: Group) => {
-    setGroups((prev) => [newGroup, ...prev])
+    const summary = toGroupSummary(newGroup, {
+      isMember: true,
+      membershipRole: 'moderator',
+    })
+    setGroups((prev) => [summary, ...prev])
+    setMembershipMap((prev) => ({ ...prev, [summary.id]: summary.membershipRole }))
     setShowCreateModal(false)
   }
 
-  const handleGroupUpdated = (updatedGroup: Group) => {
+  const handleGroupUpdated = (updatedGroup: GroupSummary) => {
     setGroups((prev) =>
-      prev.map((g) => (g.id === updatedGroup.id ? updatedGroup : g))
+      prev.map((g) =>
+        g.id === updatedGroup.id
+          ? {
+              ...g,
+              ...updatedGroup,
+              membershipRole: updatedGroup.isMember
+                ? updatedGroup.membershipRole ?? membershipMap[updatedGroup.id] ?? g.membershipRole
+                : undefined,
+              isMember:
+                updatedGroup.isMember ?? (membershipMap[updatedGroup.id] !== undefined || g.isMember),
+            }
+          : g
+      )
     )
+
+    if (updatedGroup.isMember) {
+      setMembershipMap((prev) => ({
+        ...prev,
+        [updatedGroup.id]: updatedGroup.membershipRole ?? prev[updatedGroup.id],
+      }))
+    } else if (updatedGroup.isMember === false) {
+      setMembershipMap((prev) => {
+        const next = { ...prev }
+        delete next[updatedGroup.id]
+        return next
+      })
+    }
   }
 
   const handleGroupDeleted = (deletedGroupId: string) => {
     setGroups((prev) => prev.filter((g) => g.id !== deletedGroupId))
+    setMembershipMap((prev) => {
+      const next = { ...prev }
+      delete next[deletedGroupId]
+      return next
+    })
   }
 
   return (
@@ -170,8 +250,16 @@ const Groups: FC = () => {
         <div className="rounded-lg bg-red-50 p-4 text-red-800">{error}</div>
       )}
 
+      {/* Pagination Summary */}
+      {!loading && !error && pagination && (
+        <div className="mb-4 text-sm text-slate-500">
+          Showing {groups.length} of {pagination.total}{' '}
+          {viewMode === 'my' ? 'groups you belong to' : 'groups'}
+        </div>
+      )}
+
       {/* Empty State */}
-      {!loading && !error && filteredGroups.length === 0 && (
+      {!loading && !error && groups.length === 0 && (
         <div className="text-center">
           <div className="rounded-lg bg-white p-12">
             <p className="text-lg text-slate-600">
@@ -186,9 +274,9 @@ const Groups: FC = () => {
       )}
 
       {/* Groups Grid */}
-      {!loading && !error && filteredGroups.length > 0 && (
+      {!loading && !error && groups.length > 0 && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredGroups.map((group) => (
+          {groups.map((group) => (
             <GroupCard
               key={group.id}
               group={group}

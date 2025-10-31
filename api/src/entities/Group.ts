@@ -27,4 +27,6 @@ export class Group extends BaseModel {
 
   @OneToMany(() => GroupMember, (member) => member.group)
   members!: GroupMember[];
+
+  memberCount?: number;
 }

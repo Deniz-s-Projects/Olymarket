@@ -1,13 +1,14 @@
 import type { FC } from 'react'
 import { useState } from 'react'
-import type { Group } from '../../types/group'
+import type { GroupSummary } from '../../types/group'
+import { toGroupSummary } from '../../types/group'
 import { useAuth } from '../../context/useAuth'
 import { groupsService } from '../../services/groups'
 import EditGroupModal from './EditGroupModal'
 
 type Props = {
-  group: Group
-  onGroupUpdated: (group: Group) => void
+  group: GroupSummary
+  onGroupUpdated: (group: GroupSummary) => void
   onGroupDeleted: (groupId: string) => void
 }
 
@@ -16,9 +17,9 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
   const [loading, setLoading] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
 
-  const isOwner = user?.id === group.owner.id
-  const isMember = group.members.some((m) => m.user.id === user?.id)
-  const memberCount = group.members.length
+  const isOwner = group.owner ? user?.id === group.owner.id : false
+  const isMember = Boolean(group.isMember)
+  const memberCount = group.memberCount
 
   const typeColors = {
     hobby: 'bg-blue-100 text-blue-800',
@@ -31,7 +32,11 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
     try {
       setLoading(true)
       const updated = await groupsService.joinGroup(group.id)
-      onGroupUpdated(updated)
+      const summary = toGroupSummary(updated, {
+        isMember: true,
+        membershipRole: 'member',
+      })
+      onGroupUpdated(summary)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to join group')
     } finally {
@@ -49,7 +54,11 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
     try {
       setLoading(true)
       const updated = await groupsService.leaveGroup(group.id)
-      onGroupUpdated(updated)
+      const summary = toGroupSummary(updated, {
+        isMember: false,
+        memberCount: Math.max(updated.members.length, 0),
+      })
+      onGroupUpdated(summary)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to leave group')
     } finally {
@@ -117,7 +126,7 @@ const GroupCard: FC<Props> = ({ group, onGroupUpdated, onGroupDeleted }) => {
         </div>
 
         <div className="text-xs text-slate-400">
-          Created by {group.owner.name}
+          Created by {group.owner?.name ?? 'Unknown'}
         </div>
 
         {user && (
