@@ -15,6 +15,7 @@ import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import Groups from './pages/Groups'
+import WantedBoard from './pages/WantedBoard'
 import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
 import ThemeToggle from './components/ThemeToggle'
@@ -22,6 +23,7 @@ import SellerAnalytics from './pages/SellerAnalytics'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
+  { to: '/wanted', label: 'Buyer Requests' },
   { to: '/listings/new', label: 'Create Listing' },
   { to: '/groups', label: 'Groups' },
   { to: '/messages', label: 'Conversations' },
@@ -203,6 +205,7 @@ const App = () => {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Marketplace />} />
+            <Route path="/wanted" element={<WantedBoard />} />
             <Route path="/listings/new" element={<CreateListing />} />
             <Route path="/listings/:id/edit" element={<CreateListing />} />
             <Route path="/listings/:id" element={<ListingDetails />} />
