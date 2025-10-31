@@ -6,6 +6,7 @@ import { Message } from "./Message";
 import { SavedListing } from "./SavedListing";
 import { GroupMember } from "./GroupMember";
 import { UserPreference } from "./UserPreference";
+import { WantedListing } from "./WantedListing";
 
 @Entity({ name: "users" })
 @Unique(["email"])
@@ -58,4 +59,10 @@ export class User extends BaseModel {
 
   @OneToOne(() => UserPreference, (preference) => preference.user)
   preference?: UserPreference | null;
+
+  @OneToMany(() => WantedListing, (wantedListing) => wantedListing.buyer)
+  wantedListings!: WantedListing[];
+
+  @OneToMany(() => WantedListing, (wantedListing) => wantedListing.fulfillingSeller)
+  fulfilledWantedRequests!: WantedListing[];
 }

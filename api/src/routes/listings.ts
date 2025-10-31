@@ -1,4 +1,4 @@
-import { Router, type Request } from "express";
+import { Router, type Request, type Response } from "express";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import { validationMiddleware } from "../middleware/validate";
 import { ListingDto } from "../dtos/listing";
@@ -133,7 +133,7 @@ const buildListingsQuery = (
 
 const respondWithPaginatedResults = async (
   req: Request,
-  res,
+  res: Response,
   filters: ListingQueryFilters = {},
 ) => {
   const { query, page, limit } = buildListingsQuery(req, filters);
