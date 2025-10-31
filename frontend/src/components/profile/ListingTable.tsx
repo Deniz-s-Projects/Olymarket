@@ -118,6 +118,18 @@ const ListingTable = ({ listings, title, emptyMessage, isLoading = false }: List
                     <dt className="font-semibold text-slate-500">Updated</dt>
                     <dd>{listing.updatedAt}</dd>
                   </div>
+                  {listing.availability ? (
+                    <div className="col-span-2">
+                      <dt className="font-semibold text-slate-500">Availability</dt>
+                      <dd className="text-slate-700">{listing.availability}</dd>
+                    </div>
+                  ) : null}
+                  {listing.preferredContactMethod ? (
+                    <div className="col-span-2">
+                      <dt className="font-semibold text-slate-500">Preferred contact</dt>
+                      <dd className="text-slate-700">{listing.preferredContactMethod}</dd>
+                    </div>
+                  ) : null}
                 </dl>
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
                   <Link

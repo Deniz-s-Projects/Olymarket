@@ -25,6 +25,10 @@ router.post(
       }
     }
 
+    const availability = typeof req.body.availability === "string" ? req.body.availability.trim() : "";
+    const preferredContactMethod =
+      typeof req.body.preferredContactMethod === "string" ? req.body.preferredContactMethod.trim() : "";
+
     const listing = listingRepository.create({
       title: req.body.title,
       description: req.body.description,
@@ -34,6 +38,8 @@ router.post(
       owner: req.user!,
       category,
       images: Array.isArray(req.body.images) ? req.body.images : [],
+      availability: availability || null,
+      preferredContactMethod: preferredContactMethod || null,
       moderationStatus: "approved",
     });
     await listingRepository.save(listing);
@@ -112,12 +118,18 @@ router.put(
       }
     }
 
+    const availability = typeof req.body.availability === "string" ? req.body.availability.trim() : "";
+    const preferredContactMethod =
+      typeof req.body.preferredContactMethod === "string" ? req.body.preferredContactMethod.trim() : "";
+
     listing.title = req.body.title;
     listing.description = req.body.description;
     listing.price = req.body.price;
     listing.isFree = req.body.isFree ?? listing.isFree;
     listing.isActive = req.body.isActive ?? listing.isActive;
     listing.category = category ?? null;
+    listing.availability = availability || null;
+    listing.preferredContactMethod = preferredContactMethod || null;
     if (Array.isArray(req.body.images)) {
       listing.images = req.body.images;
     }

@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsNumberString, IsOptional, IsString, MaxLength, ArrayMaxSize, ValidateNested } from "class-validator";
+import { ArrayMaxSize, IsArray, IsBoolean, IsNotEmpty, IsNumberString, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class ListingDto {
   @IsString()
@@ -28,4 +28,14 @@ export class ListingDto {
   @ArrayMaxSize(6)
   @IsString({ each: true })
   images?: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  availability!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  preferredContactMethod!: string;
 }

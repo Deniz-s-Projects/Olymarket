@@ -96,8 +96,10 @@ const ListingDetails = () => {
     )
   }
 
-  const { title, description, price, isFree, category, owner, createdAt } = listing
+  const { title, description, price, isFree, category, owner, createdAt, availability, preferredContactMethod } = listing
   const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
+  const availabilityInfo = availability?.trim() ?? ''
+  const preferredContactInfo = preferredContactMethod?.trim() ?? ''
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -240,11 +242,11 @@ const ListingDetails = () => {
 
         <aside className="space-y-4 lg:sticky lg:top-8 self-start">
           <div className="rounded-2xl bg-white p-6 shadow">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                {isFree ? (
-                  <>
-                    <div className="text-3xl font-semibold text-green-600">FREE</div>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  {isFree ? (
+                    <>
+                      <div className="text-3xl font-semibold text-green-600">FREE</div>
                     <div className="mt-1 flex items-center gap-2 text-sm text-green-600">
                       <span>🎁</span>
                       <span>Being given away for free!</span>
@@ -279,6 +281,19 @@ const ListingDetails = () => {
                   Share
                 </button>
               </div>
+            </div>
+            <div className="mt-5 rounded-xl bg-slate-50 p-4">
+              <h2 className="text-sm font-semibold text-slate-700">Availability &amp; contact</h2>
+              <dl className="mt-3 space-y-3 text-sm text-slate-600">
+                <div>
+                  <dt className="font-medium text-slate-500">Availability</dt>
+                  <dd>{availabilityInfo || 'Seller has not specified availability yet.'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">Preferred contact</dt>
+                  <dd>{preferredContactInfo || 'Seller has not shared a preferred contact method yet.'}</dd>
+                </div>
+              </dl>
             </div>
             <button
               type="button"

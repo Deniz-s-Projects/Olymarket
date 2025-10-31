@@ -72,6 +72,8 @@ router.get("/listings", authMiddleware, async (req: AuthenticatedRequest, res) =
     status: listing.isActive && listing.moderationStatus === "approved" ? "active" : "draft",
     updatedAt: listing.updatedAt.toISOString(),
     thumbnailUrl: listing.images && listing.images.length > 0 ? listing.images[0] : undefined,
+    availability: listing.availability ?? undefined,
+    preferredContactMethod: listing.preferredContactMethod ?? undefined,
     actions: {
       editUrl: `/listings/${listing.id}/edit`,
       viewUrl: `/listings/${listing.id}`,

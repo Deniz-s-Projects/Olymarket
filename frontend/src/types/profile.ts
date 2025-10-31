@@ -29,6 +29,8 @@ export interface ProfileListingSummary {
   status: ProfileListingStatus
   updatedAt: string
   thumbnailUrl?: string
+  availability?: string
+  preferredContactMethod?: string
 }
 
 export interface ProfileListingActionLinks {
