@@ -871,6 +871,8 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
   const [error, setError] = useState<string | null>(null)
   const [viewingReport, setViewingReport] = useState<import('../../services/reports').Report | null>(null)
   const [operationInProgress, setOperationInProgress] = useState(false)
+  const [showResolutionForm, setShowResolutionForm] = useState<'resolved' | 'dismissed' | null>(null)
+  const [resolutionNotes, setResolutionNotes] = useState('')
 
   useEffect(() => {
     isMountedRef.current = true
@@ -926,16 +928,18 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
   const handleUpdateStatus = async (
     reportId: string,
     status: 'under_review' | 'resolved' | 'dismissed',
-    resolutionNotes?: string,
+    notes?: string,
   ) => {
     if (operationInProgress) return
 
     setOperationInProgress(true)
     try {
       const { updateAdminReport } = await import('../../services/admin')
-      await updateAdminReport(reportId, { status, resolutionNotes })
+      await updateAdminReport(reportId, { status, resolutionNotes: notes })
       await loadReports()
       setViewingReport(null)
+      setShowResolutionForm(null)
+      setResolutionNotes('')
       addToast(`Report ${status} successfully`, 'success')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update report'
@@ -945,6 +949,11 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
         setOperationInProgress(false)
       }
     }
+  }
+
+  const handleResolutionSubmit = (status: 'resolved' | 'dismissed') => {
+    if (!viewingReport) return
+    handleUpdateStatus(viewingReport.id, status, resolutionNotes.trim() || undefined)
   }
 
   const handleDelete = async (reportId: string) => {
@@ -1262,55 +1271,91 @@ const ReportsPanel = ({ addToast }: PanelProps) => {
               )}
 
               {/* Action buttons */}
-              <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-4">
-                {viewingReport.status === 'pending' && (
-                  <button
-                    type="button"
-                    onClick={() => handleUpdateStatus(viewingReport.id, 'under_review')}
-                    disabled={operationInProgress}
-                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Mark as Under Review
-                  </button>
-                )}
-                {(viewingReport.status === 'pending' || viewingReport.status === 'under_review') && (
-                  <>
+              <div className="border-t border-gray-200 pt-4">
+                {showResolutionForm ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="resolution-notes" className="block text-sm font-medium text-gray-700">
+                        {showResolutionForm === 'resolved' ? 'Resolution notes' : 'Dismissal reason'} (optional)
+                      </label>
+                      <textarea
+                        id="resolution-notes"
+                        value={resolutionNotes}
+                        onChange={(e) => setResolutionNotes(e.target.value)}
+                        rows={3}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Enter additional notes about this decision..."
+                        disabled={operationInProgress}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionSubmit(showResolutionForm)}
+                        disabled={operationInProgress}
+                        className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${
+                          showResolutionForm === 'resolved'
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-gray-600 hover:bg-gray-700'
+                        }`}
+                      >
+                        {operationInProgress ? 'Submitting...' : `Confirm ${showResolutionForm === 'resolved' ? 'Resolution' : 'Dismissal'}`}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowResolutionForm(null)
+                          setResolutionNotes('')
+                        }}
+                        disabled={operationInProgress}
+                        className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {viewingReport.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateStatus(viewingReport.id, 'under_review')}
+                        disabled={operationInProgress}
+                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        Mark as Under Review
+                      </button>
+                    )}
+                    {(viewingReport.status === 'pending' || viewingReport.status === 'under_review') && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setShowResolutionForm('resolved')}
+                          disabled={operationInProgress}
+                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                          Mark as Resolved
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowResolutionForm('dismissed')}
+                          disabled={operationInProgress}
+                          className="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          Dismiss
+                        </button>
+                      </>
+                    )}
                     <button
                       type="button"
-                      onClick={() => {
-                        const notes = window.prompt('Enter resolution notes (optional):')
-                        if (notes !== null) {
-                          handleUpdateStatus(viewingReport.id, 'resolved', notes || undefined)
-                        }
-                      }}
+                      onClick={() => handleDelete(viewingReport.id)}
                       disabled={operationInProgress}
-                      className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                      className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
-                      Mark as Resolved
+                      Delete Report
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const notes = window.prompt('Enter reason for dismissal (optional):')
-                        if (notes !== null) {
-                          handleUpdateStatus(viewingReport.id, 'dismissed', notes || undefined)
-                        }
-                      }}
-                      disabled={operationInProgress}
-                      className="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      Dismiss
-                    </button>
-                  </>
+                  </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(viewingReport.id)}
-                  disabled={operationInProgress}
-                  className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                >
-                  Delete Report
-                </button>
               </div>
             </div>
           </div>
