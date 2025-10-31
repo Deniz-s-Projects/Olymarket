@@ -69,7 +69,7 @@ const PickupLocationsMap = () => {
     setIsClient(true)
   }, [])
 
-  const mapCenter = useMemo(() => {
+  const mapCenter = useMemo<[number, number]>(() => {
     const average = pickupLocations.reduce(
       (acc, location) => {
         const [lat, lng] = location.coordinates
