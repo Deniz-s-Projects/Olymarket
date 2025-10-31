@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   fetchListingById,
   checkListingSaved,
   saveListing,
   unsaveListing,
+  fetchListingComments,
   fetchListingOffers,
   submitOffer,
   acceptOffer,
   declineOffer,
   counterOffer,
+  createListingComment,
   type Listing,
+  type ListingComment,
   type Offer,
 } from '../services/listings'
 import { createConversation } from '../services/conversations'
@@ -46,6 +49,7 @@ const ListingDetails = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { token, user } = useAuth()
+  const isMounted = useRef(true)
   const [listing, setListing] = useState<Listing | null>(null)
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -64,6 +68,19 @@ const ListingDetails = () => {
   const [newOfferAmount, setNewOfferAmount] = useState('')
   const [newOfferMessage, setNewOfferMessage] = useState('')
   const [counterDrafts, setCounterDrafts] = useState<Record<string, { amount: string; message: string }>>({})
+  const [comments, setComments] = useState<ListingComment[]>([])
+  const [commentsStatus, setCommentsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('loading')
+  const [commentsError, setCommentsError] = useState<string | null>(null)
+  const [commentDraft, setCommentDraft] = useState('')
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [commentFormError, setCommentFormError] = useState<string | null>(null)
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
 
   const refreshOffers = useCallback(async () => {
     if (!id || !token) {
@@ -90,6 +107,31 @@ const ListingDetails = () => {
     type: 'success' | 'error'
   } | null>(null)
 
+  const refreshComments = useCallback(async () => {
+    if (!id) {
+      setComments([])
+      setCommentsStatus('idle')
+      return
+    }
+
+    setCommentsStatus('loading')
+    setCommentsError(null)
+    try {
+      const data = await fetchListingComments(id)
+      if (!isMounted.current) {
+        return
+      }
+      setComments(data)
+      setCommentsStatus('success')
+    } catch (err) {
+      if (!isMounted.current) {
+        return
+      }
+      setCommentsStatus('error')
+      setCommentsError(err instanceof Error ? err.message : 'Failed to load comments')
+    }
+  }, [id])
+
   useEffect(() => {
     if (!shareFeedback) return
 
@@ -101,6 +143,10 @@ const ListingDetails = () => {
       window.clearTimeout(timeout)
     }
   }, [shareFeedback])
+
+  useEffect(() => {
+    void refreshComments()
+  }, [refreshComments])
 
   useEffect(() => {
     let mounted = true
@@ -253,6 +299,50 @@ const ListingDetails = () => {
       console.error('Failed to toggle save:', err)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSignInToComment = () => {
+    if (!id) return
+    navigate('/auth', {
+      state: {
+        from: `/listings/${id}`,
+        message: 'Please sign in to comment.',
+      },
+    })
+  }
+
+  const handleCommentSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!id) return
+
+    if (!token) {
+      handleSignInToComment()
+      return
+    }
+
+    const trimmed = commentDraft.trim()
+    if (!trimmed) {
+      setCommentFormError('Enter a comment before posting.')
+      return
+    }
+
+    setIsSubmittingComment(true)
+    setCommentFormError(null)
+    try {
+      const created = await createListingComment(
+        id,
+        { body: trimmed },
+        token
+      )
+      setComments((previous) => [...previous, created])
+      setCommentsStatus('success')
+      setCommentDraft('')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to add comment. Please try again.'
+      setCommentFormError(message)
+    } finally {
+      setIsSubmittingComment(false)
     }
   }
 
@@ -485,19 +575,19 @@ const ListingDetails = () => {
           ) : null}
 
           <article className="rounded-2xl bg-white p-6 shadow">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-              {category ? category.name : 'Uncategorized'}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
-              <span aria-hidden="true">{conditionDetails.icon}</span>
-              {conditionDetails.label}
-            </span>
-            {isSold ? (
-              <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Sold
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                {category ? category.name : 'Uncategorized'}
               </span>
-            ) : null}
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                <span aria-hidden="true">{conditionDetails.icon}</span>
+                {conditionDetails.label}
+              </span>
+              {isSold ? (
+                <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Sold
+                </span>
+              ) : null}
               {createdAt ? (
                 <span className="text-xs text-slate-500">Posted {formatDate(createdAt)}</span>
               ) : null}
@@ -505,6 +595,106 @@ const ListingDetails = () => {
             <h1 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">{title}</h1>
             <p className="mt-3 whitespace-pre-line text-slate-700">{description}</p>
           </article>
+
+          <section className="rounded-2xl bg-white p-6 shadow">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-slate-900">Comments</h2>
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                {comments.length === 1 ? '1 comment' : `${comments.length} comments`}
+              </span>
+            </div>
+            {commentsStatus === 'loading' ? (
+              <div className="mt-4 space-y-3">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+                <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
+                <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+              </div>
+            ) : commentsStatus === 'error' ? (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <p>{commentsError ?? 'Unable to load comments right now.'}</p>
+                <button
+                  type="button"
+                  onClick={() => void refreshComments()}
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-red-700 underline"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : comments.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600">
+                No comments yet. Be the first to ask a question or share feedback.
+              </p>
+            ) : (
+              <ul className="mt-4 space-y-4">
+                {comments.map((comment) => {
+                  const createdDate = new Date(comment.createdAt)
+                  const createdLabel = Number.isNaN(createdDate.getTime()) ? '' : createdDate.toLocaleString()
+                  return (
+                    <li key={comment.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{comment.author.name}</p>
+                          {createdLabel ? (
+                            <p className="text-xs text-slate-500">{createdLabel}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="mt-3 whitespace-pre-line text-sm text-slate-700">{comment.body}</p>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              {token ? (
+                <form onSubmit={handleCommentSubmit} className="space-y-3">
+                  <label htmlFor="listing-comment" className="text-sm font-semibold text-slate-700">
+                    Leave a comment
+                  </label>
+                  <textarea
+                    id="listing-comment"
+                    rows={4}
+                    value={commentDraft}
+                    onChange={(event) => {
+                      setCommentDraft(event.target.value)
+                      if (commentFormError) {
+                        setCommentFormError(null)
+                      }
+                    }}
+                    placeholder="Share your thoughts or ask a question for the seller."
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    maxLength={1000}
+                    disabled={isSubmittingComment}
+                  />
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    {commentFormError ? (
+                      <p className="text-sm text-red-600">{commentFormError}</p>
+                    ) : (
+                      <p className="text-xs text-slate-500">Be respectful. Inappropriate language isn't allowed.</p>
+                    )}
+                    <button
+                      type="submit"
+                      className="btn-primary inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isSubmittingComment}
+                    >
+                      {isSubmittingComment ? 'Posting…' : 'Post comment'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  <p>Sign in to join the conversation.</p>
+                  <button
+                    type="button"
+                    onClick={handleSignInToComment}
+                    className="btn-primary mt-3 inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold text-white"
+                  >
+                    Sign in to comment
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
 
           <section className="rounded-2xl bg-white p-6 shadow">
             <PickupLocationsMap />

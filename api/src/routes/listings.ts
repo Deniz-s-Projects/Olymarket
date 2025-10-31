@@ -6,6 +6,8 @@ import { AppDataSource } from "../config";
 import { Listing } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
 import { SavedListing } from "../entities/SavedListing";
+import { ListingComment } from "../entities/ListingComment";
+import { containsProhibitedLanguage } from "../utils/profanityFilter";
 import type { SelectQueryBuilder } from "typeorm";
 import { getNextExpiryDate } from "../services/listingExpiry";
 
@@ -269,6 +271,68 @@ router.get("/:id", async (req, res) => {
     .execute();
   listing.viewsCount = (listing.viewsCount ?? 0) + 1;
   return res.json(listing);
+});
+
+const serializeComment = (comment: ListingComment) => ({
+  id: comment.id,
+  body: comment.body,
+  createdAt: comment.createdAt,
+  updatedAt: comment.updatedAt,
+  author: {
+    id: comment.author.id,
+    name: comment.author.name,
+    email: comment.author.email,
+  },
+});
+
+router.get("/:id/comments", async (req, res) => {
+  const commentRepository = AppDataSource.getRepository(ListingComment);
+  const comments = await commentRepository.find({
+    where: { listing: { id: req.params.id } },
+    relations: { author: true },
+    order: { createdAt: "ASC" },
+  });
+
+  return res.json({ comments: comments.map(serializeComment) });
+});
+
+router.post("/:id/comments", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const listingRepository = AppDataSource.getRepository(Listing);
+  const listing = await listingRepository.findOne({ where: { id: req.params.id } });
+
+  if (!listing) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
+
+  const rawBody = typeof req.body?.body === "string" ? req.body.body.trim() : "";
+
+  if (!rawBody) {
+    return res.status(400).json({ message: "Comment body is required" });
+  }
+
+  if (containsProhibitedLanguage(rawBody)) {
+    return res.status(400).json({ message: "Comment contains inappropriate language" });
+  }
+
+  const commentRepository = AppDataSource.getRepository(ListingComment);
+  const comment = commentRepository.create({
+    body: rawBody,
+    listing,
+    author: req.user!,
+  });
+
+  await commentRepository.save(comment);
+
+  const created = await commentRepository.findOne({
+    where: { id: comment.id },
+    relations: { author: true },
+  });
+
+  if (!created) {
+    return res.status(500).json({ message: "Unable to create comment" });
+  }
+
+  return res.status(201).json(serializeComment(created));
 });
 
 router.put(
