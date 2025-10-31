@@ -1,7 +1,8 @@
-import { Entity, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { BaseModel } from "./BaseEntity";
 import { User } from "./User";
 import { ListingCategory } from "./ListingCategory";
+import { Offer } from "./Offer";
 
 @Entity({ name: "listings" })
 export class Listing extends BaseModel {
@@ -51,4 +52,7 @@ export class Listing extends BaseModel {
   })
   @JoinColumn({ name: "category_id" })
   category!: ListingCategory | null;
+
+  @OneToMany(() => Offer, (offer) => offer.listing)
+  offers!: Offer[];
 }

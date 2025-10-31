@@ -26,6 +26,43 @@ export type Listing = {
   images?: string[] | null
 }
 
+export type OfferStatus = 'pending' | 'accepted' | 'declined'
+export type OfferMessageType = 'offer' | 'counter' | 'note' | 'status'
+
+export type OfferParticipant = {
+  id: string
+  name: string
+  email: string
+}
+
+export type OfferMessage = {
+  id: string
+  body: string | null
+  amount: string | null
+  type: OfferMessageType
+  createdAt: string
+  updatedAt: string
+  sender: OfferParticipant | null
+}
+
+export type Offer = {
+  id: string
+  amount: string
+  status: OfferStatus
+  createdAt: string
+  updatedAt: string
+  listing: { id: string; title: string }
+  buyer: OfferParticipant
+  seller: OfferParticipant
+  lastActionBy: OfferParticipant | null
+  messages: OfferMessage[]
+}
+
+export type ListingOffersResponse = {
+  viewerRole: 'buyer' | 'seller'
+  offers: Offer[]
+}
+
 export type PaginatedResponse<T> = {
   data: T[]
   meta: {
@@ -128,6 +165,63 @@ export const saveListing = async (id: string, token: string) => {
 export const unsaveListing = async (id: string, token: string) => {
   return apiClient<{ message: string; isSaved: boolean }>(`/listings/${id}/save`, {
     method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const fetchListingOffers = async (listingId: string, token: string) => {
+  return apiClient<ListingOffersResponse>(`/offers/listing/${listingId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export type SubmitOfferPayload = {
+  listingId: string
+  amount: number
+  message?: string
+}
+
+export const submitOffer = async (payload: SubmitOfferPayload, token: string) => {
+  return apiClient<{ offer: Offer }>('/offers', {
+    method: 'POST',
+    body: payload,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const acceptOffer = async (offerId: string, token: string) => {
+  return apiClient<{ offer: Offer }>(`/offers/${offerId}/accept`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export const declineOffer = async (offerId: string, token: string) => {
+  return apiClient<{ offer: Offer }>(`/offers/${offerId}/decline`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export type CounterOfferPayload = {
+  amount: number
+  message?: string
+}
+
+export const counterOffer = async (offerId: string, payload: CounterOfferPayload, token: string) => {
+  return apiClient<{ offer: Offer }>(`/offers/${offerId}/counter`, {
+    method: 'POST',
+    body: payload,
     headers: {
       Authorization: `Bearer ${token}`,
     },
