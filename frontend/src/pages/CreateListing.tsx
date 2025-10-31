@@ -68,6 +68,7 @@ const CreateListing = () => {
   const [loadListingError, setLoadListingError] = useState<string | null>(null)
 
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
       isMountedRef.current = false
     }
@@ -123,9 +124,6 @@ const CreateListing = () => {
 
     try {
       const listing = await fetchListingById(id)
-      if (!isMountedRef.current) {
-        return
-      }
 
       setValues({
         title: listing.title,
@@ -148,9 +146,6 @@ const CreateListing = () => {
 
       setIsLoadingListing(false)
     } catch (error) {
-      if (!isMountedRef.current) {
-        return
-      }
       setIsLoadingListing(false)
       const message =
         error instanceof Error
