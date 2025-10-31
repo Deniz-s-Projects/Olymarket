@@ -20,9 +20,8 @@ import ListingDetails from './pages/ListingDetails'
 const navigation = [
   { to: '/', label: 'Marketplace' },
   { to: '/listings/new', label: 'Create Listing' },
-  { to: '/messages', label: 'Messages' },
+  { to: '/messages', label: 'Conversations' },
   { to: '/profile', label: 'Profile' },
-  { to: '/conversations', label: 'Conversations' },
 ]
 
 const RequireAuth = ({ children }: { children: ReactElement }) => {
@@ -219,16 +218,7 @@ const App = () => {
                 </RequireAdmin>
               }
             />
-            <Route
-              path="/conversations"
-              element={
-                <RequireAuth>
-                  <div className="mx-auto max-w-3xl px-4 py-10 text-center text-slate-600">
-                    Conversations coming soon.
-                  </div>
-                </RequireAuth>
-              }
-            />
+
           </Routes>
         </main>
 
