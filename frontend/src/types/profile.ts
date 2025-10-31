@@ -18,7 +18,8 @@ export interface ProfileAccountUpdateInput {
   bio?: string
 }
 
-export type ProfileListingStatus = 'active' | 'sold' | 'draft'
+export type ProfileListingStatus = 'active' | 'sold' | 'draft' | 'expired'
+export type ProfileListingStatusAction = 'active' | 'sold' | 'draft'
 
 export interface ProfileListingSummary {
   id: string
@@ -29,6 +30,7 @@ export interface ProfileListingSummary {
   status: ProfileListingStatus
   updatedAt: string
   soldAt?: string | null
+  expiresAt?: string | null
   thumbnailUrl?: string
   availability?: string
   preferredContactMethod?: string
@@ -38,7 +40,7 @@ export interface ProfileListingActionLinks {
   editUrl: string
   archiveUrl?: string
   viewUrl?: string
-  statusOptions?: { status: ProfileListingStatus; label: string }[]
+  statusOptions?: { status: ProfileListingStatusAction; label: string }[]
 }
 
 export interface ProfileListingWithActions extends ProfileListingSummary {

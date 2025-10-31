@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import CategoryFilter from '../components/CategoryFilter'
 import ListingCard from '../components/ListingCard'
 import PriceRangeFilter, { type PriceRangeOption } from '../components/PriceRangeFilter'
+import SortMenu from '../components/SortMenu'
+import { getSortOptionSummary } from '../components/sortOptions'
 import { useListings } from '../hooks/useListings'
 
 const priceRangeOptions: PriceRangeOption[] = [
@@ -19,6 +21,9 @@ const parsePrice = (value: string) => {
 }
 
 const Marketplace = () => {
+  const [sortBy, setSortBy] = useState<'createdAt' | 'price'>('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
   const {
     listings,
     isLoading,
@@ -29,7 +34,10 @@ const Marketplace = () => {
     isFetchingMore,
     fetchNextPage,
     total,
-  } = useListings()
+  } = useListings({
+    sortBy,
+    sortOrder,
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
@@ -86,13 +94,22 @@ const Marketplace = () => {
     setSelectedCategory(null)
     setSelectedPriceRangeId(priceRangeOptions[0].id)
     setShowFreeOnly(false)
+    setSortBy('createdAt')
+    setSortOrder('desc')
   }
 
+  const selectedSortOption = useMemo(() => getSortOptionSummary(sortBy, sortOrder), [sortBy, sortOrder])
+
   const headerMessage = isLoading
-    ? 'Fetching the latest marketplace updates...'
+    ? 'Fetching marketplace listings...'
     : isError
       ? 'We were unable to load listings. Please try again.'
-      : `Showing ${filteredListings.length} of ${total} total result${total === 1 ? '' : 's'} ready for review.`
+      : `Showing ${filteredListings.length} of ${total} total result${total === 1 ? '' : 's'} ready for review, sorted by ${selectedSortOption.description}.`
+
+  const handleSortChange = (next: { sortBy: typeof sortBy; sortOrder: typeof sortOrder }) => {
+    setSortBy(next.sortBy)
+    setSortOrder(next.sortOrder)
+  }
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 lg:px-8">
@@ -180,6 +197,13 @@ const Marketplace = () => {
             </button>
           </div>
 
+          <SortMenu
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onChange={handleSortChange}
+            className="lg:hidden"
+          />
+
           <div className="space-y-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
             <div className="space-y-3">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Free Items</h3>
@@ -211,12 +235,20 @@ const Marketplace = () => {
               <h2 className="text-2xl font-semibold text-slate-900">Featured listings</h2>
               <p className="text-sm text-slate-500">{headerMessage}</p>
             </div>
-            <button
-              type="button"
-              className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-primary hover:text-primary"
-            >
-              Save this search
-            </button>
+            <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-center lg:gap-4">
+              <SortMenu
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onChange={handleSortChange}
+                className="hidden lg:flex lg:flex-row lg:items-center lg:gap-3"
+              />
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-primary hover:text-primary"
+              >
+                Save this search
+              </button>
+            </div>
           </header>
 
           {isError && (
@@ -224,7 +256,7 @@ const Marketplace = () => {
               <div className="flex items-center gap-3 text-slate-900">
                 <span className="text-2xl">⚠️</span>
                 <div>
-                  <h3 className="text-lg font-semibold">We couldn't load the latest listings</h3>
+                  <h3 className="text-lg font-semibold">We couldn't load the marketplace listings</h3>
                   <p className="text-sm text-slate-600">
                     {error?.message ?? 'Please refresh the page or try again in a moment.'}
                   </p>

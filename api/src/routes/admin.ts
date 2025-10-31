@@ -8,17 +8,21 @@ import { Conversation } from "../entities/Conversation";
 import { Message } from "../entities/Message";
 import { validationMiddleware } from "../middleware/validate";
 import { AdminListingUpdateDto } from "../dtos/admin";
+import { getNextExpiryDate } from "../services/listingExpiry";
 
 const router = Router();
 
-const LISTING_STATUSES = ["active", "draft", "sold"] as const;
-type ListingStatus = (typeof LISTING_STATUSES)[number];
+const ALL_LISTING_STATUSES = ["active", "draft", "sold", "expired"] as const;
+type ListingStatus = (typeof ALL_LISTING_STATUSES)[number];
 
-const isListingStatus = (value: unknown): value is ListingStatus =>
-  typeof value === "string" && (LISTING_STATUSES as readonly string[]).includes(value);
+const MUTABLE_LISTING_STATUSES = ["active", "draft", "sold"] as const;
+type MutableListingStatus = (typeof MUTABLE_LISTING_STATUSES)[number];
+
+const isMutableListingStatus = (value: unknown): value is MutableListingStatus =>
+  typeof value === "string" && (MUTABLE_LISTING_STATUSES as readonly string[]).includes(value);
 
 const resolveStatusFromBody = (body: any, fallback: ListingStatus): ListingStatus => {
-  if (isListingStatus(body?.status)) {
+  if (isMutableListingStatus(body?.status)) {
     return body.status;
   }
 
@@ -193,7 +197,6 @@ router.patch(
     if (typeof req.body.title === "string") listing.title = req.body.title;
     if (typeof req.body.description === "string") listing.description = req.body.description;
     if (typeof req.body.price === "string") listing.price = req.body.price;
-    applyStatusToListing(listing, resolveStatusFromBody(req.body, listing.status));
 
     if (typeof req.body.categoryId !== "undefined") {
       if (req.body.categoryId === "") {
@@ -205,6 +208,13 @@ router.patch(
         }
         listing.category = found;
       }
+    }
+
+    const previousStatus = listing.status;
+    const nextStatus = resolveStatusFromBody(req.body, listing.status);
+    applyStatusToListing(listing, nextStatus);
+    if (previousStatus !== "active" && nextStatus === "active") {
+      listing.expiresAt = getNextExpiryDate();
     }
 
     if (typeof req.body.moderationStatus === "string") {

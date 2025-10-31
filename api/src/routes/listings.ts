@@ -9,6 +9,7 @@ import { SavedListing } from "../entities/SavedListing";
 import { ListingComment } from "../entities/ListingComment";
 import { containsProhibitedLanguage } from "../utils/profanityFilter";
 import type { SelectQueryBuilder } from "typeorm";
+import { getNextExpiryDate } from "../services/listingExpiry";
 
 type ListingQueryFilters = {
   searchTerm?: string;
@@ -158,11 +159,14 @@ const respondWithPaginatedResults = async (
 
 const router = Router();
 
-const LISTING_STATUSES = ["active", "draft", "sold"] as const;
-type ListingStatus = (typeof LISTING_STATUSES)[number];
+const ALL_LISTING_STATUSES = ["active", "draft", "sold", "expired"] as const;
+type ListingStatus = (typeof ALL_LISTING_STATUSES)[number];
 
-const isListingStatus = (value: unknown): value is ListingStatus =>
-  typeof value === "string" && (LISTING_STATUSES as readonly string[]).includes(value);
+const MUTABLE_LISTING_STATUSES = ["active", "draft", "sold"] as const;
+type MutableListingStatus = (typeof MUTABLE_LISTING_STATUSES)[number];
+
+const isMutableListingStatus = (value: unknown): value is MutableListingStatus =>
+  typeof value === "string" && (MUTABLE_LISTING_STATUSES as readonly string[]).includes(value);
 
 const LISTING_CONDITIONS = ["new", "good", "used_but_works", "fixer_upper"] as const;
 type ListingCondition = (typeof LISTING_CONDITIONS)[number];
@@ -171,7 +175,7 @@ const isListingCondition = (value: unknown): value is ListingCondition =>
   typeof value === "string" && (LISTING_CONDITIONS as readonly string[]).includes(value);
 
 const resolveStatusFromBody = (body: any, fallback?: ListingStatus): ListingStatus | undefined => {
-  if (isListingStatus(body?.status)) {
+  if (isMutableListingStatus(body?.status)) {
     return body.status;
   }
 
@@ -212,8 +216,8 @@ router.post(
       }
     }
 
-    const requestedStatus = resolveStatusFromBody(req.body) ?? "active";
-    const status: ListingStatus = requestedStatus === "sold" ? "active" : requestedStatus;
+    const requestedStatus = resolveStatusFromBody(req.body);
+    const status: ListingStatus = !requestedStatus || requestedStatus === "sold" ? "active" : requestedStatus;
     const availability = typeof req.body.availability === "string" ? req.body.availability.trim() : "";
     const preferredContactMethod =
       typeof req.body.preferredContactMethod === "string" ? req.body.preferredContactMethod.trim() : "";
@@ -235,6 +239,7 @@ router.post(
       condition,
       moderationStatus: "approved",
     });
+    listing.expiresAt = getNextExpiryDate();
     await listingRepository.save(listing);
     return res.status(201).json(listing);
   }
@@ -380,7 +385,11 @@ router.put(
       return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
     }
 
+    const previousStatus = listing.status;
     applyStatusToListing(listing, resolvedStatus);
+    if (previousStatus !== "active" && resolvedStatus === "active") {
+      listing.expiresAt = getNextExpiryDate();
+    }
     listing.category = category ?? null;
     listing.availability = availability || null;
     listing.preferredContactMethod = preferredContactMethod || null;
@@ -411,7 +420,7 @@ router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, re
   }
 
   const status = resolveStatusFromBody(req.body);
-  if (!status || !isListingStatus(status)) {
+  if (!status || !isMutableListingStatus(status)) {
     return res.status(400).json({ message: "Invalid status" });
   }
 
@@ -419,7 +428,11 @@ router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, re
     return res.status(403).json({ message: "Only the owner or an admin can mark a listing as sold" });
   }
 
+  const previousStatus = listing.status;
   applyStatusToListing(listing, status);
+  if (previousStatus !== "active" && status === "active") {
+    listing.expiresAt = getNextExpiryDate();
+  }
 
   const saved = await listingRepository.save(listing);
   return res.json(saved);

@@ -19,8 +19,9 @@ export type ListingComment = {
   updatedAt: string
   author: ListingOwner
 }
-
-export type ListingStatus = 'active' | 'draft' | 'sold'
+ 
+export type ListingStatus = 'active' | 'draft' | 'sold' | 'expired'
+export type ListingStatusUpdate = Exclude<ListingStatus, 'expired'>
 
 export const LISTING_CONDITIONS = ['new', 'good', 'used_but_works', 'fixer_upper'] as const
 export type ListingCondition = (typeof LISTING_CONDITIONS)[number]
@@ -34,6 +35,7 @@ export type Listing = {
   isActive: boolean
   status: ListingStatus
   soldAt?: string | null
+  expiresAt?: string | null
   createdAt: string
   updatedAt: string
   owner: ListingOwner
@@ -164,7 +166,11 @@ const normalizeListingPayload = (payload: ListingPayload) => {
   // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
   const isFree = priceNum < 1 ? true : rest.isFree;
   rest.isFree = isFree
-  const normalizedStatus = status ?? (typeof rest.isActive === 'boolean' ? (rest.isActive ? 'active' : 'draft') : undefined)
+  const sanitizedStatus: ListingStatusUpdate | undefined =
+    status && status !== 'expired' ? status : undefined
+  const normalizedStatus: ListingStatusUpdate | undefined =
+    sanitizedStatus ??
+    (typeof rest.isActive === 'boolean' ? (rest.isActive ? 'active' : 'draft') : undefined)
   return {
     ...rest,
     status: normalizedStatus,
@@ -189,7 +195,7 @@ export const updateListing = async (id: string, payload: ListingPayload) => {
   })
 }
 
-export const updateListingStatus = async (id: string, status: ListingStatus) => {
+export const updateListingStatus = async (id: string, status: ListingStatusUpdate) => {
   return apiClient<Listing>(`/listings/${id}/status`, {
     method: 'PATCH',
     body: { status },
