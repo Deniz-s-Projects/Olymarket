@@ -11,10 +11,11 @@ import SavedItemsCard from '../components/profile/SavedItemsCard'
 import AnnouncementsBoard from '../components/announcements/AnnouncementsBoard'
 import { FEATURE_REQUEST_EMAIL, GENERAL_FEEDBACK_EMAIL } from '../constants/support'
 import { useAuth } from '../context/useAuth'
+import { useNotifications } from '../context/useNotifications'
 import useProfile from '../hooks/useProfile'
 import useAnnouncements from '../hooks/useAnnouncements'
 import type { ProfileAccountInfo, ProfileListingStatus } from '../types/profile'
-import { updateListingStatus } from '../services/listings'
+import { updateListingStatus, unsaveListing } from '../services/listings'
 import { ApiError } from '../lib/apiClient'
 
 const PROFILE_TABS: ProfileTabConfig[] = [
@@ -26,7 +27,8 @@ const PROFILE_TABS: ProfileTabConfig[] = [
 ]
 
 const Profile = () => {
-  const { user, isHydrated, banNotice, isModerator, isAdmin } = useAuth()
+  const { user, token, isHydrated, banNotice, isModerator, isAdmin } = useAuth()
+  const { addNotification } = useNotifications()
   const {
     account: profileAccount,
     metrics,
@@ -49,6 +51,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<string>(PROFILE_TABS[0]?.id ?? 'overview')
   const [pendingListingId, setPendingListingId] = useState<string | null>(null)
   const [listingActionError, setListingActionError] = useState<string | null>(null)
+  const [localSavedItems, setLocalSavedItems] = useState(savedItems)
   const {
     announcements: communityAnnouncements,
     isLoading: isLoadingCommunityAnnouncements,
@@ -67,6 +70,10 @@ const Profile = () => {
       ? communityNewsPreferenceEnabled
       : communityNewsEnabledFromFeed
   const communityAnnouncementsErrorMessage = communityAnnouncementsError?.message ?? null
+
+  useEffect(() => {
+    setLocalSavedItems(savedItems)
+  }, [savedItems])
 
   useEffect(() => {
     if (activeTab !== 'preferences') {
@@ -95,6 +102,51 @@ const Profile = () => {
       }
     },
     [refetch],
+  )
+
+  const handleRemoveSavedItem = useCallback(
+    async (id: string) => {
+      if (!token) {
+        throw new Error('You need to be signed in to remove saved items.')
+      }
+
+      try {
+        await unsaveListing(id, token)
+
+        setLocalSavedItems((current) => current.filter((item) => item.id !== id))
+        addNotification({
+          message: 'Removed from your saved items.',
+          variant: 'success',
+        })
+
+        try {
+          await refetch()
+        } catch (refetchError) {
+          const message =
+            refetchError instanceof Error
+              ? refetchError.message
+              : 'We updated your saved items but could not refresh the rest of your profile.'
+
+          addNotification({
+            message,
+            variant: 'warning',
+          })
+        }
+      } catch (error) {
+        const message =
+          error instanceof ApiError && error.message
+            ? error.message
+            : 'We could not remove this saved item. Please try again.'
+
+        addNotification({
+          message,
+          variant: 'danger',
+        })
+
+        throw new Error(message)
+      }
+    },
+    [token, addNotification, refetch],
   )
 
   const accountDetails = useMemo<ProfileAccountInfo | undefined>(() => {
@@ -180,7 +232,11 @@ const Profile = () => {
       case 'saved':
         return (
           <div className="flex flex-col gap-6">
-            <SavedItemsCard items={savedItems} isLoading={isLoading} />
+            <SavedItemsCard
+              items={localSavedItems}
+              isLoading={isLoading}
+              onRemove={handleRemoveSavedItem}
+            />
           </div>
         )
       case 'preferences':
