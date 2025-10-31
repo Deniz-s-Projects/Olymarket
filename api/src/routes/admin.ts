@@ -68,7 +68,7 @@ router.get("/stats", async (_req, res) => {
   const popularCategories = categoriesWithCounts.map((cat) => ({
     id: cat.id,
     name: cat.name,
-    listingCount: Number(cat.listingCount),
+    listingCount: Number(cat.listingCount || 0),
   }));
 
   // Get conversation and message counts

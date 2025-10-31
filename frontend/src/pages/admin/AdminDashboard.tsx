@@ -264,7 +264,7 @@ const StatsPanel = ({ addToast }: PanelProps) => {
                           style={{
                             width: `${Math.min(
                               100,
-                              (category.listingCount / stats.popularCategories[0].listingCount) * 100,
+                              (category.listingCount / (stats.popularCategories[0]?.listingCount || 1)) * 100,
                             )}%`,
                           }}
                         />
