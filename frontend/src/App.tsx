@@ -20,12 +20,14 @@ import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
 import ThemeToggle from './components/ThemeToggle'
 import SellerAnalytics from './pages/SellerAnalytics'
+import CommunityDiscussions from './pages/CommunityDiscussions'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
   { to: '/wanted', label: 'Buyer Requests' },
   { to: '/listings/new', label: 'Create Listing' },
   { to: '/groups', label: 'Groups' },
+  { to: '/community', label: 'Community' },
   { to: '/messages', label: 'Conversations' },
   { to: '/profile', label: 'Profile' },
 ]
@@ -362,6 +364,14 @@ const App = () => {
             <Route path="/listings/:id/edit" element={<CreateListing />} />
             <Route path="/listings/:id" element={<ListingDetails />} />
             <Route path="/groups" element={<Groups />} />
+            <Route
+              path="/community"
+              element={
+                <RequireAuth>
+                  <CommunityDiscussions />
+                </RequireAuth>
+              }
+            />
             <Route
               path="/messages"
               element={

@@ -11,6 +11,7 @@ import reportRoutes from "./routes/reports";
 import offerRoutes from "./routes/offers";
 import wantedListingRoutes from "./routes/wanted-listings";
 import analyticsRoutes from "./routes/analytics";
+import communityDiscussionRoutes from "./routes/community-discussions";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/reports", reportRoutes);
 app.use("/offers", offerRoutes);
 app.use("/wanted-listings", wantedListingRoutes);
 app.use("/analytics", analyticsRoutes);
+app.use("/community-discussions", communityDiscussionRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
