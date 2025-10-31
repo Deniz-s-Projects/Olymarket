@@ -1,8 +1,8 @@
 import { type FC, type FormEvent, useState, useEffect, useMemo, useRef } from 'react'
 import { groupsService } from '../services/groups'
+import { toGroupSummary } from '../types/group'
 import type {
   Group,
-  toGroupSummary,
   GroupSummary, 
   PaginationMeta,
   GroupType,
@@ -25,15 +25,15 @@ const toDateTimeLocal = (date: Date) => {
 const Groups: FC = () => {
   const { token, user } = useAuth()
   const { addNotification } = useNotifications()
-  const [groups, setGroups] = useState<Group[]>([])
-  const [filteredGroups, setFilteredGroups] = useState<Group[]>([])
+  const [groups, setGroups] = useState<GroupSummary[]>([])
+  const [filteredGroups, setFilteredGroups] = useState<GroupSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<GroupType | 'all'>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [viewMode, setViewMode] = useState<'all' | 'my'>('all')
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
-  const [pagination, set] = useState<PaginationMeta | null>(null)
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null)
   const [membershipMap, setMembershipMap] = useState<Record<string, GroupSummary['membershipRole'] | undefined>>({})
   const [events, setEvents] = useState<GroupEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
@@ -59,6 +59,7 @@ const Groups: FC = () => {
   const [postEventId, setPostEventId] = useState<string | ''>('')
   const [postSubmitting, setPostSubmitting] = useState(false)
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
+  
   const [editingPostBody, setEditingPostBody] = useState('')
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
   const notifiedEventsRef = useRef<Set<string>>(new Set())
@@ -211,20 +212,42 @@ const Groups: FC = () => {
     notifiedEventsRef.current.clear()
   }, [selectedGroup?.id])
 
-  useEffect(() => {
-    setSelectedGroup((current) => {
+    useEffect(() => {
+    let cancelled = false
+    const ensureFullSelectedGroup = async () => {
       if (groups.length === 0) {
-        return null
+        setSelectedGroup(null)
+        return
       }
-      if (current) {
-        const updated = groups.find((group) => group.id === current.id)
-        if (updated) {
-          return updated
+
+      // If we already have a selected group and it's still present in the list,
+      // try to load the full group details (members, owner, etc.)
+      if (selectedGroup) {
+        const found = groups.find((g) => g.id === selectedGroup.id)
+        if (found) {
+          try {
+            const full = await groupsService.getGroup(found.id)
+            if (!cancelled) setSelectedGroup(full)
+            return
+          } catch {
+            // fall through and try to load the first group
+          }
         }
       }
-      return groups[0]
-    })
-  }, [groups])
+
+      try {
+        const full = await groupsService.getGroup(groups[0].id)
+        if (!cancelled) setSelectedGroup(full)
+      } catch {
+        if (!cancelled) setSelectedGroup(null)
+      }
+    }
+
+    void ensureFullSelectedGroup()
+    return () => {
+      cancelled = true
+    }
+  }, [groups, selectedGroup])
 
   useEffect(() => {
     if (filterType === 'all') {
@@ -301,13 +324,31 @@ const Groups: FC = () => {
       membershipRole: 'moderator',
     })
     setGroups((prev) => [summary, ...prev])
+    setFilteredGroups((prev) => [summary, ...prev])
     setMembershipMap((prev) => ({ ...prev, [summary.id]: summary.membershipRole }))
     setShowCreateModal(false)
     setSelectedGroup(newGroup)
   }
 
+ // ...existing code...
   const handleGroupUpdated = (updatedGroup: GroupSummary) => {
     setGroups((prev) =>
+      prev.map((g) =>
+        g.id === updatedGroup.id
+          ? {
+              ...g,
+              ...updatedGroup,
+              membershipRole: updatedGroup.isMember
+                ? updatedGroup.membershipRole ?? membershipMap[updatedGroup.id] ?? g.membershipRole
+                : undefined,
+              isMember:
+                updatedGroup.isMember ?? (membershipMap[updatedGroup.id] !== undefined || g.isMember),
+            }
+          : g
+      )
+    )
+
+    setFilteredGroups((prev) =>
       prev.map((g) =>
         g.id === updatedGroup.id
           ? {
@@ -336,10 +377,13 @@ const Groups: FC = () => {
       })
     }
   }
+// ...existing code...
 
+ // ...existing code...
   const handleGroupDeleted = (deletedGroupId: string) => {
     setGroups((prev) => prev.filter((g) => g.id !== deletedGroupId))
-     setMembershipMap((prev) => {
+    setFilteredGroups((prev) => prev.filter((g) => g.id !== deletedGroupId))
+    setMembershipMap((prev) => {
       const next = { ...prev }
       delete next[deletedGroupId]
       return next
@@ -348,11 +392,7 @@ const Groups: FC = () => {
       current && current.id === deletedGroupId ? null : current
     )
   }
-
-  const handleSelectGroup = (group: Group) => {
-    setSelectedGroup(group)
-  }
-
+  
   const openCreateEventForm = () => {
     setEventFormDraft({
       title: '',
@@ -819,17 +859,17 @@ const Groups: FC = () => {
       {error && (
         <div className="rounded-lg bg-red-50 p-4 text-red-800">{error}</div>
       )}
-
+ 
       {/* Pagination Summary */}
       {!loading && !error && pagination && (
         <div className="mb-4 text-sm text-slate-500">
-          Showing {groups.length} of {pagination.total}{' '}
+          Showing {filteredGroups.length} of {pagination.total}{' '}
           {viewMode === 'my' ? 'groups you belong to' : 'groups'}
         </div>
-      )}
-
+      )} 
+  
       {/* Empty State */}
-      {!loading && !error && groups.length === 0 && (
+      {!loading && !error && filteredGroups.length === 0 && (
         <div className="text-center">
           <div className="rounded-lg bg-white p-12">
             <p className="text-lg text-slate-600">
@@ -841,18 +881,17 @@ const Groups: FC = () => {
             </p>
           </div>
         </div>
-      )}
+      )} 
 
       {/* Groups Grid */}
-      {!loading && !error && groups.length > 0 && (
+      {!loading && !error && filteredGroups.length > 0 && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group) => (
+          {filteredGroups.map((group) => (
             <GroupCard
               key={group.id}
               group={group}
               onGroupUpdated={handleGroupUpdated}
-              onGroupDeleted={handleGroupDeleted}
-              onSelect={handleSelectGroup}
+              onGroupDeleted={handleGroupDeleted} 
               isSelected={selectedGroup?.id === group.id}
             />
           ))}

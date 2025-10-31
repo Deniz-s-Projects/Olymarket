@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { useState } from 'react'
-import type { Group, GroupSummary } from '../../types/group'
+import type { GroupSummary } from '../../types/group'
 import { toGroupSummary } from '../../types/group'
 import { useAuth } from '../../context/useAuth'
 import { groupsService } from '../../services/groups'
@@ -9,16 +9,14 @@ import EditGroupModal from './EditGroupModal'
 type Props = {
   group: GroupSummary
   onGroupUpdated: (group: GroupSummary) => void
-  onGroupDeleted: (groupId: string) => void
-  onSelect?: (group: Group) => void
+  onGroupDeleted: (groupId: string) => void 
   isSelected?: boolean
 }
 
 const GroupCard: FC<Props> = ({
   group,
   onGroupUpdated,
-  onGroupDeleted,
-  onSelect,
+  onGroupDeleted, 
   isSelected = false,
 }) => {
   const { token, user } = useAuth()
@@ -93,13 +91,7 @@ const GroupCard: FC<Props> = ({
       setLoading(false)
     }
   }
-
-  const handleSelect = () => {
-    if (onSelect) {
-      onSelect(group)
-    }
-  }
-
+ 
   return (
     <>
       <div
@@ -147,19 +139,6 @@ const GroupCard: FC<Props> = ({
 
         <div className="flex items-center justify-between text-xs text-slate-400">
           <span>Created by {group.owner?.name ?? 'Unknown'}</span>
-          {onSelect ? (
-            <button
-              type="button"
-              onClick={handleSelect}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                isSelected
-                  ? 'bg-primary text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary'
-              }`}
-            >
-              {isSelected ? 'Viewing' : 'View details'}
-            </button>
-          ) : null}
         </div>
 
         {user && (
