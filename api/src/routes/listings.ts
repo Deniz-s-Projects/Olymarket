@@ -69,7 +69,10 @@ router.get("/search/query", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const listingRepository = AppDataSource.getRepository(Listing);
-  const listing = await listingRepository.findOne({ where: { id: req.params.id } });
+  const listing = await listingRepository.findOne({
+    where: { id: req.params.id },
+    relations: { owner: true, category: true },
+  });
   if (!listing) {
     return res.status(404).json({ message: "Listing not found" });
   }
