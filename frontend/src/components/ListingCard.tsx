@@ -116,7 +116,7 @@ const ListingCard: FC<ListingCardProps> = ({ listing }) => {
           </span>
           <Link
             to={`/listings/${id}`}
-            className="btn-primary hidden rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/80 sm:inline-flex"
+            className="btn-primary inline-flex rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/80"
           >
             View details
           </Link>
