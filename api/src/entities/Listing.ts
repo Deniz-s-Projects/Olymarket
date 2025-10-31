@@ -24,7 +24,7 @@ export class Listing extends BaseModel {
     name: "moderation_status",
     type: "enum",
     enum: ["pending", "approved", "rejected"],
-    default: "pending",
+    default: "approved",
   })
   moderationStatus!: "pending" | "approved" | "rejected";
 
