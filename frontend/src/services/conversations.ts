@@ -14,8 +14,10 @@ export class ApiError extends Error {
 
 export interface ConversationParticipant {
   id: string
+  userId: string
   name: string
   email: string
+  lastReadAt: string | null
 }
 
 export interface ConversationSummary {
@@ -29,12 +31,10 @@ export interface ConversationSummary {
 
 interface ConversationParticipantResponse {
   id: string
+  userId: string
+  name: string | null
+  email: string
   lastReadAt: string | null
-  user: {
-    id: string
-    name: string | null
-    email: string
-  }
 }
 
 interface ConversationResponse {
@@ -44,6 +44,20 @@ interface ConversationResponse {
   updatedAt: string
   participants: ConversationParticipantResponse[]
   unreadCount?: number
+}
+
+interface PaginationMetadata {
+  page: number
+  limit: number
+  totalItems: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+interface ConversationsPageResponse {
+  data: ConversationResponse[]
+  pagination: PaginationMetadata
 }
 
 export interface ConversationMessage {
@@ -123,9 +137,11 @@ const mapConversation = (conversation: ConversationResponse): ConversationSummar
   createdAt: conversation.createdAt,
   updatedAt: conversation.updatedAt,
   participants: conversation.participants.map((participant) => ({
-    id: participant.user.id,
-    name: participant.user.name ?? participant.user.email,
-    email: participant.user.email,
+    id: participant.id,
+    userId: participant.userId,
+    name: participant.name ?? participant.email,
+    email: participant.email,
+    lastReadAt: participant.lastReadAt,
   })),
   unreadCount: conversation.unreadCount ?? 0,
 })
@@ -141,12 +157,35 @@ const mapMessage = (message: ConversationMessageResponse): ConversationMessage =
 export const getConversations = async (
   token: string
 ): Promise<ConversationSummary[]> => {
-  const response = await fetch(`${API_BASE_URL}/conversations`, {
-    headers: buildHeaders(token),
-  })
+  const conversations: ConversationSummary[] = []
+  let page = 1
+  let limit: number | undefined
 
-  const data = await handleResponse<ConversationResponse[]>(response)
-  return data.map(mapConversation)
+  // Continue requesting pages until the API indicates there are no more.
+  while (true) {
+    const params = new URLSearchParams({ page: page.toString() })
+    if (typeof limit === 'number') {
+      params.set('limit', limit.toString())
+    }
+
+    const query = params.toString()
+    const response = await fetch(`${API_BASE_URL}/conversations?${query}`, {
+      headers: buildHeaders(token),
+    })
+
+    const payload = await handleResponse<ConversationsPageResponse>(response)
+    conversations.push(...payload.data.map(mapConversation))
+
+    limit = payload.pagination.limit
+
+    if (!payload.pagination.hasNextPage || payload.data.length === 0) {
+      break
+    }
+
+    page = payload.pagination.page + 1
+  }
+
+  return conversations
 }
 
 interface CreateConversationPayload {
