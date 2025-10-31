@@ -19,7 +19,17 @@ const parsePrice = (value: string) => {
 }
 
 const Marketplace = () => {
-  const { listings, isLoading, isError, error, refetch } = useListings()
+  const {
+    listings,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    hasMore,
+    isFetchingMore,
+    fetchNextPage,
+    total,
+  } = useListings()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
@@ -82,7 +92,7 @@ const Marketplace = () => {
     ? 'Fetching the latest marketplace updates...'
     : isError
       ? 'We were unable to load listings. Please try again.'
-      : `${filteredListings.length} result${filteredListings.length === 1 ? '' : 's'} ready for review.`
+      : `Showing ${filteredListings.length} of ${total} total result${total === 1 ? '' : 's'} ready for review.`
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 lg:px-8">
@@ -269,11 +279,27 @@ const Marketplace = () => {
           )}
 
           {!isLoading && !isError && !showEmptyState && (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredListings.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="flex justify-center pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void fetchNextPage()
+                    }}
+                    disabled={isFetchingMore}
+                    className="btn-primary inline-flex items-center rounded-full px-6 py-2 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isFetchingMore ? 'Loading more listings...' : 'Load more listings'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
