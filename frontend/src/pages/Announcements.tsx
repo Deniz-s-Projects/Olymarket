@@ -13,7 +13,7 @@ const Announcements = () => {
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 lg:px-0">
       <header className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-          Community
+          Announcements
         </p>
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
           What's new in Olymarket

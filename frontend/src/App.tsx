@@ -28,7 +28,7 @@ const navigation = [
   { to: '/wanted', label: 'Buyer Requests' },
   { to: '/listings/new', label: 'Create Listing' },
   { to: '/groups', label: 'Groups' },
-  { to: '/announcements', label: 'Community' },
+  { to: '/announcements', label: 'Announcements' },
   { to: '/community', label: 'Community' },
   { to: '/messages', label: 'Conversations' },
   { to: '/profile', label: 'Profile' },
