@@ -12,6 +12,7 @@ import offerRoutes from "./routes/offers";
 import wantedListingRoutes from "./routes/wanted-listings";
 import analyticsRoutes from "./routes/analytics";
 import announcementRoutes from "./routes/announcements";
+import communityDiscussionRoutes from "./routes/community-discussions";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/offers", offerRoutes);
 app.use("/wanted-listings", wantedListingRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/announcements", announcementRoutes);
+app.use("/community-discussions", communityDiscussionRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

@@ -21,6 +21,7 @@ import ListingDetails from './pages/ListingDetails'
 import ThemeToggle from './components/ThemeToggle'
 import SellerAnalytics from './pages/SellerAnalytics'
 import Announcements from './pages/Announcements'
+import CommunityDiscussions from './pages/CommunityDiscussions'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
@@ -28,6 +29,7 @@ const navigation = [
   { to: '/listings/new', label: 'Create Listing' },
   { to: '/groups', label: 'Groups' },
   { to: '/announcements', label: 'Community' },
+  { to: '/community', label: 'Community' },
   { to: '/messages', label: 'Conversations' },
   { to: '/profile', label: 'Profile' },
 ]
@@ -369,6 +371,15 @@ const App = () => {
               element={
                 <RequireAuth>
                   <Announcements />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/community"
+              element={
+                <RequireAuth>
+                  <CommunityDiscussions />
                 </RequireAuth>
               }
             />
