@@ -172,3 +172,4 @@ export const deleteAdminReport = async (id: string) => {
 export const fetchUsageStats = async () => {
   return apiClient<UsageStats>('/admin/stats')
 }
+}
