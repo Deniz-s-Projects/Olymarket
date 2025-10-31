@@ -23,33 +23,63 @@ router.get("/stats", async (_req, res) => {
   const messageRepo = AppDataSource.getRepository(Message);
 
   // Get listing counts by status
-  const listingsByStatus = await listingRepo
+  const listingAggregates = await listingRepo
     .createQueryBuilder("listing")
-    .select("listing.moderationStatus", "status")
-    .addSelect("COUNT(listing.id)", "count")
-    .groupBy("listing.moderationStatus")
-    .getRawMany<{ status: string; count: string }>();
+    .select("COUNT(*)", "total")
+    .addSelect(
+      "SUM(CASE WHEN listing.moderationStatus = 'pending' THEN 1 ELSE 0 END)",
+      "pending",
+    )
+    .addSelect(
+      "SUM(CASE WHEN listing.moderationStatus = 'approved' THEN 1 ELSE 0 END)",
+      "approved",
+    )
+    .addSelect(
+      "SUM(CASE WHEN listing.moderationStatus = 'rejected' THEN 1 ELSE 0 END)",
+      "rejected",
+    )
+    .addSelect(
+      "SUM(CASE WHEN listing.isActive = TRUE THEN 1 ELSE 0 END)",
+      "active",
+    )
+    .getRawOne<{
+      total: string | null;
+      pending: string | null;
+      approved: string | null;
+      rejected: string | null;
+      active: string | null;
+    }>();
 
   const listingStats = {
-    total: await listingRepo.count(),
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    active: await listingRepo.count({ where: { isActive: true } }),
+    total: Number(listingAggregates?.total ?? 0),
+    pending: Number(listingAggregates?.pending ?? 0),
+    approved: Number(listingAggregates?.approved ?? 0),
+    rejected: Number(listingAggregates?.rejected ?? 0),
+    active: Number(listingAggregates?.active ?? 0),
   };
-  
-  listingsByStatus.forEach((stat) => {
-    const count = Number(stat.count);
-    if (stat.status === "pending") listingStats.pending = count;
-    else if (stat.status === "approved") listingStats.approved = count;
-    else if (stat.status === "rejected") listingStats.rejected = count;
-  });
 
   // Get user counts
+  const userAggregates = await userRepo
+    .createQueryBuilder("user")
+    .select("COUNT(*)", "total")
+    .addSelect(
+      "SUM(CASE WHEN user.isBanned = FALSE THEN 1 ELSE 0 END)",
+      "active",
+    )
+    .addSelect(
+      "SUM(CASE WHEN user.isBanned = TRUE THEN 1 ELSE 0 END)",
+      "banned",
+    )
+    .getRawOne<{
+      total: string | null;
+      active: string | null;
+      banned: string | null;
+    }>();
+
   const userStats = {
-    total: await userRepo.count(),
-    active: await userRepo.count({ where: { isBanned: false } }),
-    banned: await userRepo.count({ where: { isBanned: true } }),
+    total: Number(userAggregates?.total ?? 0),
+    active: Number(userAggregates?.active ?? 0),
+    banned: Number(userAggregates?.banned ?? 0),
   };
 
   // Get category stats - count listings per category
