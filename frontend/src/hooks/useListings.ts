@@ -7,6 +7,8 @@ const DEFAULT_PAGE_SIZE = 12
 export type ListingsFilters = {
   searchTerm?: string
   category?: string | null
+  categorySlug?: string | null
+  categoryId?: string | number | null
   isFree?: boolean
   minPrice?: number | null
   maxPrice?: number | null
@@ -35,6 +37,8 @@ const buildQueryParams = (filters: ListingsFilters): Omit<ListingsQueryParams, '
   const {
     searchTerm,
     category,
+    categorySlug,
+    categoryId,
     isFree,
     minPrice,
     maxPrice,
@@ -51,7 +55,19 @@ const buildQueryParams = (filters: ListingsFilters): Omit<ListingsQueryParams, '
     }
   }
 
-  if (typeof category === 'string') {
+  if (typeof categorySlug === 'string') {
+    const trimmedSlug = categorySlug.trim()
+    if (trimmedSlug.length > 0) {
+      normalized.categorySlug = trimmedSlug
+    }
+  } else if (typeof categoryId === 'string') {
+    const trimmedId = categoryId.trim()
+    if (trimmedId.length > 0) {
+      normalized.categoryId = trimmedId
+    }
+  } else if (typeof categoryId === 'number' && Number.isFinite(categoryId)) {
+    normalized.categoryId = categoryId
+  } else if (typeof category === 'string') {
     const trimmedCategory = category.trim()
     if (trimmedCategory.length > 0) {
       normalized.category = trimmedCategory

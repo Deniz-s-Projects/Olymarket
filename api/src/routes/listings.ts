@@ -75,6 +75,19 @@ const normalizeSortOrder = (value: unknown): "ASC" | "DESC" => {
   return "DESC";
 };
 
+const parseStringParam = (value: unknown): string | undefined => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return undefined;
+};
+
 const buildListingsQuery = (
   req: Request,
   filters: ListingQueryFilters = {},
@@ -88,9 +101,16 @@ const buildListingsQuery = (
     .andWhere("owner.is_banned = false")
     .andWhere("listing.status = :activeStatus", { activeStatus: "active" });
 
-  const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
-  if (category) {
-    query.andWhere("LOWER(category.name) = :categoryName", { categoryName: category.toLowerCase() });
+  const categorySlug = parseStringParam(req.query.categorySlug);
+  const categoryId = parseStringParam(req.query.categoryId);
+  const categoryName = parseStringParam(req.query.category);
+
+  if (categorySlug) {
+    query.andWhere("category.slug = :categorySlug", { categorySlug });
+  } else if (categoryId) {
+    query.andWhere("category.id = :categoryId", { categoryId });
+  } else if (categoryName) {
+    query.andWhere("LOWER(category.name) = :categoryName", { categoryName: categoryName.toLowerCase() });
   }
 
   const isFree = parseBooleanParam(req.query.isFree);
