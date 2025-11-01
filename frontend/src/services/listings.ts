@@ -155,7 +155,7 @@ export type ListingPayload = {
   isFree?: boolean
   isActive?: boolean
   status?: ListingStatus
-  categoryId?: string | null
+  categoryId: string
   images?: string[]
   availability: string
   preferredContactMethod: string
@@ -173,13 +173,18 @@ const normalizeListingPayload = (payload: ListingPayload) => {
   const normalizedStatus: ListingStatusUpdate | undefined =
     sanitizedStatus ??
     (typeof rest.isActive === 'boolean' ? (rest.isActive ? 'active' : 'draft') : undefined)
+  const trimmedCategoryId = typeof categoryId === 'string' ? categoryId.trim() : ''
+  if (!trimmedCategoryId) {
+    throw new Error('Category is required')
+  }
+
   return {
     ...rest,
     status: normalizedStatus,
     availability: rest.availability?.trim() ?? "",
     preferredContactMethod: rest.preferredContactMethod?.trim() ?? "",
     condition: condition ?? 'used_but_works',
-    categoryId: categoryId ? categoryId : undefined,
+    categoryId: trimmedCategoryId,
   }
 }
 

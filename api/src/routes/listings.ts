@@ -10,6 +10,7 @@ import { ListingComment } from "../entities/ListingComment";
 import { containsProhibitedLanguage } from "../utils/profanityFilter";
 import type { SelectQueryBuilder } from "typeorm";
 import { getNextExpiryDate } from "../services/listingExpiry";
+import { findAllowedListingCategory } from "../services/listingCategories";
 
 type ListingQueryFilters = {
   searchTerm?: string;
@@ -228,12 +229,13 @@ router.post(
     const listingRepository = AppDataSource.getRepository(Listing);
     const categoryRepository = AppDataSource.getRepository(ListingCategory);
 
-    let category: ListingCategory | null = null;
-    if (req.body.categoryId) {
-      category = await categoryRepository.findOne({ where: { id: req.body.categoryId } });
-      if (!category) {
-        return res.status(404).json({ message: "Category not found" });
-      }
+    const rawCategoryId = typeof req.body.categoryId === "string" ? req.body.categoryId.trim() : "";
+    if (!rawCategoryId) {
+      return res.status(400).json({ message: "Category is required" });
+    }
+    const category = await findAllowedListingCategory(categoryRepository, rawCategoryId);
+    if (!category) {
+      return res.status(400).json({ message: "Invalid category selection" });
     }
 
     const requestedStatus = resolveStatusFromBody(req.body);
@@ -373,17 +375,13 @@ router.put(
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    let category = listing.category;
-    if (typeof req.body.categoryId !== "undefined") {
-      if (req.body.categoryId === "") {
-        category = null;
-      } else {
-        const found = await categoryRepository.findOne({ where: { id: req.body.categoryId } });
-        if (!found) {
-          return res.status(404).json({ message: "Category not found" });
-        }
-        category = found;
-      }
+    const rawCategoryId = typeof req.body.categoryId === "string" ? req.body.categoryId.trim() : "";
+    if (!rawCategoryId) {
+      return res.status(400).json({ message: "Category is required" });
+    }
+    const category = await findAllowedListingCategory(categoryRepository, rawCategoryId);
+    if (!category) {
+      return res.status(400).json({ message: "Invalid category selection" });
     }
 
     const availability = typeof req.body.availability === "string" ? req.body.availability.trim() : "";
@@ -410,7 +408,7 @@ router.put(
     if (previousStatus !== "active" && resolvedStatus === "active") {
       listing.expiresAt = getNextExpiryDate();
     }
-    listing.category = category ?? null;
+    listing.category = category;
     listing.availability = availability || null;
     listing.preferredContactMethod = preferredContactMethod || null;
     if (typeof req.body.condition !== "undefined" && isListingCondition(req.body.condition)) {

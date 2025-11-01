@@ -9,6 +9,7 @@ import { Message } from "../entities/Message";
 import { validationMiddleware } from "../middleware/validate";
 import { AdminListingUpdateDto } from "../dtos/admin";
 import { getNextExpiryDate } from "../services/listingExpiry";
+import { findAllowedListingCategory } from "../services/listingCategories";
 
 const router = Router();
 
@@ -199,15 +200,15 @@ router.patch(
     if (typeof req.body.price === "string") listing.price = req.body.price;
 
     if (typeof req.body.categoryId !== "undefined") {
-      if (req.body.categoryId === "") {
-        listing.category = null;
-      } else {
-        const found = await categoryRepository.findOne({ where: { id: req.body.categoryId } });
-        if (!found) {
-          return res.status(404).json({ message: "Category not found" });
-        }
-        listing.category = found;
+      const rawCategoryId = typeof req.body.categoryId === "string" ? req.body.categoryId.trim() : "";
+      if (!rawCategoryId) {
+        return res.status(400).json({ message: "Category is required" });
       }
+      const found = await findAllowedListingCategory(categoryRepository, rawCategoryId);
+      if (!found) {
+        return res.status(400).json({ message: "Invalid category selection" });
+      }
+      listing.category = found;
     }
 
     const previousStatus = listing.status;
