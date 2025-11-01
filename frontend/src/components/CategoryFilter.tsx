@@ -1,12 +1,19 @@
 import type { FC } from 'react'
 
-type CategoryFilterProps = {
-  categories: string[]
-  selected: string | null
-  onSelect: (category: string | null) => void
+export type CategoryOption = {
+  label: string
+  value: string
 }
 
-const CategoryFilter: FC<CategoryFilterProps> = ({ categories, selected, onSelect }) => {
+type CategoryFilterProps = {
+  options: CategoryOption[]
+  selected: string | null
+  onSelect: (category: string | null) => void
+  isLoading?: boolean
+  errorMessage?: string | null
+}
+
+const CategoryFilter: FC<CategoryFilterProps> = ({ options, selected, onSelect, isLoading = false, errorMessage }) => {
   return (
     <div className="space-y-3">
       <div>
@@ -21,17 +28,21 @@ const CategoryFilter: FC<CategoryFilterProps> = ({ categories, selected, onSelec
         >
           All
         </button>
-        {categories.map((category) => (
+        {isLoading && options.length === 0 ? (
+          <span className="text-sm text-slate-500">Loading categories...</span>
+        ) : null}
+        {options.map((option) => (
           <button
-            key={category}
+            key={option.value}
             type="button"
-            onClick={() => onSelect(category)}
-            className={`filter-pill ${selected === category ? 'filter-pill-active' : ''}`}
+            onClick={() => onSelect(option.value)}
+            className={`filter-pill ${selected === option.value ? 'filter-pill-active' : ''}`}
           >
-            {category}
+            {option.label}
           </button>
         ))}
       </div>
+      {errorMessage ? <p className="text-xs text-red-600">{errorMessage}</p> : null}
     </div>
   )
 }

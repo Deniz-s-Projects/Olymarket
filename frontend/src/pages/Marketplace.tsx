@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import CategoryFilter from '../components/CategoryFilter'
@@ -7,6 +7,7 @@ import PriceRangeFilter, { type PriceRangeOption } from '../components/PriceRang
 import { getSortOptionSummary } from '../components/sortOptions'
 import { useListings } from '../hooks/useListings'
 import { type FC } from 'react'
+import { fetchListingCategories, type ListingCategory } from '../services/listings'
 
 const priceRangeOptions: PriceRangeOption[] = [
   { id: 'all', label: 'Any budget', min: 0 },
@@ -61,7 +62,19 @@ const SortButtons: FC<SortProps> = ({ sortBy, sortOrder, onChange, className = '
 const Marketplace = () => {
   const [sortBy, setSortBy] = useState<'createdAt' | 'price'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const listingsParams = useMemo(() => ({ sortBy, sortOrder }), [sortBy, sortOrder])
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
+  const [fetchedCategories, setFetchedCategories] = useState<ListingCategory[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
+  const [categoryError, setCategoryError] = useState<Error | null>(null)
+
+  const listingsParams = useMemo(
+    () => ({
+      sortBy,
+      sortOrder,
+      category: selectedCategorySlug,
+    }),
+    [selectedCategorySlug, sortBy, sortOrder],
+  )
 
   const {
     listings,
@@ -76,18 +89,80 @@ const Marketplace = () => {
   } = useListings(listingsParams)
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedPriceRangeId, setSelectedPriceRangeId] = useState<string>(priceRangeOptions[0].id)
   const [showFreeOnly, setShowFreeOnly] = useState(false)
   const listingsRef = useRef<HTMLElement | null>(null)
 
-  const categories = useMemo(() => {
-    const names = listings
-      .map((listing) => listing.category?.name?.trim())
-      .filter((name): name is string => Boolean(name && name.length > 0))
+  useEffect(() => {
+    let isMounted = true
 
-    return Array.from(new Set(names)).sort()
+    const loadCategories = async () => {
+      setIsLoadingCategories(true)
+      setCategoryError(null)
+
+      try {
+        const result = await fetchListingCategories()
+        if (!isMounted) {
+          return
+        }
+
+        const uniqueBySlug = new Map<string, ListingCategory>()
+        result.forEach((category) => {
+          const slug = category.slug?.trim()
+          const name = category.name?.trim()
+          if (!slug || !name) {
+            return
+          }
+          uniqueBySlug.set(slug, { ...category, slug, name })
+        })
+
+        const sorted = Array.from(uniqueBySlug.values()).sort((a, b) => a.name.localeCompare(b.name))
+        setFetchedCategories(sorted)
+      } catch (caughtError) {
+        if (!isMounted) {
+          return
+        }
+        const normalizedError =
+          caughtError instanceof Error
+            ? caughtError
+            : new Error('Something went wrong while loading listing categories.')
+        setCategoryError(normalizedError)
+      } finally {
+        if (isMounted) {
+          setIsLoadingCategories(false)
+        }
+      }
+    }
+
+    void loadCategories()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const fallbackCategories = useMemo(() => {
+    const uniqueBySlug = new Map<string, ListingCategory>()
+    listings.forEach((listing) => {
+      const category = listing.category
+      if (!category) {
+        return
+      }
+      const slug = category.slug?.trim()
+      const name = category.name?.trim()
+      if (!slug || !name) {
+        return
+      }
+      uniqueBySlug.set(slug, { ...category, slug, name })
+    })
+
+    return Array.from(uniqueBySlug.values()).sort((a, b) => a.name.localeCompare(b.name))
   }, [listings])
+
+  const categoryOptions = useMemo(() => {
+    const source = fetchedCategories.length > 0 ? fetchedCategories : fallbackCategories
+    return source.map((category) => ({ label: category.name, value: category.slug }))
+  }, [fallbackCategories, fetchedCategories])
 
   const selectedPriceRange = useMemo(
     () => priceRangeOptions.find((option) => option.id === selectedPriceRangeId) ?? priceRangeOptions[0],
@@ -110,9 +185,10 @@ const Marketplace = () => {
         listing.isFree || priceValue === null ? true : priceValue >= selectedPriceRange.min && priceValue <= maxPrice
 
       const categoryName = listing.category?.name ?? ''
+      const categorySlug = listing.category?.slug ?? ''
       const ownerName = listing.owner?.name ?? ''
 
-      const matchesCategory = !selectedCategory || categoryName === selectedCategory
+      const matchesCategory = !selectedCategorySlug || categorySlug === selectedCategorySlug
 
       const matchesSearch =
         normalizedSearch.length === 0 ||
@@ -122,13 +198,13 @@ const Marketplace = () => {
 
       return matchesSearch && matchesCategory && matchesPrice
     })
-  }, [listings, searchTerm, selectedCategory, selectedPriceRange, showFreeOnly])
+  }, [listings, searchTerm, selectedCategorySlug, selectedPriceRange, showFreeOnly])
 
   const showEmptyState = !isLoading && !isError && filteredListings.length === 0
 
   const handleResetFilters = () => {
     setSearchTerm('')
-    setSelectedCategory(null)
+    setSelectedCategorySlug(null)
     setSelectedPriceRangeId(priceRangeOptions[0].id)
     setShowFreeOnly(false)
     setSortBy('createdAt')
@@ -250,7 +326,13 @@ const Marketplace = () => {
                 </div>
               </label>
             </div>
-            <CategoryFilter categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
+            <CategoryFilter
+              options={categoryOptions}
+              selected={selectedCategorySlug}
+              onSelect={setSelectedCategorySlug}
+              isLoading={isLoadingCategories}
+              errorMessage={categoryError?.message ?? null}
+            />
             <PriceRangeFilter
               options={priceRangeOptions}
               selectedId={selectedPriceRangeId}
