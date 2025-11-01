@@ -101,6 +101,8 @@ export type ListingsQueryParams = {
   limit?: number
   q?: string
   category?: string
+  categorySlug?: string
+  categoryId?: string | number
   isFree?: boolean
   minPrice?: number
   maxPrice?: number
