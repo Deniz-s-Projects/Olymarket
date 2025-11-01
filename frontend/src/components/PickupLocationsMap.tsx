@@ -18,7 +18,7 @@ const pickupLocations: PickupLocation[] = [
   {
     id: 'dhl-packstation',
     name: 'DHL-Packstation 135',
-    description: '',
+    description: 'DHL Packstation located at the southern entrance',
     coordinates: [48.1795, 11.5538],
     radius: 10,
   },
