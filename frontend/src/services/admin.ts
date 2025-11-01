@@ -35,11 +35,36 @@ export type AdminUser = {
   id: string
   email: string
   name: string
+  phoneNumber: string
   role: 'user' | 'admin'
+  location: string | null
+  bio: string | null
   isBanned: boolean
   bannedAt: string | null
   banReason: string | null
   listingsCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type AdminUserCreatePayload = {
+  email: string
+  password: string
+  name: string
+  phoneNumber: string
+  role?: 'user' | 'admin'
+  location?: string
+  bio?: string
+}
+
+export type AdminUserUpdatePayload = {
+  email?: string
+  password?: string
+  name?: string
+  phoneNumber?: string
+  role?: 'user' | 'admin'
+  location?: string
+  bio?: string
 }
 
 export type BanUserPayload = {
@@ -79,6 +104,20 @@ export const deleteAdminListing = async (id: string) => {
 // Fetch all users for admin
 export const fetchAdminUsers = async () => {
   return apiClient<AdminUser[]>('/admin/users')
+}
+
+export const createAdminUser = async (payload: AdminUserCreatePayload) => {
+  return apiClient<AdminUser>('/admin/users', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export const updateAdminUser = async (id: string, payload: AdminUserUpdatePayload) => {
+  return apiClient<AdminUser>(`/admin/users/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
 }
 
 // Ban a user

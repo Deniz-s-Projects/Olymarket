@@ -7,11 +7,28 @@ import { User } from "../entities/User";
 import { Conversation } from "../entities/Conversation";
 import { Message } from "../entities/Message";
 import { validationMiddleware } from "../middleware/validate";
-import { AdminListingUpdateDto } from "../dtos/admin";
+import { AdminListingUpdateDto, AdminCreateUserDto, AdminUpdateUserDto } from "../dtos/admin";
 import { getNextExpiryDate } from "../services/listingExpiry";
 import { findAllowedListingCategory } from "../services/listingCategories";
+import { hashPassword } from "../utils/password";
 
 const router = Router();
+
+const mapUserToAdminResponse = (user: User, listingsCount = 0) => ({
+  id: user.id,
+  email: user.email,
+  name: user.name,
+  phoneNumber: user.phoneNumber,
+  role: user.role,
+  location: user.location,
+  bio: user.bio,
+  isBanned: user.isBanned,
+  bannedAt: user.bannedAt ? user.bannedAt.toISOString() : null,
+  banReason: user.banReason,
+  listingsCount,
+  createdAt: user.createdAt.toISOString(),
+  updatedAt: user.updatedAt.toISOString(),
+});
 
 const ALL_LISTING_STATUSES = ["active", "draft", "sold", "expired"] as const;
 type ListingStatus = (typeof ALL_LISTING_STATUSES)[number];
@@ -239,7 +256,7 @@ router.delete("/listings/:id", async (req, res) => {
   if (!listing) {
     return res.status(404).json({ message: "Listing not found" });
   }
-    await AppDataSource.createQueryBuilder()
+  await AppDataSource.createQueryBuilder()
     .delete()
     .from("saved_listings")
     .where("listing_id = :id", { id: listing.id })
@@ -264,18 +281,89 @@ router.get("/users", async (_req, res) => {
     .getRawMany<{ ownerId: string; count: string }>();
   const countsMap = new Map(counts.map((r) => [r.ownerId, Number(r.count)]));
 
-  return res.json(
-    users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      isBanned: u.isBanned,
-      bannedAt: u.bannedAt,
-      banReason: u.banReason,
-      listingsCount: countsMap.get(u.id) ?? 0,
-    }))
-  );
+  return res.json(users.map((u) => mapUserToAdminResponse(u, countsMap.get(u.id) ?? 0)));
+});
+
+// POST /admin/users
+router.post("/users", validationMiddleware(AdminCreateUserDto), async (req, res) => {
+  const userRepository = AppDataSource.getRepository(User);
+
+  const existing = await userRepository.findOne({ where: { email: req.body.email } });
+  if (existing) {
+    return res.status(409).json({ message: "Email already registered" });
+  }
+
+  const passwordHash = await hashPassword(req.body.password);
+  const user = userRepository.create({
+    email: req.body.email.trim(),
+    name: req.body.name.trim(),
+    phoneNumber: req.body.phoneNumber.trim(),
+    passwordHash,
+    role: req.body.role ?? "user",
+    location: typeof req.body.location === "string" && req.body.location.trim().length > 0 ? req.body.location.trim() : null,
+    bio: typeof req.body.bio === "string" && req.body.bio.trim().length > 0 ? req.body.bio.trim() : null,
+  });
+
+  const saved = await userRepository.save(user);
+  return res.status(201).json(mapUserToAdminResponse(saved));
+});
+
+// PATCH /admin/users/:id
+router.patch("/users/:id", validationMiddleware(AdminUpdateUserDto), async (req, res) => {
+  const userRepository = AppDataSource.getRepository(User);
+  const user = await userRepository.findOne({ where: { id: req.params.id } });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  if (typeof req.body.email === "string") {
+    const trimmed = req.body.email.trim();
+    if (trimmed.length > 0 && trimmed !== user.email) {
+      const existing = await userRepository.findOne({ where: { email: trimmed } });
+      if (existing && existing.id !== user.id) {
+        return res.status(409).json({ message: "Email already registered" });
+      }
+      user.email = trimmed;
+    }
+  }
+
+  if (typeof req.body.name === "string") {
+    const trimmed = req.body.name.trim();
+    if (trimmed.length > 0) {
+      user.name = trimmed;
+    }
+  }
+
+  if (typeof req.body.phoneNumber === "string") {
+    const trimmed = req.body.phoneNumber.trim();
+    if (trimmed.length > 0) {
+      user.phoneNumber = trimmed;
+    }
+  }
+
+  if (typeof req.body.location === "string") {
+    const trimmed = req.body.location.trim();
+    user.location = trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof req.body.bio === "string") {
+    const trimmed = req.body.bio.trim();
+    user.bio = trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof req.body.role === "string") {
+    user.role = req.body.role;
+  }
+
+  if (typeof req.body.password === "string" && req.body.password.trim().length > 0) {
+    user.passwordHash = await hashPassword(req.body.password);
+  }
+
+  const saved = await userRepository.save(user);
+  const listingCountRepository = AppDataSource.getRepository(Listing);
+  const listingsCount = await listingCountRepository.count({ where: { owner: { id: saved.id } } });
+
+  return res.json(mapUserToAdminResponse(saved, listingsCount));
 });
 
 // POST /admin/users/:id/ban
