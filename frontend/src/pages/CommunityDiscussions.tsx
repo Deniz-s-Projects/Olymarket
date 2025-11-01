@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FC, type FormEvent, useEffect, useMemo, useState } from 'react'
 import { communityDiscussionsService } from '../services/communityDiscussions'
 import type {
   CommunityDiscussion,
@@ -9,7 +9,11 @@ import { useAuth } from '../context/useAuth'
 
 const PAGE_SIZE = 10
 
-const CommunityDiscussions = () => {
+type CommunityDiscussionsProps = {
+  variant?: 'page' | 'embedded'
+}
+
+const CommunityDiscussions: FC<CommunityDiscussionsProps> = ({ variant = 'page' }) => {
   const { addNotification } = useNotifications()
   const { token, isHydrated, user } = useAuth()
   const [discussions, setDiscussions] = useState<CommunityDiscussion[]>([])
@@ -346,11 +350,22 @@ const CommunityDiscussions = () => {
     )
   }
 
+  const containerClasses =
+    variant === 'page'
+      ? 'mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8'
+      : 'flex h-full flex-col gap-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800'
+
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <div className={containerClasses}>
+      <section className={variant === 'page' ? 'rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800' : 'space-y-6'}>
         <header className="mb-4">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
+          <h1
+            className={
+              variant === 'page'
+                ? 'text-2xl font-semibold text-slate-900 dark:text-white'
+                : 'text-xl font-semibold text-slate-900 dark:text-white'
+            }
+          >
             Community discussions
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
