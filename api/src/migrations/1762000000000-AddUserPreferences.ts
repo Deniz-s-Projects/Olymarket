@@ -17,11 +17,11 @@ export class AddUserPreferences1762000000000 implements MigrationInterface {
         CONSTRAINT "FK_user_preferences_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "IDX_user_preferences_user_id" ON "user_preferences" ("user_id")`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_preferences_user_id" ON "user_preferences" ("user_id")`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_user_preferences_user_id"`);
-    await queryRunner.query(`DROP TABLE "user_preferences"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_user_preferences_user_id"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "user_preferences"`);
   }
 }
