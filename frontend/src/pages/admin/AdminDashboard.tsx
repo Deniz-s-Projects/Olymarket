@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEventHandler } from 'react'
+import { type FormEvent, type FormEventHandler, useCallback, useEffect, useRef, useState } from 'react'
 import {
   deleteAdminListing,
   fetchAdminListings,
@@ -7,6 +7,8 @@ import {
   banUser,
   unbanUser,
   fetchUsageStats,
+  createAdminUser,
+  updateAdminUser,
   type AdminListing,
   type AdminListingUpdatePayload,
   type AdminUser,
@@ -147,6 +149,26 @@ const AdminDashboard = () => {
 type PanelProps = {
   addToast: (message: string, type: 'success' | 'error') => void
 }
+
+type UserFormState = {
+  name: string
+  email: string
+  phoneNumber: string
+  role: 'user' | 'admin'
+  location: string
+  bio: string
+  password: string
+}
+
+const createInitialUserForm = (): UserFormState => ({
+  name: '',
+  email: '',
+  phoneNumber: '',
+  role: 'user',
+  location: '',
+  bio: '',
+  password: '',
+})
 
 const StatsPanel = ({ addToast }: PanelProps) => {
   const isMountedRef = useRef(false)
@@ -1234,6 +1256,14 @@ const UsersPanel = ({ addToast }: PanelProps) => {
   const [operationInProgress, setOperationInProgress] = useState(false)
   const [banningUser, setBanningUser] = useState<AdminUser | null>(null)
   const [banReason, setBanReason] = useState('')
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false)
+  const [creatingUser, setCreatingUser] = useState(false)
+  const [createUserError, setCreateUserError] = useState<string | null>(null)
+  const [newUserForm, setNewUserForm] = useState<UserFormState>(() => createInitialUserForm())
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+  const [editUserForm, setEditUserForm] = useState<UserFormState>(() => createInitialUserForm())
+  const [editUserError, setEditUserError] = useState<string | null>(null)
+  const [updatingUser, setUpdatingUser] = useState(false)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -1269,19 +1299,147 @@ const UsersPanel = ({ addToast }: PanelProps) => {
     loadUsers()
   }, [loadUsers])
 
+  const openCreateModal = () => {
+    setNewUserForm(createInitialUserForm())
+    setCreateUserError(null)
+    setShowCreateUserModal(true)
+  }
+
+  const closeCreateModal = () => {
+    setShowCreateUserModal(false)
+    setNewUserForm(createInitialUserForm())
+    setCreateUserError(null)
+  }
+
+  const handleCreateUser = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (creatingUser) return
+
+    const name = newUserForm.name.trim()
+    const email = newUserForm.email.trim()
+    const phone = newUserForm.phoneNumber.trim()
+    const password = newUserForm.password.trim()
+    const location = newUserForm.location.trim()
+    const bio = newUserForm.bio.trim()
+
+    if (!name || !email || !phone || !password) {
+      setCreateUserError('Name, email, phone number, and password are required.')
+      return
+    }
+
+    setCreatingUser(true)
+    setCreateUserError(null)
+
+    try {
+      await createAdminUser({
+        name,
+        email,
+        phoneNumber: phone,
+        password,
+        role: newUserForm.role,
+        location: location || undefined,
+        bio: bio || undefined,
+      })
+      if (isMountedRef.current) {
+        await loadUsers()
+        addToast('User created successfully', 'success')
+        closeCreateModal()
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        const message = err instanceof Error ? err.message : 'Failed to create user'
+        setCreateUserError(message)
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setCreatingUser(false)
+      }
+    }
+  }
+
+  const openEditModal = (user: AdminUser) => {
+    setEditingUser(user)
+    setEditUserForm({
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      location: user.location ?? '',
+      bio: user.bio ?? '',
+      password: '',
+    })
+    setEditUserError(null)
+  }
+
+  const closeEditModal = () => {
+    setEditingUser(null)
+    setEditUserForm(createInitialUserForm())
+    setEditUserError(null)
+  }
+
+  const handleEditUser = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingUser || updatingUser) return
+
+    const name = editUserForm.name.trim()
+    const email = editUserForm.email.trim()
+    const phone = editUserForm.phoneNumber.trim()
+    const password = editUserForm.password.trim()
+    const location = editUserForm.location.trim()
+    const bio = editUserForm.bio.trim()
+
+    if (!name || !email || !phone) {
+      setEditUserError('Name, email, and phone number are required.')
+      return
+    }
+
+    setUpdatingUser(true)
+    setEditUserError(null)
+
+    try {
+      await updateAdminUser(editingUser.id, {
+        name,
+        email,
+        phoneNumber: phone,
+        role: editUserForm.role,
+        location,
+        bio,
+        ...(password ? { password } : {}),
+      })
+      if (isMountedRef.current) {
+        await loadUsers()
+        addToast('User updated successfully', 'success')
+        closeEditModal()
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        const message = err instanceof Error ? err.message : 'Failed to update user'
+        setEditUserError(message)
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setUpdatingUser(false)
+      }
+    }
+  }
+
   const handleBan = async () => {
     if (!banningUser || operationInProgress) return
 
     setOperationInProgress(true)
     try {
       await banUser(banningUser.id, { reason: banReason || undefined })
-      await loadUsers()
-      setBanningUser(null)
-      setBanReason('')
-      addToast('User banned successfully', 'success')
+      if (isMountedRef.current) {
+        await loadUsers()
+        setBanningUser(null)
+        setBanReason('')
+        addToast('User banned successfully', 'success')
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to ban user'
-      addToast(message, 'error')
+      if (isMountedRef.current) {
+        addToast(message, 'error')
+      }
     } finally {
       if (isMountedRef.current) {
         setOperationInProgress(false)
@@ -1295,11 +1453,15 @@ const UsersPanel = ({ addToast }: PanelProps) => {
     setOperationInProgress(true)
     try {
       await unbanUser(userId)
-      await loadUsers()
-      addToast('User unbanned successfully', 'success')
+      if (isMountedRef.current) {
+        await loadUsers()
+        addToast('User unbanned successfully', 'success')
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to unban user'
-      addToast(message, 'error')
+      if (isMountedRef.current) {
+        addToast(message, 'error')
+      }
     } finally {
       if (isMountedRef.current) {
         setOperationInProgress(false)
@@ -1309,6 +1471,16 @@ const UsersPanel = ({ addToast }: PanelProps) => {
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90"
+        >
+          Add User
+        </button>
+      </div>
+
       {/* Loading/Error states */}
       {loading && (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
@@ -1337,8 +1509,8 @@ const UsersPanel = ({ addToast }: PanelProps) => {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-600">
               <tr>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">User</th>
+                <th className="px-4 py-3">Email &amp; Bio</th>
                 <th className="px-4 py-3">Role</th>
                 <th className="px-4 py-3">Listings</th>
                 <th className="px-4 py-3">Status</th>
@@ -1347,9 +1519,16 @@ const UsersPanel = ({ addToast }: PanelProps) => {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{user.name}</td>
-                  <td className="px-4 py-3 text-slate-700">{user.email}</td>
+                <tr key={user.id} className="align-top hover:bg-slate-50">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-slate-900">{user.name}</div>
+                    <div className="text-xs text-slate-500">{user.phoneNumber}</div>
+                    {user.location && <div className="text-xs text-slate-500">{user.location}</div>}
+                  </td>
+                  <td className="px-4 py-3 text-slate-700">
+                    <div>{user.email}</div>
+                    {user.bio && <div className="mt-1 text-xs text-slate-500">{user.bio}</div>}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
@@ -1365,7 +1544,7 @@ const UsersPanel = ({ addToast }: PanelProps) => {
                   <td className="px-4 py-3">
                     {user.isBanned ? (
                       <div className="flex flex-col gap-1">
-                        <span className="inline-flex rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-800">
+                        <span className="inline-flex w-fit rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-800">
                           Banned
                         </span>
                         {user.banReason && (
@@ -1373,15 +1552,22 @@ const UsersPanel = ({ addToast }: PanelProps) => {
                         )}
                       </div>
                     ) : (
-                      <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                      <span className="inline-flex w-fit rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
                         Active
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {user.role !== 'admin' && (
-                      <>
-                        {user.isBanned ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(user)}
+                        className="rounded bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-300"
+                      >
+                        Edit
+                      </button>
+                      {user.role !== 'admin' && (
+                        user.isBanned ? (
                           <button
                             type="button"
                             onClick={() => handleUnban(user.id)}
@@ -1399,9 +1585,9 @@ const UsersPanel = ({ addToast }: PanelProps) => {
                           >
                             Ban
                           </button>
-                        )}
-                      </>
-                    )}
+                        )
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1410,14 +1596,227 @@ const UsersPanel = ({ addToast }: PanelProps) => {
         </div>
       )}
 
+      {/* Create user modal */}
+      {showCreateUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900">Create User</h2>
+            <p className="mb-4 text-sm text-slate-600">
+              Set up a new marketplace member. The user will receive the credentials you configure here.
+            </p>
+            {createUserError && (
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {createUserError}
+              </div>
+            )}
+            <form onSubmit={handleCreateUser} className="flex flex-col gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Name</span>
+                  <input
+                    value={newUserForm.name}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, name: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    placeholder="Jane Doe"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    value={newUserForm.email}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    placeholder="jane@example.com"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Phone Number</span>
+                  <input
+                    value={newUserForm.phoneNumber}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    placeholder="+11234567890"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Password</span>
+                  <input
+                    type="password"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    placeholder="Temporary password"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Role</span>
+                  <select
+                    value={newUserForm.role}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, role: e.target.value as UserFormState['role'] }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Location</span>
+                  <input
+                    value={newUserForm.location}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, location: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    placeholder="City, State"
+                  />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                <span>Bio</span>
+                <textarea
+                  value={newUserForm.bio}
+                  onChange={(e) => setNewUserForm((prev) => ({ ...prev, bio: e.target.value }))}
+                  className="rounded-md border border-slate-300 px-3 py-2"
+                  rows={3}
+                  placeholder="Share a short introduction for this user"
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeCreateModal}
+                  disabled={creatingUser}
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingUser}
+                  className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {creatingUser ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit user modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900">Edit User</h2>
+            <p className="mb-4 text-sm text-slate-600">
+              Update account details or reset the password for {editingUser.name}.
+            </p>
+            {editUserError && (
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {editUserError}
+              </div>
+            )}
+            <form onSubmit={handleEditUser} className="flex flex-col gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Name</span>
+                  <input
+                    value={editUserForm.name}
+                    onChange={(e) => setEditUserForm((prev) => ({ ...prev, name: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    value={editUserForm.email}
+                    onChange={(e) => setEditUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Phone Number</span>
+                  <input
+                    value={editUserForm.phoneNumber}
+                    onChange={(e) => setEditUserForm((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Role</span>
+                  <select
+                    value={editUserForm.role}
+                    onChange={(e) => setEditUserForm((prev) => ({ ...prev, role: e.target.value as UserFormState['role'] }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>Location</span>
+                  <input
+                    value={editUserForm.location}
+                    onChange={(e) => setEditUserForm((prev) => ({ ...prev, location: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                  <span>New Password (optional)</span>
+                  <input
+                    type="password"
+                    value={editUserForm.password}
+                    onChange={(e) => setEditUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                    className="rounded-md border border-slate-300 px-3 py-2"
+                    placeholder="Leave blank to keep existing password"
+                  />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                <span>Bio</span>
+                <textarea
+                  value={editUserForm.bio}
+                  onChange={(e) => setEditUserForm((prev) => ({ ...prev, bio: e.target.value }))}
+                  className="rounded-md border border-slate-300 px-3 py-2"
+                  rows={3}
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  disabled={updatingUser}
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingUser}
+                  className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {updatingUser ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Ban user modal */}
       {banningUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <h2 className="mb-4 text-xl font-semibold text-slate-900">Ban User</h2>
             <p className="mb-4 text-sm text-slate-600">
-              Are you sure you want to ban {banningUser.name}? They will not be able to access the
-              marketplace.
+              Are you sure you want to ban {banningUser.name}? They will not be able to access the marketplace.
             </p>
             <label className="mb-4 flex flex-col gap-1 text-sm font-medium text-slate-700">
               <span>Reason (optional)</span>

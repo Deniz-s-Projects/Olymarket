@@ -1,4 +1,15 @@
-import { IsBoolean, IsIn, IsNumberString, IsOptional, IsString, MaxLength } from "class-validator";
+import {
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 
 export class AdminListingUpdateDto {
   @IsOptional()
@@ -33,6 +44,65 @@ export class AdminListingUpdateDto {
   @IsOptional()
   @IsString()
   moderationNotes?: string;
+}
+
+export class AdminCreateUserDto {
+  @IsEmail()
+  email!: string;
+
+  @MinLength(6)
+  password!: string;
+
+  @IsNotEmpty()
+  name!: string;
+
+  @Matches(/^[+][0-9]{5,15}$/)
+  phoneNumber!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsIn(["user", "admin"])
+  role?: "user" | "admin";
+}
+
+export class AdminUpdateUserDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @MinLength(6)
+  password?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
+
+  @IsOptional()
+  @Matches(/^[+][0-9]{5,15}$/)
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsIn(["user", "admin"])
+  role?: "user" | "admin";
 }
 
 
