@@ -196,8 +196,9 @@ const CreateListing = () => {
       },
       isFree: () => "",
       category: (value: string) => {
-        if (!value) return ""
-        const exists = categories.some((category) => category.id === value)
+        const trimmed = value.trim()
+        if (!trimmed) return "Select a category to continue."
+        const exists = categories.some((category) => category.id === trimmed)
         return exists ? "" : "Select a valid category."
       },
       availability: (value: string) => {
@@ -315,7 +316,7 @@ const CreateListing = () => {
           isFree: values.isFree,
           isActive: values.active,
           status: (values.active ? 'active' : 'draft') as ListingStatus,
-          categoryId: values.category || undefined,
+          categoryId: values.category,
           images: allImages,
           availability: values.availability.trim(),
           preferredContactMethod: values.preferredContactMethod.trim(),
@@ -522,7 +523,7 @@ const CreateListing = () => {
           />
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             <span>
-              Category<span className="ml-1 text-xs font-normal text-slate-500">(optional)</span>
+              Category<span className="ml-1 text-red-500">*</span>
             </span>
             <select
               name="category"
@@ -531,12 +532,13 @@ const CreateListing = () => {
               onBlur={() => validateField("category")}
               className="rounded-md border border-slate-300 px-3 py-2 text-base text-slate-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
               aria-invalid={Boolean(errors.category)}
-              disabled={categoriesStatus === "loading"}
+              disabled={categoriesStatus !== "success" || categories.length === 0}
+              required
             >
-              <option value="">
+              <option value="" disabled>
                 {categoriesStatus === "loading"
                   ? "Loading categories..."
-                  : "No category"}
+                  : "Select a category"}
               </option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
@@ -561,7 +563,7 @@ const CreateListing = () => {
             ) : null}
             {categoriesStatus === "success" && categories.length === 0 ? (
               <span className="text-xs font-normal text-slate-500">
-                Categories aren&apos;t available yet. You can still create your listing without one.
+                Categories are temporarily unavailable. Please refresh the page and try again.
               </span>
             ) : null}
           </label>

@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
+import { ensureDefaultListingCategories } from "./services/listingCategories";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ export async function initializeDataSource() {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
     await AppDataSource.runMigrations();
+    await ensureDefaultListingCategories(AppDataSource);
   }
   return AppDataSource;
 }

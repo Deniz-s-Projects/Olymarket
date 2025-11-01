@@ -1,14 +1,6 @@
 import { AppDataSource } from "../config";
 import { ListingCategory } from "../entities/ListingCategory";
-
-const categories = [
-  { name: "Furniture", slug: "furniture" },
-  { name: "Tools", slug: "tools" },
-  { name: "Household Appliances", slug: "household-appliances" },
-  { name: "Hardware", slug: "hardware" },
-  { name: "Clothing", slug: "clothing" },
-  { name: "Books", slug: "books" },
-];
+import { DEFAULT_LISTING_CATEGORIES } from "../constants/listingCategories";
 
 async function seedCategories() {
   try {
@@ -17,7 +9,7 @@ async function seedCategories() {
 
     const categoryRepository = AppDataSource.getRepository(ListingCategory);
 
-    for (const categoryData of categories) {
+    for (const categoryData of DEFAULT_LISTING_CATEGORIES) {
       const existing = await categoryRepository.findOne({
         where: { slug: categoryData.slug },
       });

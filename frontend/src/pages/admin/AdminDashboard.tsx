@@ -658,18 +658,29 @@ const EditListingModal = ({
   const [title, setTitle] = useState(listing.title)
   const [description, setDescription] = useState(listing.description)
   const [price, setPrice] = useState(listing.price)
-  const [categoryId, setCategoryId] = useState(listing.category?.id || '')
+  const [categoryId, setCategoryId] = useState(
+    listing.category?.id || categories[0]?.id || '',
+  )
   const [status, setStatus] = useState(listing.status)
   const [moderationStatus, setModerationStatus] = useState(listing.moderationStatus)
   const [moderationNotes, setModerationNotes] = useState(listing.moderationNotes || '')
 
+  useEffect(() => {
+    if (!categoryId && categories.length > 0) {
+      setCategoryId(categories[0].id)
+    }
+  }, [categoryId, categories])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!categoryId) {
+      return
+    }
     onSave({
       title,
       description,
       price,
-      categoryId: categoryId || undefined,
+      categoryId,
       isActive: status === 'active',
       status,
       moderationStatus,
@@ -716,13 +727,16 @@ const EditListingModal = ({
           </label>
 
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            <span>Category</span>
+            <span>
+              Category<span className="ml-1 text-red-500">*</span>
+            </span>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               className="rounded-md border border-slate-300 px-3 py-2"
+              required
+              disabled={categories.length === 0}
             >
-              <option value="">No category</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}

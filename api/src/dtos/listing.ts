@@ -23,9 +23,9 @@ export class ListingDto {
   @IsIn(["active", "draft", "sold"])
   status?: "active" | "draft" | "sold";
 
-  @IsOptional()
   @IsString()
-  categoryId?: string;
+  @IsNotEmpty()
+  categoryId!: string;
 
   @IsOptional()
   @IsArray()
