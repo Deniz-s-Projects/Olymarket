@@ -14,7 +14,6 @@ export class AddUserPreferences1762000000000 implements MigrationInterface {
         "saved_search_digests" boolean NOT NULL DEFAULT false,
         "community_news" boolean NOT NULL DEFAULT false,
         CONSTRAINT "PK_user_preferences" PRIMARY KEY ("id"),
-        CONSTRAINT "UQ_user_preferences_user_id" UNIQUE ("user_id"),
         CONSTRAINT "FK_user_preferences_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
