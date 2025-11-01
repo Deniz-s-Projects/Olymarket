@@ -25,7 +25,7 @@ import Community from './pages/Community'
 const navigation = [
   { to: '/', label: 'Marketplace' },
   // { to: '/wanted', label: 'Buyer Requests' },
-  { to: '/listings/new', label: 'Create Listing' },
+  //{ to: '/listings/new', label: 'Create Listing' },
   { to: '/announcements', label: 'Announcements' },
   { to: '/community', label: 'Community' },
   { to: '/messages', label: 'Conversations' },

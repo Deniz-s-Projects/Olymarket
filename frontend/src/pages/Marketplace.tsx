@@ -241,14 +241,14 @@ const Marketplace = () => {
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <a
-                href="#listings"
+                href="/listings/new"
                 onClick={(event) => {
                   event.preventDefault()
                   listingsRef.current?.scrollIntoView({ behavior: 'smooth' })
                 }}
                 className="btn-primary inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/20 transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
               >
-                Explore listings
+                Create listings
               </a>
               <Link
                 to="/auth"
