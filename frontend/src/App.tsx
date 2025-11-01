@@ -151,7 +151,7 @@ const App = () => {
           </div>
         ) : null}
         <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-700 dark:bg-slate-800/80">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 lg:justify-start lg:gap-8">
             <NavLink to="/" className="text-2xl font-semibold tracking-tight text-primary dark:text-white">
               Olymarket
             </NavLink>
