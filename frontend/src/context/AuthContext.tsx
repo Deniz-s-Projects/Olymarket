@@ -101,7 +101,7 @@ export const AuthProvider = ({ children, initialAuth }: AuthProviderProps) => {
       logout()
       throw error
     }
-  }, [applyBannedState, logout, token])
+  }, [applyBannedState, clearBanNotice, logout, token])
 
   useEffect(() => {
     if (!hasAttemptedRefresh.current) {

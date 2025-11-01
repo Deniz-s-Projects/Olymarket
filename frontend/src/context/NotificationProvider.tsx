@@ -1,24 +1,12 @@
-import { createContext, useReducer, useMemo, useEffect, type ReactNode } from 'react'
+import { useReducer, useMemo, useEffect, type ReactNode } from 'react'
+
 import NotificationStack from '../components/notifications/NotificationStack'
-
-export type NotificationVariant = 'info' | 'success' | 'warning' | 'danger'
-
-export type Notification = {
-  id: string
-  title?: string
-  message: string
-  variant: NotificationVariant
-  createdAt: number
-  expiresAt?: number
-}
-
-export type NotificationInput = {
-  id?: string
-  title?: string
-  message: string
-  variant?: NotificationVariant
-  durationMs?: number
-}
+import {
+  NotificationsContext,
+  type Notification,
+  type NotificationInput,
+  type NotificationsContextValue,
+} from './NotificationsContext'
 
 type NotificationAction =
   | { type: 'add'; notification: Notification }
@@ -26,16 +14,6 @@ type NotificationAction =
   | { type: 'sweep'; now: number }
 
 type NotificationsState = Notification[]
-
-type NotificationsContextValue = {
-  notifications: Notification[]
-  addNotification: (input: NotificationInput) => string
-  dismissNotification: (id: string) => void
-}
-
-export const NotificationsContext = createContext<NotificationsContextValue | null>(
-  null
-)
 
 function notificationsReducer(state: NotificationsState, action: NotificationAction) {
   switch (action.type) {

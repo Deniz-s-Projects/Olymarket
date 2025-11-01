@@ -69,7 +69,7 @@ const SellerAnalytics = () => {
     }
   }, [isHydrated, user])
 
-  const analytics = data?.listings ?? []
+  const analytics = useMemo(() => data?.listings ?? [], [data])
   const totals = data?.totals ?? { views: 0, saves: 0, conversionRate: 0, listingCount: 0 }
 
   const chartData = useMemo(() => {

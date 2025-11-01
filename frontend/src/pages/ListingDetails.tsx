@@ -189,8 +189,10 @@ const ListingDetails = () => {
   }, [refreshOffers])
   const soldAtLabel = useMemo(() => formatDate(listing?.soldAt ?? undefined), [listing?.soldAt])
   // Hooks must be called unconditionally: compute gallery before any early returns
-  const images = listing?.images ?? []
-  const gallery = useMemo(() => (images && images.length > 0 ? images : []), [images])
+  const gallery = useMemo(() => {
+    const imageList = listing?.images ?? []
+    return imageList.length > 0 ? imageList : []
+  }, [listing?.images])
   const activeImage = gallery[activeImageIndex]
 
   if (status === 'loading') {

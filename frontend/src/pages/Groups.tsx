@@ -1,4 +1,12 @@
-import { type FC, type FormEvent, useState, useEffect, useMemo, useRef } from 'react'
+import {
+  type FC,
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { groupsService } from '../services/groups'
 import { toGroupSummary } from '../types/group'
 import type {
@@ -110,28 +118,31 @@ const Groups: FC = () => {
       (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
     )
 
-  const maybeNotifyUpcomingEvents = (eventList: GroupEvent[]) => {
-    if (!user) return
-    const now = Date.now()
-    eventList.forEach((event) => {
-      if (notifiedEventsRef.current.has(event.id)) return
-      const start = new Date(event.startAt).getTime()
-      if (Number.isNaN(start)) return
-      if (start < now || start - now > EVENT_REMINDER_WINDOW_MS) return
-      const rsvp = event.rsvps.find((entry) => entry.user.id === user.id)
-      if (!rsvp || (rsvp.status !== 'going' && rsvp.status !== 'maybe')) return
+  const maybeNotifyUpcomingEvents = useCallback(
+    (eventList: GroupEvent[]) => {
+      if (!user) return
+      const now = Date.now()
+      eventList.forEach((event) => {
+        if (notifiedEventsRef.current.has(event.id)) return
+        const start = new Date(event.startAt).getTime()
+        if (Number.isNaN(start)) return
+        if (start < now || start - now > EVENT_REMINDER_WINDOW_MS) return
+        const rsvp = event.rsvps.find((entry) => entry.user.id === user.id)
+        if (!rsvp || (rsvp.status !== 'going' && rsvp.status !== 'maybe')) return
 
-      notifiedEventsRef.current.add(event.id)
-      addNotification({
-        title: `Upcoming event: ${event.title}`,
-        message: `Starts ${new Date(event.startAt).toLocaleString()}`,
-        variant: 'info',
-        durationMs: 8000,
+        notifiedEventsRef.current.add(event.id)
+        addNotification({
+          title: `Upcoming event: ${event.title}`,
+          message: `Starts ${new Date(event.startAt).toLocaleString()}`,
+          variant: 'info',
+          durationMs: 8000,
+        })
       })
-    })
-  }
+    },
+    [addNotification, user]
+  )
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -201,20 +212,20 @@ const Groups: FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterType, token, viewMode])
 
   useEffect(() => {
     fetchGroups()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, token, filterType])
+  }, [fetchGroups])
 
   useEffect(() => {
     notifiedEventsRef.current.clear()
   }, [selectedGroup?.id])
 
-    useEffect(() => {
+  useEffect(() => {
     let cancelled = false
-  const loadFullGroup = async (id: string) => {
+
+    const loadFullGroup = async (id: string) => {
       try {
         const full = await groupsService.getGroup(id)
         if (!cancelled) setSelectedGroup(full)
@@ -233,9 +244,9 @@ const Groups: FC = () => {
     }
 
     return () => {
-       cancelled = true
-    } 
-  }, [groups.length, selectedGroup?.id])
+      cancelled = true
+    }
+  }, [groups, selectedGroup?.id])
 
   useEffect(() => {
     if (filterType === 'all') {
@@ -304,7 +315,7 @@ const Groups: FC = () => {
     return () => {
       cancelled = true
     }
-  }, [selectedGroup, token, canViewEngagement])
+  }, [selectedGroup, token, canViewEngagement, maybeNotifyUpcomingEvents])
 
   const handleGroupCreated = (newGroup: Group) => {
     const summary = toGroupSummary(newGroup, {
