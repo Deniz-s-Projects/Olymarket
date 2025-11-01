@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import javascriptObfuscator from 'rollup-plugin-javascript-obfuscator';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -81,4 +82,27 @@ export default defineConfig({
       },
     },
   },
-})
+  uild: {
+    // use terser for more advanced mangling options
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+      },
+      mangle: true,
+    },
+    // don't emit source maps for production
+    sourcemap: false,
+    rollupOptions: {
+      plugins: [
+        // run obfuscator as the last step (optional)
+        javascriptObfuscator({
+          // tune options; heavy options increase size and CPU time
+          rotateStringArray: true,
+          stringArray: true,
+          stringArrayThreshold: 0.75,
+        }, ['**/*.map.js']),
+      ],
+    },
+  },
+});
