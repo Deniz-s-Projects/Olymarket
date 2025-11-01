@@ -391,6 +391,7 @@ const App = () => {
                 </RequireAuth>
               }
             />
+            <Route path="/profile" element={<Profile />} />
             <Route
               path="/seller/analytics"
               element={
