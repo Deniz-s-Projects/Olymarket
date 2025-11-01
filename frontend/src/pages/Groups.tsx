@@ -30,7 +30,11 @@ const toDateTimeLocal = (date: Date) => {
   return iso.slice(0, 16)
 }
 
-const Groups: FC = () => {
+type GroupsProps = {
+  variant?: 'page' | 'embedded'
+}
+
+const Groups: FC<GroupsProps> = ({ variant = 'page' }) => {
   const { token, user } = useAuth()
   const { addNotification } = useNotifications()
   const [groups, setGroups] = useState<GroupSummary[]>([])
@@ -753,12 +757,29 @@ const Groups: FC = () => {
     }
   }
 
+  const containerClasses =
+    variant === 'page'
+      ? 'mx-auto max-w-6xl px-4 py-8'
+      : 'flex h-full flex-col gap-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800'
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className={containerClasses}>
+      <div
+        className={`flex flex-wrap items-center justify-between gap-4 ${
+          variant === 'page' ? 'mb-8' : ''
+        }`}
+      >
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Community Groups</h1>
-          <p className="mt-2 text-slate-600">
+          <h1
+            className={
+              variant === 'page'
+                ? 'text-3xl font-bold text-slate-800'
+                : 'text-2xl font-bold text-slate-800 dark:text-white'
+            }
+          >
+            Community Groups
+          </h1>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">
             Connect with neighbors who share your interests
           </p>
         </div>
@@ -775,7 +796,7 @@ const Groups: FC = () => {
 
       {/* View Toggle */}
       {user && (
-        <div className="mb-6 flex gap-2">
+        <div className={`${variant === 'page' ? 'mb-6' : ''} flex flex-wrap gap-2`}>
           <button
             type="button"
             onClick={() => setViewMode('all')}
@@ -802,7 +823,7 @@ const Groups: FC = () => {
       )}
 
       {/* Filter Tabs */}
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className={`${variant === 'page' ? 'mb-6' : ''} flex flex-wrap gap-2`}>
         <button
           type="button"
           onClick={() => setFilterType('all')}
@@ -851,27 +872,27 @@ const Groups: FC = () => {
 
       {/* Loading State */}
       {loading && (
-        <div className="text-center text-slate-600">Loading groups...</div>
+        <div className="text-center text-slate-600 dark:text-slate-300">Loading groups...</div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-red-800">{error}</div>
+        <div className="rounded-lg bg-red-50 p-4 text-red-800 dark:bg-red-950 dark:text-red-200">{error}</div>
       )}
- 
+
       {/* Pagination Summary */}
       {!loading && !error && pagination && (
-        <div className="mb-4 text-sm text-slate-500">
+        <div className={`${variant === 'page' ? 'mb-4' : ''} text-sm text-slate-500 dark:text-slate-400`}>
           Showing {filteredGroups.length} of {pagination.total}{' '}
           {viewMode === 'my' ? 'groups you belong to' : 'groups'}
         </div>
-      )} 
-  
+      )}
+
       {/* Empty State */}
       {!loading && !error && filteredGroups.length === 0 && (
         <div className="text-center">
-          <div className="rounded-lg bg-white p-12">
-            <p className="text-lg text-slate-600">
+          <div className="rounded-lg bg-white p-12 dark:bg-slate-900">
+            <p className="text-lg text-slate-600 dark:text-slate-300">
               {viewMode === 'my'
                 ? "You haven't joined any groups yet"
                 : filterType === 'all'
@@ -880,7 +901,7 @@ const Groups: FC = () => {
             </p>
           </div>
         </div>
-      )} 
+      )}
 
       {/* Groups Grid */}
       {!loading && !error && filteredGroups.length > 0 && (

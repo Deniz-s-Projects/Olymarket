@@ -14,20 +14,18 @@ import Messages from './pages/Messages'
 import Marketplace from './pages/Marketplace'
 import Profile from './pages/Profile'
 import AdminDashboard from './pages/admin/AdminDashboard'
-import Groups from './pages/Groups'
 import WantedBoard from './pages/WantedBoard'
 import { useAuth } from './context/useAuth'
 import ListingDetails from './pages/ListingDetails'
 import ThemeToggle from './components/ThemeToggle'
 import SellerAnalytics from './pages/SellerAnalytics'
 import Announcements from './pages/Announcements'
-import CommunityDiscussions from './pages/CommunityDiscussions'
+import Community from './pages/Community'
 
 const navigation = [
   { to: '/', label: 'Marketplace' },
   // { to: '/wanted', label: 'Buyer Requests' },
   { to: '/listings/new', label: 'Create Listing' },
-  { to: '/groups', label: 'Groups' },
   { to: '/announcements', label: 'Announcements' },
   { to: '/community', label: 'Community' },
   { to: '/messages', label: 'Conversations' },
@@ -365,7 +363,7 @@ const App = () => {
             <Route path="/listings/new" element={<CreateListing />} />
             <Route path="/listings/:id/edit" element={<CreateListing />} />
             <Route path="/listings/:id" element={<ListingDetails />} />
-            <Route path="/groups" element={<Groups />} />
+            <Route path="/groups" element={<Navigate to="/community" replace />} />
             <Route
               path="/announcements"
               element={
@@ -379,7 +377,7 @@ const App = () => {
               path="/community"
               element={
                 <RequireAuth>
-                  <CommunityDiscussions />
+                  <Community />
                 </RequireAuth>
               }
             />
