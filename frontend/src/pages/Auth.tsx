@@ -311,6 +311,7 @@ const Auth = () => {
 
       setAuth(response)
       registerForm.setStatus("success", "Account created! You're all set.")
+      navigate('/profile'); // Redirect to homepage after successful registration
     } catch (error) {
       const authError = error as AuthServiceError
       if (authError.status === 409) {
