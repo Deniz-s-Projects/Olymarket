@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEventHandler } from 'react'
 import {
   deleteAdminListing,
   fetchAdminListings,
@@ -13,8 +13,10 @@ import {
   type UsageStats,
 } from '../../services/admin'
 import { fetchListingCategories, type ListingCategory } from '../../services/listings'
+import { announcementsService } from '../../services/announcements'
+import type { Announcement } from '../../types/announcements'
  
-type Tab = 'stats' | 'listings' | 'users' | 'reports' 
+type Tab = 'stats' | 'listings' | 'users' | 'announcements' | 'reports'
 
 type Toast = {
   id: string
@@ -84,6 +86,17 @@ const AdminDashboard = () => {
         </button>
         <button
           type="button"
+          onClick={() => setActiveTab('announcements')}
+          className={`px-4 py-2 text-sm font-semibold transition ${
+            activeTab === 'announcements'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Announcements
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('reports')}
           className={`px-4 py-2 text-sm font-semibold transition ${
             activeTab === 'reports'
@@ -101,6 +114,8 @@ const AdminDashboard = () => {
         <ListingsPanel addToast={addToast} />
       ) : activeTab === 'users' ? (
         <UsersPanel addToast={addToast} />
+      ) : activeTab === 'announcements' ? (
+        <AnnouncementsPanel addToast={addToast} />
       ) : (
         <ReportsPanel addToast={addToast} />
       )}
@@ -318,6 +333,367 @@ const StatsPanel = ({ addToast }: PanelProps) => {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+const formatDateTimeLocalInput = (date: Date) => {
+  const pad = (value: number) => value.toString().padStart(2, '0')
+
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  const hours = pad(date.getHours())
+  const minutes = pad(date.getMinutes())
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const AnnouncementsPanel = ({ addToast }: PanelProps) => {
+  const isMountedRef = useRef(false)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [publishToEnabled, setPublishToEnabled] = useState(false)
+
+  const [formValues, setFormValues] = useState({
+    title: '',
+    body: '',
+    publishFrom: formatDateTimeLocalInput(new Date()),
+    publishTo: '',
+    isPinned: false,
+  })
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  const loadAnnouncements = useCallback(async () => {
+    if (!isMountedRef.current) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await announcementsService.getAnnouncements()
+      if (isMountedRef.current) {
+        setAnnouncements(response.data ?? [])
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        const message = err instanceof Error ? err.message : 'Failed to load announcements'
+        setError(message)
+        addToast(message, 'error')
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
+    }
+  }, [addToast])
+
+  useEffect(() => {
+    void loadAnnouncements()
+  }, [loadAnnouncements])
+
+  const resetForm = () => {
+    setFormValues({
+      title: '',
+      body: '',
+      publishFrom: formatDateTimeLocalInput(new Date()),
+      publishTo: '',
+      isPinned: false,
+    })
+    setPublishToEnabled(false)
+  }
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    event.preventDefault()
+    if (submitting) return
+
+    if (!formValues.title.trim() || !formValues.body.trim() || !formValues.publishFrom) {
+      addToast('Please fill in the title, body, and publish date.', 'error')
+      return
+    }
+
+    const publishFromDate = new Date(formValues.publishFrom)
+    if (Number.isNaN(publishFromDate.getTime())) {
+      addToast('Please provide a valid publish date.', 'error')
+      return
+    }
+
+    let publishToDate: Date | null = null
+    if (publishToEnabled && formValues.publishTo) {
+      publishToDate = new Date(formValues.publishTo)
+      if (Number.isNaN(publishToDate.getTime())) {
+        addToast('Please provide a valid end date.', 'error')
+        return
+      }
+      if (publishToDate <= publishFromDate) {
+        addToast('The end date must be after the start date.', 'error')
+        return
+      }
+    }
+
+    setSubmitting(true)
+
+    try {
+      await announcementsService.createAnnouncement({
+        title: formValues.title.trim(),
+        body: formValues.body.trim(),
+        publishFrom: publishFromDate.toISOString(),
+        publishTo: publishToDate ? publishToDate.toISOString() : undefined,
+        isPinned: formValues.isPinned,
+      })
+      addToast('Announcement published successfully.', 'success')
+      resetForm()
+      await loadAnnouncements()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to publish announcement'
+      addToast(message, 'error')
+    } finally {
+      if (isMountedRef.current) {
+        setSubmitting(false)
+      }
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Create Announcement</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Share updates with the entire community. Announcements appear on the announcements page
+            and in user profiles for members who opted in to community news.
+          </p>
+        </div>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          Title
+          <input
+            type="text"
+            value={formValues.title}
+            onChange={(event) =>
+              setFormValues((prev) => ({
+                ...prev,
+                title: event.target.value,
+              }))
+            }
+            maxLength={150}
+            required
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="Marketplace maintenance scheduled"
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          Message
+          <textarea
+            value={formValues.body}
+            onChange={(event) =>
+              setFormValues((prev) => ({
+                ...prev,
+                body: event.target.value,
+              }))
+            }
+            rows={6}
+            required
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="Let your community know about upcoming events or important updates."
+          />
+        </label>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Publish from
+            <input
+              type="datetime-local"
+              value={formValues.publishFrom}
+              onChange={(event) =>
+                setFormValues((prev) => ({
+                  ...prev,
+                  publishFrom: event.target.value,
+                }))
+              }
+              required
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            <span className="flex items-center justify-between">
+              <span>Publish until (optional)</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPublishToEnabled((prevEnabled) => {
+                    const nextEnabled = !prevEnabled
+                    setFormValues((prev) => {
+                      if (!nextEnabled) {
+                        return {
+                          ...prev,
+                          publishTo: '',
+                        }
+                      }
+
+                      if (prev.publishTo) {
+                        return prev
+                      }
+
+                      const baseDate = new Date(prev.publishFrom)
+                      if (Number.isNaN(baseDate.getTime())) {
+                        return prev
+                      }
+
+                      const defaultEnd = new Date(baseDate.getTime() + 24 * 60 * 60 * 1000)
+                      return {
+                        ...prev,
+                        publishTo: formatDateTimeLocalInput(defaultEnd),
+                      }
+                    })
+                    return nextEnabled
+                  })
+                }}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                {publishToEnabled ? 'Disable' : 'Enable'}
+              </button>
+            </span>
+            <input
+              type="datetime-local"
+              value={formValues.publishTo}
+              onChange={(event) =>
+                setFormValues((prev) => ({
+                  ...prev,
+                  publishTo: event.target.value,
+                }))
+              }
+              disabled={!publishToEnabled}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100"
+            />
+          </label>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={formValues.isPinned}
+            onChange={(event) =>
+              setFormValues((prev) => ({
+                ...prev,
+                isPinned: event.target.checked,
+              }))
+            }
+            className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+          />
+          Pin this announcement
+        </label>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+              submitting
+                ? 'cursor-not-allowed bg-slate-400'
+                : 'bg-primary hover:bg-primary/90 focus-visible:outline-primary'
+            }`}
+          >
+            {submitting ? 'Publishing...' : 'Publish announcement'}
+          </button>
+          <button
+            type="button"
+            onClick={resetForm}
+            disabled={submitting}
+            className="text-sm font-semibold text-slate-600 hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
+          >
+            Reset
+          </button>
+        </div>
+      </form>
+
+      <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Recent announcements</h2>
+            <p className="text-sm text-slate-600">
+              Newly published announcements appear at the top of the list. Pinned announcements stay at the top
+              for community members.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadAnnouncements()}
+            disabled={loading}
+            className={`self-start rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+              loading
+                ? 'cursor-not-allowed bg-slate-400'
+                : 'bg-primary hover:bg-primary/90 focus-visible:outline-primary'
+            }`}
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
+        {error ? (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>
+        ) : null}
+
+        {loading && announcements.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-primary"></div>
+            Loading announcements...
+          </div>
+        ) : null}
+
+        {!loading && announcements.length === 0 ? (
+          <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+            You haven't published any announcements yet.
+          </div>
+        ) : null}
+
+        <ul className="flex flex-col gap-4">
+          {announcements.map((announcement) => (
+            <li key={announcement.id} className="rounded-md border border-slate-200 bg-slate-50 p-4 shadow-sm">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">{announcement.title}</h3>
+                    <p className="whitespace-pre-line text-sm text-slate-700">{announcement.body}</p>
+                  </div>
+                  {announcement.isPinned ? (
+                    <span className="self-start rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                      Pinned
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <span>
+                    Publishes: {new Date(announcement.publishFrom).toLocaleString()}
+                  </span>
+                  {announcement.publishTo ? (
+                    <span>
+                      Expires: {new Date(announcement.publishTo).toLocaleString()}
+                    </span>
+                  ) : (
+                    <span>Runs indefinitely</span>
+                  )}
+                  <span>Last updated: {new Date(announcement.updatedAt).toLocaleString()}</span>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }
