@@ -7,7 +7,7 @@ import { AuthProvider } from './context/AuthContext.tsx'
 import { readStoredAuth } from './context/authStorage.ts'
 import { ThemeProvider } from './context/ThemeContext.tsx'
 import { readStoredTheme } from './context/themeStorage.ts'
-import { NotificationProvider } from './context/NotificationProvider.tsx'
+import { NotificationProvider } from './context/NotificationProvider'
 
 const initialAuth = readStoredAuth()
 const initialTheme = readStoredTheme() || undefined
