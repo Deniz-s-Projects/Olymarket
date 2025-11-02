@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import 'leaflet/dist/leaflet.css'
@@ -12,14 +11,12 @@ import { NotificationProvider } from './context/NotificationProvider'
 const initialAuth = readStoredAuth()
 const initialTheme = readStoredTheme() || undefined
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+createRoot(document.getElementById('root')!).render( 
     <ThemeProvider initialTheme={initialTheme}>
       <AuthProvider initialAuth={initialAuth}>
         <NotificationProvider>
           <App />
         </NotificationProvider>
       </AuthProvider>
-    </ThemeProvider>
-  </StrictMode>,
+    </ThemeProvider> 
 )
