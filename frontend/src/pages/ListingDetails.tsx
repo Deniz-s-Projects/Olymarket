@@ -218,7 +218,7 @@ const ListingDetails = () => {
   }
 
   const { title, description, price, isFree, category, owner, createdAt, condition } = listing
-  const sellerName = owner?.name ?? owner?.email ?? 'Marketplace partner'
+  const sellerName = owner?.name || 'Marketplace partner'
   const viewerRole = offersData?.viewerRole ?? null
   const offers = offersData?.offers ?? []
   const hasPendingOffer = offers.some((offerItem) => offerItem.status === 'pending')
@@ -871,7 +871,7 @@ const ListingDetails = () => {
                   <>
                     {offers.length > 0 ? (
                       offers.map((offerItem) => {
-                        const buyerName = offerItem.buyer.name ?? offerItem.buyer.email
+                        const buyerName = offerItem.buyer.name || 'Marketplace member'
                         const parsedAmount = Number.parseFloat(offerItem.amount)
                         const formattedAmount = Number.isNaN(parsedAmount)
                           ? `${offerItem.amount} EUR`

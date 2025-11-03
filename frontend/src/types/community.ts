@@ -1,8 +1,6 @@
-export type CommunityUserSummary = {
-  id: string
-  name: string
-  email: string
-}
+import type { PublicUser } from './users'
+
+export type CommunityUserSummary = PublicUser
 
 export type CommunityComment = {
   id: string

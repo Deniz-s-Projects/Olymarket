@@ -37,10 +37,12 @@ type OfferTimelineProps = {
 
 const getSenderName = (message: OfferMessage, buyer: OfferParticipant) => {
   if (message.sender) {
-    return message.sender.name ?? message.sender.email
+    return message.sender.name || 'Marketplace member'
   }
 
-  return message.type === 'status' ? 'Marketplace update' : buyer.name ?? buyer.email
+  return message.type === 'status'
+    ? 'Marketplace update'
+    : buyer.name || 'Marketplace member'
 }
 
 const OfferTimeline = ({ messages, buyer, seller }: OfferTimelineProps) => {

@@ -11,6 +11,8 @@ import { containsProhibitedLanguage } from "../utils/profanityFilter";
 import type { SelectQueryBuilder } from "typeorm";
 import { getNextExpiryDate } from "../services/listingExpiry";
 import { findAllowedListingCategory } from "../services/listingCategories";
+import { mapListingToResponse } from "../dtos/response/listing";
+import { mapUserToPublicDto } from "../dtos/response/user";
 
 type ListingQueryFilters = {
   searchTerm?: string;
@@ -167,7 +169,7 @@ const respondWithPaginatedResults = async (
   const hasMore = totalPages > 0 && page < totalPages;
 
   return res.json({
-    data: results,
+    data: results.map((listing) => mapListingToResponse(listing)),
     meta: {
       page,
       limit,
@@ -263,7 +265,7 @@ router.post(
     });
     listing.expiresAt = getNextExpiryDate();
     await listingRepository.save(listing);
-    return res.status(201).json(listing);
+    return res.status(201).json(mapListingToResponse(listing));
   }
 );
 
@@ -292,19 +294,15 @@ router.get("/:id", async (req, res) => {
     .where("id = :id", { id: listing.id })
     .execute();
   listing.viewsCount = (listing.viewsCount ?? 0) + 1;
-  return res.json(listing);
+  return res.json(mapListingToResponse(listing));
 });
 
 const serializeComment = (comment: ListingComment) => ({
   id: comment.id,
   body: comment.body,
-  createdAt: comment.createdAt,
-  updatedAt: comment.updatedAt,
-  author: {
-    id: comment.author.id,
-    name: comment.author.name,
-    email: comment.author.email,
-  },
+  createdAt: comment.createdAt.toISOString(),
+  updatedAt: comment.updatedAt.toISOString(),
+  author: mapUserToPublicDto(comment.author),
 });
 
 router.get("/:id/comments", async (req, res) => {
@@ -419,7 +417,7 @@ router.put(
     }
 
     const saved = await listingRepository.save(listing);
-    return res.json(saved);
+    return res.json(mapListingToResponse(saved));
   }
 );
 
@@ -453,7 +451,7 @@ router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, re
   }
 
   const saved = await listingRepository.save(listing);
-  return res.json(saved);
+  return res.json(mapListingToResponse(saved));
 });
 
 router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {

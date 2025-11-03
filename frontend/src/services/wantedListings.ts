@@ -1,12 +1,9 @@
 import { apiClient } from '../lib/apiClient'
+import type { PublicUser } from '../types/users'
 
 export type WantedListingStatus = 'open' | 'matched' | 'fulfilled' | 'cancelled'
 
-export type WantedListingUser = {
-  id: string
-  name: string
-  email: string
-}
+export type WantedListingUser = PublicUser
 
 export type WantedListingCategory = {
   id: string
@@ -16,8 +13,7 @@ export type WantedListingCategory = {
 
 export type WantedListingConversationParticipant = {
   id: string
-  name: string
-  email: string
+  user: PublicUser
 }
 
 export type WantedListingConversation = {
@@ -38,7 +34,7 @@ export type WantedListing = {
   buyer: WantedListingUser
   fulfillingSeller: WantedListingUser | null
   category: WantedListingCategory | null
-  conversation: { id: string; topic: string } | null
+  conversation: WantedListingConversation | null
 }
 
 export type PaginatedWantedListings = {

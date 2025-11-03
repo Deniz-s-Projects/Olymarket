@@ -86,7 +86,7 @@ const Messages = () => {
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {selectedConversation.participants
-                    .map((participant) => participant.name || participant.email)
+                    .map((participant) => participant.user.name || 'Marketplace member')
                     .join(', ')}
                 </p>
               </div>
@@ -114,7 +114,7 @@ const Messages = () => {
                   <div key={message.id} className="flex flex-col gap-1 rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-center justify-between text-xs text-slate-500">
                       <span className="font-medium text-slate-700">
-                        {message.sender.name || message.sender.email}
+                        {message.sender.name || 'Marketplace member'}
                       </span>
                       <span>{formatTimestamp(message.createdAt)}</span>
                     </div>

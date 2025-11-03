@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../lib/apiClient'
+import type { PublicUser } from '../types/users'
 
 export class ApiError extends Error {
   status: number
@@ -14,9 +15,7 @@ export class ApiError extends Error {
 
 export interface ConversationParticipant {
   id: string
-  userId: string
-  name: string
-  email: string
+  user: PublicUser
   lastReadAt: string | null
 }
 
@@ -31,9 +30,7 @@ export interface ConversationSummary {
 
 interface ConversationParticipantResponse {
   id: string
-  userId: string
-  name: string | null
-  email: string
+  user: PublicUser
   lastReadAt: string | null
 }
 
@@ -65,11 +62,7 @@ export interface ConversationMessage {
   body: string
   createdAt: string
   updatedAt: string
-  sender: {
-    id: string
-    name: string
-    email: string
-  }
+  sender: PublicUser
 }
 
 interface ConversationMessageResponse {
@@ -77,11 +70,7 @@ interface ConversationMessageResponse {
   body: string
   createdAt: string
   updatedAt: string
-  sender: {
-    id: string
-    name: string | null
-    email: string
-  }
+  sender: PublicUser
 }
 
 interface ConversationMessagePayload {
@@ -138,9 +127,7 @@ const mapConversation = (conversation: ConversationResponse): ConversationSummar
   updatedAt: conversation.updatedAt,
   participants: conversation.participants.map((participant) => ({
     id: participant.id,
-    userId: participant.userId,
-    name: participant.name ?? participant.email,
-    email: participant.email,
+    user: participant.user,
     lastReadAt: participant.lastReadAt,
   })),
   unreadCount: conversation.unreadCount ?? 0,
@@ -148,10 +135,7 @@ const mapConversation = (conversation: ConversationResponse): ConversationSummar
 
 const mapMessage = (message: ConversationMessageResponse): ConversationMessage => ({
   ...message,
-  sender: {
-    ...message.sender,
-    name: message.sender.name ?? message.sender.email,
-  },
+  sender: message.sender,
 })
 
 export const getConversations = async (

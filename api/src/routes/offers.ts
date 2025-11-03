@@ -10,6 +10,7 @@ import { Conversation } from "../entities/Conversation";
 import { ConversationParticipant } from "../entities/ConversationParticipant";
 import { Message } from "../entities/Message";
 import { User } from "../entities/User";
+import { mapUserToPublicDto } from "../dtos/response/user";
 
 const router = Router();
 
@@ -27,11 +28,7 @@ const serializeUser = (user: User | null) => {
     return null;
   }
 
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-  };
+  return mapUserToPublicDto(user);
 };
 
 const serializeOfferMessage = (message: OfferMessage) => ({
@@ -39,8 +36,8 @@ const serializeOfferMessage = (message: OfferMessage) => ({
   body: message.body,
   amount: message.amount,
   type: message.type,
-  createdAt: message.createdAt,
-  updatedAt: message.updatedAt,
+  createdAt: message.createdAt.toISOString(),
+  updatedAt: message.updatedAt.toISOString(),
   sender: serializeUser(message.sender),
 });
 
@@ -48,8 +45,8 @@ const serializeOffer = (offer: Offer, messages: OfferMessage[]) => ({
   id: offer.id,
   amount: offer.amount,
   status: offer.status,
-  createdAt: offer.createdAt,
-  updatedAt: offer.updatedAt,
+  createdAt: offer.createdAt.toISOString(),
+  updatedAt: offer.updatedAt.toISOString(),
   listing: {
     id: offer.listing.id,
     title: offer.listing.title,
