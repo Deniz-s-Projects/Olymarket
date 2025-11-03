@@ -244,7 +244,7 @@ const CommunityDiscussions: FC<CommunityDiscussionsProps> = ({ variant = 'page' 
                   {discussion.title}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Posted by {discussion.author.name || discussion.author.email}{' '}
+                  Posted by {discussion.author.name || 'Marketplace member'}{' '}
                   on {new Date(discussion.createdAt).toLocaleString()}
                 </p>
               </header>
@@ -266,7 +266,7 @@ const CommunityDiscussions: FC<CommunityDiscussionsProps> = ({ variant = 'page' 
                       >
                         <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
                           <span className="font-semibold text-slate-600 dark:text-slate-300">
-                            {comment.author.name || comment.author.email}
+                            {comment.author.name || 'Marketplace member'}
                           </span>
                           <span>{new Date(comment.createdAt).toLocaleString()}</span>
                         </div>

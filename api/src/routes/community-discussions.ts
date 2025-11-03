@@ -9,6 +9,7 @@ import {
   CreateCommunityCommentDto,
   CreateCommunityDiscussionDto,
 } from "../dtos/communityDiscussion";
+import { mapUserToPublicDto } from "../dtos/response/user";
 
 const router = Router();
 
@@ -54,24 +55,16 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
     id: discussion.id,
     title: discussion.title,
     body: discussion.body,
-    author: {
-      id: discussion.author.id,
-      name: discussion.author.name,
-      email: discussion.author.email,
-    },
+    author: mapUserToPublicDto(discussion.author),
     comments: (commentsByDiscussion.get(discussion.id) ?? []).map((comment) => ({
       id: comment.id,
       body: comment.body,
-      author: {
-        id: comment.author.id,
-        name: comment.author.name,
-        email: comment.author.email,
-      },
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
+      author: mapUserToPublicDto(comment.author),
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
     })),
-    createdAt: discussion.createdAt,
-    updatedAt: discussion.updatedAt,
+    createdAt: discussion.createdAt.toISOString(),
+    updatedAt: discussion.updatedAt.toISOString(),
   }));
 
   return res.json({
@@ -114,14 +107,10 @@ router.post(
       id: created.id,
       title: created.title,
       body: created.body,
-      author: {
-        id: created.author.id,
-        name: created.author.name,
-        email: created.author.email,
-      },
+      author: mapUserToPublicDto(created.author),
       comments: [],
-      createdAt: created.createdAt,
-      updatedAt: created.updatedAt,
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
     });
   }
 );
@@ -162,13 +151,9 @@ router.post(
     return res.status(201).json({
       id: created.id,
       body: created.body,
-      author: {
-        id: created.author.id,
-        name: created.author.name,
-        email: created.author.email,
-      },
-      createdAt: created.createdAt,
-      updatedAt: created.updatedAt,
+      author: mapUserToPublicDto(created.author),
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
     });
   }
 );

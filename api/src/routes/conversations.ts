@@ -8,27 +8,11 @@ import { Conversation } from "../entities/Conversation";
 import { ConversationParticipant } from "../entities/ConversationParticipant";
 import { Message } from "../entities/Message";
 import { User } from "../entities/User";
+import { mapConversationToDto, mapMessageToDto } from "../dtos/response/conversation";
 
 const router = Router();
 
 router.use(authMiddleware);
-
-const serializeParticipant = (participant: ConversationParticipant) => ({
-  id: participant.id,
-  userId: participant.user.id,
-  name: participant.user.name,
-  email: participant.user.email,
-  lastReadAt: participant.lastReadAt,
-});
-
-const serializeConversation = (conversation: Conversation, unreadCount = 0) => ({
-  id: conversation.id,
-  topic: conversation.topic,
-  createdAt: conversation.createdAt,
-  updatedAt: conversation.updatedAt,
-  participants: conversation.participants.map(serializeParticipant),
-  unreadCount,
-});
 
 router.get("/", async (req: AuthenticatedRequest, res) => {
   const participantRepository = AppDataSource.getRepository(ConversationParticipant);
@@ -125,9 +109,9 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
         return null;
       }
 
-      return serializeConversation(conversation, unreadCounts[conversation.id] ?? 0);
+      return mapConversationToDto(conversation, unreadCounts[conversation.id] ?? 0);
     })
-    .filter((conversation): conversation is ReturnType<typeof serializeConversation> => conversation !== null);
+    .filter((conversation): conversation is ReturnType<typeof mapConversationToDto> => conversation !== null);
 
   const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
 
@@ -180,7 +164,7 @@ router.post("/", validationMiddleware(ConversationDto), async (req: Authenticate
     return res.status(500).json({ message: "Failed to load created conversation" });
   }
 
-  return res.status(201).json(serializeConversation(created, 0));
+  return res.status(201).json(mapConversationToDto(created, 0));
 });
 
 router.get("/:id/messages", async (req: AuthenticatedRequest, res) => {
@@ -211,7 +195,7 @@ router.get("/:id/messages", async (req: AuthenticatedRequest, res) => {
     where: { conversation: { id: conversation.id } },
     order: { createdAt: "ASC" },
   });
-  return res.json(messages);
+  return res.json(messages.map((message) => mapMessageToDto(message)));
 });
 
 router.patch("/:id/read", async (req: AuthenticatedRequest, res) => {
@@ -259,7 +243,7 @@ router.post(
     if (participant) {
       await participantRepository.update(participant.id, { lastReadAt: new Date() });
     }
-    return res.status(201).json(message);
+    return res.status(201).json(mapMessageToDto(message));
   }
 );
 

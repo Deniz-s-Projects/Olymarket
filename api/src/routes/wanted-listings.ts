@@ -15,6 +15,7 @@ import {
   WantedListingUpdateDto,
   WANTED_LISTING_STATUSES,
 } from "../dtos/wantedListing";
+import { mapConversationSummaryToDto, mapWantedListingToResponse } from "../dtos/response/wantedListing";
 
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 10;
@@ -47,38 +48,6 @@ const normalizeStatus = (value: unknown): string | undefined => {
   const normalized = value.trim().toLowerCase();
   return WANTED_LISTING_STATUSES.find((status) => status === normalized);
 };
-
-const serializeUser = (user: { id: string; name: string; email: string }) => ({
-  id: user.id,
-  name: user.name,
-  email: user.email,
-});
-
-const serializeWantedListing = (wanted: WantedListing) => ({
-  id: wanted.id,
-  title: wanted.title,
-  details: wanted.details,
-  budget: wanted.budget,
-  status: wanted.status,
-  createdAt: wanted.createdAt,
-  updatedAt: wanted.updatedAt,
-  fulfilledAt: wanted.fulfilledAt,
-  buyer: serializeUser(wanted.buyer),
-  fulfillingSeller: wanted.fulfillingSeller ? serializeUser(wanted.fulfillingSeller) : null,
-  category: wanted.category
-    ? {
-        id: wanted.category.id,
-        name: wanted.category.name,
-        slug: wanted.category.slug,
-      }
-    : null,
-  conversation: wanted.conversation
-    ? {
-        id: wanted.conversation.id,
-        topic: wanted.conversation.topic,
-      }
-    : null,
-});
 
 const buildWantedListingsQuery = (
   req: Request,
@@ -141,7 +110,7 @@ router.get("/", async (req, res) => {
   const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
 
   return res.json({
-    data: results.map((item) => serializeWantedListing(item)),
+    data: results.map((item) => mapWantedListingToResponse(item)),
     meta: {
       page,
       limit,
@@ -168,7 +137,7 @@ router.get("/:id", async (req, res) => {
     return res.status(404).json({ message: "Buyer request not found" });
   }
 
-  return res.json(serializeWantedListing(record));
+  return res.json(mapWantedListingToResponse(record));
 });
 
 router.post(
@@ -217,7 +186,7 @@ router.post(
       return res.status(500).json({ message: "Failed to load created request" });
     }
 
-    return res.status(201).json(serializeWantedListing(created));
+    return res.status(201).json(mapWantedListingToResponse(created));
   },
 );
 
@@ -301,7 +270,7 @@ router.put(
       return res.status(500).json({ message: "Failed to load updated request" });
     }
 
-    return res.json(serializeWantedListing(updated));
+    return res.json(mapWantedListingToResponse(updated));
   },
 );
 
@@ -435,19 +404,11 @@ router.post(
     }
 
     const conversationSummary = hydratedConversation
-      ? {
-          id: hydratedConversation.id,
-          topic: hydratedConversation.topic,
-          participants: hydratedConversation.participants.map((participant) => ({
-            id: participant.user.id,
-            name: participant.user.name ?? participant.user.email,
-            email: participant.user.email,
-          })),
-        }
+      ? mapConversationSummaryToDto(hydratedConversation, hydratedConversation.participants)
       : null;
 
     return res.json({
-      listing: serializeWantedListing(updatedListing),
+      listing: mapWantedListingToResponse(updatedListing),
       conversation: conversationSummary,
       createdConversation,
     });

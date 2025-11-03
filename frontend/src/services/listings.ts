@@ -1,4 +1,5 @@
 import { apiClient } from '../lib/apiClient'
+import type { PublicUser } from '../types/users'
 
 export type ListingCategory = {
   id: string
@@ -6,18 +7,14 @@ export type ListingCategory = {
   slug: string
 }
 
-export type ListingOwner = {
-  id: string
-  name: string
-  email: string
-}
+export type ListingOwner = PublicUser
 
 export type ListingComment = {
   id: string
   body: string
   createdAt: string
   updatedAt: string
-  author: ListingOwner
+  author: PublicUser
 }
  
 export type ListingStatus = 'active' | 'draft' | 'sold' | 'expired'
@@ -39,6 +36,7 @@ export type Listing = {
   createdAt: string
   updatedAt: string
   owner: ListingOwner
+  reviewer: PublicUser | null
   category: ListingCategory | null
   images?: string[] | null
   viewsCount?: number
@@ -51,12 +49,6 @@ export type Listing = {
 export type OfferStatus = 'pending' | 'accepted' | 'declined'
 export type OfferMessageType = 'offer' | 'counter' | 'note' | 'status'
 
-export type OfferParticipant = {
-  id: string
-  name: string
-  email: string
-}
-
 export type OfferMessage = {
   id: string
   body: string | null
@@ -64,8 +56,10 @@ export type OfferMessage = {
   type: OfferMessageType
   createdAt: string
   updatedAt: string
-  sender: OfferParticipant | null
+  sender: PublicUser | null
 }
+
+export type OfferParticipant = PublicUser
 
 export type Offer = {
   id: string
@@ -74,9 +68,9 @@ export type Offer = {
   createdAt: string
   updatedAt: string
   listing: { id: string; title: string }
-  buyer: OfferParticipant
-  seller: OfferParticipant
-  lastActionBy: OfferParticipant | null
+  buyer: PublicUser
+  seller: PublicUser
+  lastActionBy: PublicUser | null
   messages: OfferMessage[]
 }
 

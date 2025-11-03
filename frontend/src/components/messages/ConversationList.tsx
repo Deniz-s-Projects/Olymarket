@@ -43,7 +43,7 @@ const ConversationList = ({
     <ul className="flex h-full flex-col gap-2">
       {conversations.map((conversation) => {
         const participantNames = conversation.participants
-          .map((participant) => participant.name || participant.email)
+          .map((participant) => participant.user.name || 'Marketplace member')
           .join(', ')
 
         const isActive = conversation.id === selectedId

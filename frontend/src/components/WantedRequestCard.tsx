@@ -82,12 +82,15 @@ const WantedRequestCard = ({ request, isResponding, onRespond, currentUserId }: 
           <p>
             Buyer:{' '}
             <span className="font-semibold text-slate-700">
-              {isOwner ? 'You' : request.buyer.name}
+              {isOwner ? 'You' : request.buyer.name || 'Marketplace member'}
             </span>
           </p>
           {request.fulfillingSeller ? (
             <p>
-              Matched with <span className="font-semibold text-slate-700">{request.fulfillingSeller.name}</span>
+              Matched with{' '}
+              <span className="font-semibold text-slate-700">
+                {request.fulfillingSeller.name || 'Marketplace member'}
+              </span>
             </p>
           ) : null}
           {request.fulfilledAt ? (
