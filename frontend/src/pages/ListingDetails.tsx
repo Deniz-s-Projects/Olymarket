@@ -50,6 +50,7 @@ const ListingDetails = () => {
   const navigate = useNavigate()
   const { token, user } = useAuth()
   const isMounted = useRef(true)
+  const [ownerContact, setOwnerContact] = useState<{ email?: string | null; phoneNumber?: string | null } | null>(null)
   const [listing, setListing] = useState<Listing | null>(null)
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -106,6 +107,35 @@ const ListingDetails = () => {
     message: string
     type: 'success' | 'error'
   } | null>(null)
+
+   const fetchOwnerContact = useCallback(
+    async (listingId?: string) => {
+      if (!listingId) return
+      // only load contact when seller allowed it
+      if (!listing?.showContactInfo) {
+        setOwnerContact(null)
+        return
+      }
+      try {
+        const fresh = await fetchListingById(listingId)
+        // backend may return ownerContact or include contact on owner; normalize both cases
+        const contact = (fresh as any).ownerContact ?? {
+          email: (fresh as any).owner?.email ?? null,
+          phoneNumber: (fresh.owner as any)?.phoneNumber ?? (fresh.owner as any)?.phone ?? null,
+        }
+        setOwnerContact(contact ?? null)
+      } catch (err) {
+        console.error('Failed to load owner contact', err)
+        setOwnerContact(null)
+      }
+    },
+    [listing?.showContactInfo]
+  )
+
+  useEffect(() => {
+    if (!listing) return
+    void fetchOwnerContact(listing.id)
+  }, [listing, fetchOwnerContact])
 
   const refreshComments = useCallback(async () => {
     if (!id) {
@@ -1101,9 +1131,9 @@ const ListingDetails = () => {
                 {listing?.showContactInfo ? (
                   <>
                     {listing.preferredContactMethod === 'Phone' ? (
-                      owner?.phoneNumber ? (
+                      ownerContact?.phoneNumber ? (
                         <div className="mt-2 text-sm text-slate-700">
-                          <span className="font-semibold">Phone:</span> {owner.phoneNumber}
+                          <span className="font-semibold">Phone:</span> {ownerContact.phoneNumber}
                         </div>
                       ) : (
                         <div className="mt-2 text-sm text-amber-700">
@@ -1111,9 +1141,9 @@ const ListingDetails = () => {
                         </div>
                       )
                     ) : listing.preferredContactMethod === 'Email' ? (
-                      owner?.email ? (
+                      ownerContact?.email ? (
                         <div className="mt-2 text-sm text-slate-700">
-                          <span className="font-semibold">Email:</span> {owner.email}
+                          <span className="font-semibold">Email:</span> {ownerContact.email}
                         </div>
                       ) : (
                         <div className="mt-2 text-sm text-amber-700">
