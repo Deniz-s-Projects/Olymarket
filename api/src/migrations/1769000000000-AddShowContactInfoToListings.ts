@@ -5,7 +5,7 @@ export class AddShowContactInfoToListings1769000000000 implements MigrationInter
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "listings" ADD "show_contact_info" boolean NOT NULL DEFAULT false`,
+      `ALTER TABLE "listings" ADD COLUMN IF NOT EXISTS "show_contact_info" boolean NOT NULL DEFAULT false`,
     );
   }
 

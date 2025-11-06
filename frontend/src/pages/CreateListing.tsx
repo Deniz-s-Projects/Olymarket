@@ -636,7 +636,7 @@ const CreateListing = () => {
            <ToggleSwitch
             label="Display contact info on this listing"
             name="showContactInfo"
-            description="When enabled, buyers will see the contact info that matches your selected preferred contact method (your account email or phone). Use with care — this will make that info visible to anyone viewing the listing."
+            description="When enabled, buyers will see your preferred contact method."
             hint={values.showContactInfo ? "Your contact info will be shown to interested buyers." : "Your contact info will remain private."}
             checked={values.showContactInfo}
             onChange={(checked) => updateValue("showContactInfo", checked)}
