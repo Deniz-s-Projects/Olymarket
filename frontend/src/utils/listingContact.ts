@@ -48,6 +48,7 @@ export const getListingPublicContactLabel = ({
  
 
 const sanitizeValue = (value: unknown): string | null => {
+  console.log('sanitizeValue input:', value)
   if (typeof value !== 'string') {
     return null
   }
@@ -56,6 +57,7 @@ const sanitizeValue = (value: unknown): string | null => {
 }
 
 const buildFallbackMessage = (methodLabel: string): string => {
+  console.log('methodLabel:', methodLabel)
   const normalized = methodLabel.toLowerCase()
   if (normalized.includes('messag') || normalized.includes('chat')) {
     return 'Reach out using Olymarket messages to connect with this seller.'
