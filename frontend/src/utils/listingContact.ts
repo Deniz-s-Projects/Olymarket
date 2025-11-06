@@ -1,3 +1,5 @@
+
+import type { Listing } from '../services/listings'
 export type ListingPublicContact =
   | string
   | {
@@ -41,14 +43,9 @@ export const getListingPublicContactLabel = ({
     return normalized
   }
 
-  return preferredContactMethod?.trim() ?? ''
-import type { Listing } from '../services/listings'
-
-export type ListingContactSummary = {
-  methodLabel: string
-  value: string | null
-  fallbackMessage: string | null
+  return preferredContactMethod?.trim() ?? '' 
 }
+ 
 
 const sanitizeValue = (value: unknown): string | null => {
   if (typeof value !== 'string') {
@@ -92,3 +89,9 @@ export const deriveListingContactSummary = (
     fallbackMessage: value ? null : buildFallbackMessage(methodLabel),
   }
 }
+export type ListingContactSummary = {
+  methodLabel: string
+  value: string | null
+  fallbackMessage: string | null
+}
+
