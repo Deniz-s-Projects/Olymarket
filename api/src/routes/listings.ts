@@ -302,9 +302,9 @@ router.get("/:id", async (req, res) => {
     const userRepo = AppDataSource.getRepository(User);
     const ownerContact = await userRepo.findOne({
       where: { id: listing.owner.id },
-      select: ["id", "email", "phone"],
+      select: ["id", "email", "phoneNumber"],
     });
-    response.ownerContact = ownerContact ? { email: ownerContact.email ?? null, phone: ownerContact.phone ?? null }
+    response.ownerContact = ownerContact ? { email: ownerContact.email ?? null, phone: ownerContact.phoneNumber ?? null }
       : undefined;
   }
   
