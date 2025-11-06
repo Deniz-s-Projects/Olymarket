@@ -1101,7 +1101,7 @@ const ListingDetails = () => {
                 {listing?.showContactInfo ? (
                   <>
                     {listing.preferredContactMethod === 'Phone' ? (
-                      owner?.phone ? (
+                      owner?.phoneNumber ? (
                         <div className="mt-2 text-sm text-slate-700">
                           <span className="font-semibold">Phone:</span> {owner.phoneNumber}
                         </div>
