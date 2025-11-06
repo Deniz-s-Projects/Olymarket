@@ -72,6 +72,7 @@ export const deriveListingContactSummary = (
   if (!listing.showContactInfo) {
     return null
   }
+  console.log(listing.publicContactInfo)
 
   const methodLabel =
     listing.publicContactInfo?.label?.trim() ||
