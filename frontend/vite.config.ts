@@ -43,10 +43,6 @@ export default defineConfig({
         },
     }),
   ],
-  test: {
-    environment: 'jsdom',
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
-  },
   server: {
       host: '0.0.0.0', // This exposes the server to your network
       port: 5173,      // (Optional) Explicitly set the port
