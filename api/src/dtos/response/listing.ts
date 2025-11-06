@@ -7,6 +7,12 @@ export type ListingCategoryDto = {
   slug: string;
 };
 
+export type ListingPublicContactInfoDto = {
+  method: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+};
+
 export type ListingResponseDto = {
   id: string;
   title: string;
@@ -27,9 +33,42 @@ export type ListingResponseDto = {
   savesCount: number;
   availability: string | null;
   preferredContactMethod: string | null;
+  showContactInfo: boolean;
+  publicContactInfo: ListingPublicContactInfoDto | null;
   condition: Listing["condition"];
   moderationStatus: Listing["moderationStatus"];
   moderationNotes: string | null;
+};
+
+const buildPublicContactInfo = (listing: Listing): ListingPublicContactInfoDto | null => {
+  if (!listing.showContactInfo) {
+    return null;
+  }
+
+  const method = listing.preferredContactMethod?.trim();
+  if (!method) {
+    return null;
+  }
+
+  const normalizedMethod = method.toLowerCase();
+
+  if (normalizedMethod === "email") {
+    return {
+      method,
+      email: listing.owner.email,
+    };
+  }
+
+  if (normalizedMethod === "phone") {
+    return {
+      method,
+      phoneNumber: listing.owner.phoneNumber,
+    };
+  }
+
+  return {
+    method,
+  };
 };
 
 export const mapListingToResponse = (listing: Listing): ListingResponseDto => ({
@@ -58,6 +97,8 @@ export const mapListingToResponse = (listing: Listing): ListingResponseDto => ({
   savesCount: listing.savesCount ?? 0,
   availability: listing.availability,
   preferredContactMethod: listing.preferredContactMethod,
+  showContactInfo: listing.showContactInfo,
+  publicContactInfo: buildPublicContactInfo(listing),
   condition: listing.condition,
   moderationStatus: listing.moderationStatus,
   moderationNotes: listing.moderationNotes,
