@@ -636,8 +636,8 @@ const CreateListing = () => {
            <ToggleSwitch
             label="Display contact info on this listing"
             name="showContactInfo"
-            description="When enabled, buyers will see the contact info that matches your selected preferred contact method (your account email or phone). Use with care — this will make that info visible to anyone viewing the listing."
-            hint={values.showContactInfo ? "Your contact info will be shown to interested buyers." : "Your contact info will remain private."}
+            description="When enabled, buyers will see your preferred contact method (email, phone or in-app)."
+            hint={values.showContactInfo ? "Your contact info will be shown to interested buyers. Use with care!" : "Your contact info will remain private."}
             checked={values.showContactInfo}
             onChange={(checked) => updateValue("showContactInfo", checked)}
           />
@@ -652,7 +652,7 @@ const CreateListing = () => {
           <ToggleSwitch
             label="Active listing"
             name="active"
-            description="Disable this to hide the listing from buyers without deleting it."
+            description="Disable this to create the listing as a draft to edit later."
             hint="You can update this status at any time."
             checked={values.active}
             onChange={(checked) => updateValue("active", checked)}
