@@ -110,15 +110,18 @@ const ListingDetails = () => {
 
    const fetchOwnerContact = useCallback(
     async (listingId?: string) => {
+      
+      try { 
       if (!listingId) return
+      const fresh = await fetchListingById(listingId)
+      const show = (fresh as any).showContactInfo ?? (fresh as any).show_contact_info ?? false
+          
       // only load contact when seller allowed it
-      if (!listing?.showContactInfo) {
+      if (!show) {
         setOwnerContact(null)
         console.log("Seller did not allow showing contact info.")
         return
-      }
-      try {
-        const fresh = await fetchListingById(listingId)
+      } 
         // backend may return ownerContact or include contact on owner; normalize both cases
         const contact = (fresh as any).ownerContact ?? {
           email: (fresh as any).owner?.email ?? null,

@@ -161,6 +161,7 @@ export type ListingPayload = {
 const normalizeListingPayload = (payload: ListingPayload) => {
   const { categoryId, status, condition, ...rest } = payload
   const priceNum = Number(rest.price);
+  const showContactInfo = rest.showContactInfo === true;
   // If price is 0, always mark as free; otherwise preserve provided isFree (may be undefined)
   const isFree = priceNum < 1 ? true : rest.isFree;
   rest.isFree = isFree
@@ -181,6 +182,7 @@ const normalizeListingPayload = (payload: ListingPayload) => {
     preferredContactMethod: rest.preferredContactMethod?.trim() ?? "",
     condition: condition ?? 'used_but_works',
     categoryId: trimmedCategoryId,
+    showContactInfo: showContactInfo
   }
 }
 
