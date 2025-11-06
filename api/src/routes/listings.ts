@@ -304,8 +304,7 @@ router.get("/:id", async (req, res) => {
       where: { id: listing.owner.id },
       select: ["id", "email", "phone"],
     });
-    response.ownerContact = ownerContact
-      ? { email: ownerContact.email ?? null, phone: ownerContact.phone ?? null }
+    response.ownerContact = ownerContact ? { email: ownerContact.email ?? null, phone: ownerContact.phone ?? null }
       : undefined;
   }
   

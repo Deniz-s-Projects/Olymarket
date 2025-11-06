@@ -114,6 +114,7 @@ const ListingDetails = () => {
       // only load contact when seller allowed it
       if (!listing?.showContactInfo) {
         setOwnerContact(null)
+        console.log("Seller did not allow showing contact info.")
         return
       }
       try {
