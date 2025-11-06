@@ -56,12 +56,17 @@ const sanitizeValue = (value: unknown): string | null => {
 }
 
 const buildFallbackMessage = (methodLabel: string): string => {
-  const normalized = methodLabel.toLowerCase()
+  const trimmedLabel = methodLabel.trim()
+  const normalized = trimmedLabel.toLowerCase()
   if (normalized.includes('messag') || normalized.includes('chat')) {
     return 'Reach out using Olymarket messages to connect with this seller.'
   }
 
-  return 'Start a conversation to share contact details securely.'
+  if (!trimmedLabel) {
+    return ''
+  }
+
+  return `The seller prefers to be contacted via ${trimmedLabel}.`
 }
 
 export const deriveListingContactSummary = (
