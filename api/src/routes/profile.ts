@@ -64,7 +64,7 @@ const ensureUserPreferences = async (userId: string) => {
       savedSearchDigests: false,
       communityNews: false,
     });
-    //preferences = await preferenceRepository.save(preferences);
+    preferences = await preferenceRepository.save(preferences);
   }
 
   if (!preferences.user) {

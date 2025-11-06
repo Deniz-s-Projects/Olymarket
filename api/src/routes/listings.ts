@@ -3,7 +3,7 @@ import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import { validationMiddleware } from "../middleware/validate";
 import { ListingDto } from "../dtos/listing";
 import { AppDataSource } from "../config";
-import { Listing } from "../entities/Listing";  
+import { Listing } from "../entities/Listing";
 import { ListingCategory } from "../entities/ListingCategory";
 import { SavedListing } from "../entities/SavedListing";
 import { ListingComment } from "../entities/ListingComment";
@@ -13,7 +13,6 @@ import { getNextExpiryDate } from "../services/listingExpiry";
 import { findAllowedListingCategory } from "../services/listingCategories";
 import { mapListingToResponse } from "../dtos/response/listing";
 import { mapUserToPublicDto } from "../dtos/response/user";
-import { User } from "../entities/User";
 
 type ListingQueryFilters = {
   searchTerm?: string;
@@ -263,8 +262,6 @@ router.post(
       preferredContactMethod: preferredContactMethod || null,
       condition,
       moderationStatus: "approved",
-      showContactInfo: typeof req.body.showContactInfo === "boolean" ? req.body.showContactInfo : false,
-      
     });
     listing.expiresAt = getNextExpiryDate();
     await listingRepository.save(listing);
@@ -297,18 +294,7 @@ router.get("/:id", async (req, res) => {
     .where("id = :id", { id: listing.id })
     .execute();
   listing.viewsCount = (listing.viewsCount ?? 0) + 1;
-  const response = res.json(mapListingToResponse(listing)) as any;
-  if (listing.showContactInfo) {
-    const userRepo = AppDataSource.getRepository(User);
-    const ownerContact = await userRepo.findOne({
-      where: { id: listing.owner.id },
-      select: ["id", "email", "phone"],
-    });
-    response.ownerContact = ownerContact ? { email: ownerContact.email ?? null, phone: ownerContact.phone ?? null }
-      : undefined;
-  }
-  
-  return res.json(response); 
+  return res.json(mapListingToResponse(listing));
 });
 
 const serializeComment = (comment: ListingComment) => ({

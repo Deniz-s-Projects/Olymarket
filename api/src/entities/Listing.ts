@@ -91,7 +91,4 @@ export class Listing extends BaseModel {
 
   @OneToMany(() => ListingComment, (comment) => comment.listing)
   comments!: ListingComment[];
-  
-  @Column({ name: "show_contact_info", default: false })
-  showContactInfo!: boolean;
 }

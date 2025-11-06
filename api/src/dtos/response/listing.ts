@@ -30,10 +30,6 @@ export type ListingResponseDto = {
   condition: Listing["condition"];
   moderationStatus: Listing["moderationStatus"];
   moderationNotes: string | null;
-  ownerContact?: {
-    email?: string | null;
-    phone?: string | null;
-  } | null;
 };
 
 export const mapListingToResponse = (listing: Listing): ListingResponseDto => ({
@@ -65,8 +61,4 @@ export const mapListingToResponse = (listing: Listing): ListingResponseDto => ({
   condition: listing.condition,
   moderationStatus: listing.moderationStatus,
   moderationNotes: listing.moderationNotes,
-  ownerContact: listing.owner.email || listing.owner.phoneNumber ? {
-    email: listing.owner.email,
-    phone: listing.owner.phoneNumber,
-  } : null,
 });

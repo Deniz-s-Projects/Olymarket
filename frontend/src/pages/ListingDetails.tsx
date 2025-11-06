@@ -50,7 +50,6 @@ const ListingDetails = () => {
   const navigate = useNavigate()
   const { token, user } = useAuth()
   const isMounted = useRef(true)
-  const [ownerContact, setOwnerContact] = useState<{ email?: string | null; phoneNumber?: string | null } | null>(null)
   const [listing, setListing] = useState<Listing | null>(null)
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -107,39 +106,6 @@ const ListingDetails = () => {
     message: string
     type: 'success' | 'error'
   } | null>(null)
-
-   const fetchOwnerContact = useCallback(
-    async (listingId?: string) => {
-      
-      try { 
-      if (!listingId) return
-      const fresh = await fetchListingById(listingId)
-      const show = (fresh as any).showContactInfo ?? (fresh as any).show_contact_info ?? false
-          
-      // only load contact when seller allowed it
-      if (!show) {
-        setOwnerContact(null)
-        console.log("Seller did not allow showing contact info.")
-        return
-      } 
-        // backend may return ownerContact or include contact on owner; normalize both cases
-        const contact = (fresh as any).ownerContact ?? {
-          email: (fresh as any).owner?.email ?? null,
-          phoneNumber: (fresh.owner as any)?.phoneNumber ?? (fresh.owner as any)?.phone ?? null,
-        }
-        setOwnerContact(contact ?? null)
-      } catch (err) {
-        console.error('Failed to load owner contact', err)
-        setOwnerContact(null)
-      }
-    },
-    [listing?.showContactInfo]
-  )
-
-  useEffect(() => {
-    if (!listing) return
-    void fetchOwnerContact(listing.id)
-  }, [listing, fetchOwnerContact])
 
   const refreshComments = useCallback(async () => {
     if (!id) {
@@ -1123,51 +1089,13 @@ const ListingDetails = () => {
 
           <div className="rounded-2xl bg-white p-6 shadow">
             <h2 className="text-base font-semibold text-slate-900">Seller</h2>
-            <div className="mt-3 flex items-start gap-3">
+            <div className="mt-3 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                 {(sellerName || '?').charAt(0).toUpperCase()}
               </div>
-              <div className="flex-1">
+              <div>
                 <div className="text-slate-800">{sellerName}</div>
                 <div className="text-xs text-slate-500">Verified partner</div>
-
-                {/* Show contact info only when seller enabled it on the listing */}
-                {listing?.showContactInfo ? (
-                  <>
-                    {listing.preferredContactMethod === 'Phone' ? (
-                      ownerContact?.phoneNumber ? (
-                        <div className="mt-2 text-sm text-slate-700">
-                          <span className="font-semibold">Phone:</span> {ownerContact.phoneNumber}
-                        </div>
-                      ) : (
-                        <div className="mt-2 text-sm text-amber-700">
-                          Seller opted to display a phone number but has not provided one.
-                        </div>
-                      )
-                    ) : listing.preferredContactMethod === 'Email' ? (
-                      ownerContact?.email ? (
-                        <div className="mt-2 text-sm text-slate-700">
-                          <span className="font-semibold">Email:</span> {ownerContact.email}
-                        </div>
-                      ) : (
-                        <div className="mt-2 text-sm text-amber-700">
-                          Seller opted to display an email but has not provided one.
-                        </div>
-                      )
-                    ) : (
-                      <div className="mt-2 text-sm text-slate-700">
-                        Contact via seller's preferred method: <span className="font-medium">{listing.preferredContactMethod || 'In-app messaging'}</span>
-                      </div>
-                    )}
-                    <div className="mt-1 text-xs text-slate-500">
-                      This contact info is displayed because the seller allowed it on this listing.
-                    </div>
-                  </>
-                ) : (
-                  <div className="mt-2 text-sm text-slate-500">
-                    Seller wishes to hide contact details such as email/phone number. Use "Contact seller" to message them through Olymarket.
-                  </div>
-                )}
               </div>
             </div>
           </div>
