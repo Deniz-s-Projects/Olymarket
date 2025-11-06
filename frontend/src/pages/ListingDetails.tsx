@@ -1089,13 +1089,51 @@ const ListingDetails = () => {
 
           <div className="rounded-2xl bg-white p-6 shadow">
             <h2 className="text-base font-semibold text-slate-900">Seller</h2>
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                 {(sellerName || '?').charAt(0).toUpperCase()}
               </div>
-              <div>
+              <div className="flex-1">
                 <div className="text-slate-800">{sellerName}</div>
                 <div className="text-xs text-slate-500">Verified partner</div>
+
+                {/* Show contact info only when seller enabled it on the listing */}
+                {listing?.showContactInfo ? (
+                  <>
+                    {listing.preferredContactMethod === 'Phone' ? (
+                      owner?.phone ? (
+                        <div className="mt-2 text-sm text-slate-700">
+                          <span className="font-semibold">Phone:</span> {owner.phoneNumber}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-sm text-amber-700">
+                          Seller opted to display a phone number but has not provided one.
+                        </div>
+                      )
+                    ) : listing.preferredContactMethod === 'Email' ? (
+                      owner?.email ? (
+                        <div className="mt-2 text-sm text-slate-700">
+                          <span className="font-semibold">Email:</span> {owner.email}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-sm text-amber-700">
+                          Seller opted to display an email but has not provided one.
+                        </div>
+                      )
+                    ) : (
+                      <div className="mt-2 text-sm text-slate-700">
+                        Contact via seller's preferred method: <span className="font-medium">{listing.preferredContactMethod || 'In-app messaging'}</span>
+                      </div>
+                    )}
+                    <div className="mt-1 text-xs text-slate-500">
+                      This contact info is displayed because the seller allowed it on this listing.
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-2 text-sm text-slate-500">
+                    Contact details are hidden. Use "Contact seller" to message them through Olymarket.
+                  </div>
+                )}
               </div>
             </div>
           </div>

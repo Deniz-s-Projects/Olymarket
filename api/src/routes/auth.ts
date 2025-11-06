@@ -94,4 +94,23 @@ router.get("/me", authMiddleware, (req: AuthenticatedRequest, res) => {
   });
 });
 
+/**
+ * Fetch only contact fields for a user by id.
+ * Returns { id, email, phoneNumber } with nulls when missing.
+ */
+export async function fetchUserContactById(
+  id: string
+): Promise<{ id: string; email: string | null; phoneNumber: string | null }> {
+  const userRepo = AppDataSource.getRepository(User);
+  const user = await userRepo.findOne({
+    where: { id },
+    select: ["id", "email", "phoneNumber"],
+  });
+  return {
+    id: user?.id ?? id,
+    email: user?.email ?? null,
+    phoneNumber: user?.phoneNumber ?? null,
+  };
+}
+
 export default router;
