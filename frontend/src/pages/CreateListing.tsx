@@ -47,7 +47,7 @@ const INITIAL_VALUES: ListingFormValues = {
   preferredContactMethod: "",
   active: true,
   condition: DEFAULT_LISTING_CONDITION,
-  showContactInfo: false,
+  showContactInfo: true,
 }
 
 const DEFAULT_CONTACT_METHOD_OPTIONS = ["Email", "Phone", "In-app messaging"]
