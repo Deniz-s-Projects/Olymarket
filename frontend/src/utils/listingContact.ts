@@ -74,23 +74,30 @@ export const deriveListingContactSummary = (
   }
   console.log(listing.publicContactInfo)
 
-  const methodLabel =
-    listing.publicContactInfo?.label?.trim() ||
-    listing.publicContactInfo?.method?.trim() ||
-    listing.preferredContactMethod?.trim() ||
+  const methodLabel = listing.publicContactInfo?.label?.trim() ||  listing.publicContactInfo?.method?.trim() ||  listing.preferredContactMethod?.trim() ||
     ''
 
   if (!methodLabel) {
     return null
   }
 
-  const value = sanitizeValue(listing.publicContactInfo?.value ?? null)
-
-  return {
-    methodLabel,
-    value,
-    fallbackMessage: value ? null : buildFallbackMessage(methodLabel),
+   
+  if (methodLabel.toLowerCase().includes('phone')) {
+      const value = sanitizeValue(listing.publicContactInfo?.value || listing.publicContactInfo?.label)
+        return {
+        methodLabel,
+        value,
+        fallbackMessage: value ? null : buildFallbackMessage(methodLabel),
+      }
+  } else {
+      const value = sanitizeValue(listing.publicContactInfo?.value || listing.publicContactInfo?.label)
+        return {
+        methodLabel,
+        value,
+        fallbackMessage: value ? null : buildFallbackMessage(methodLabel),
+      }
   }
+ 
 }
 export type ListingContactSummary = {
   methodLabel: string

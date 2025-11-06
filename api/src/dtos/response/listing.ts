@@ -11,6 +11,7 @@ export type ListingPublicContactInfoDto = {
   method: string;
   email?: string | null;
   phoneNumber?: string | null;
+  value?: string | null;
 };
 
 export type ListingResponseDto = {
@@ -55,14 +56,14 @@ const buildPublicContactInfo = (listing: Listing): ListingPublicContactInfoDto |
   if (normalizedMethod === "email") {
     return {
       method,
-      email: listing.owner.email,
+      value: listing.owner.email,
     };
   }
 
   if (normalizedMethod === "phone") {
     return {
       method,
-      phoneNumber: listing.owner.phoneNumber,
+      value: listing.owner.phoneNumber,
     };
   }
 
