@@ -4,7 +4,7 @@ import javascriptObfuscator from 'vite-plugin-javascript-obfuscator';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: 
+  plugins:
   [
     react(),
     javascriptObfuscator({
