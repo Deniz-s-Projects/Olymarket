@@ -32,6 +32,7 @@ type ListingFormValues = {
   preferredContactMethod: string
   active: boolean
   condition: ListingCondition
+  showContactInfo: boolean
 }
 
 type ListingFormErrors = Partial<Record<keyof ListingFormValues, string>>
@@ -46,6 +47,7 @@ const INITIAL_VALUES: ListingFormValues = {
   preferredContactMethod: "",
   active: true,
   condition: DEFAULT_LISTING_CONDITION,
+  showContactInfo: false,
 }
 
 const DEFAULT_CONTACT_METHOD_OPTIONS = ["Email", "Phone", "In-app messaging"]
@@ -59,7 +61,7 @@ const CreateListing = () => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const isEditMode = Boolean(id)
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const isMountedRef = useRef(true)
   const [values, setValues] = useState<ListingFormValues>(INITIAL_VALUES)
   const [errors, setErrors] = useState<ListingFormErrors>({})
@@ -143,6 +145,7 @@ const CreateListing = () => {
         preferredContactMethod: listing.preferredContactMethod?.trim() ?? "",
         active: listing.isActive,
         condition: listing.condition ?? DEFAULT_LISTING_CONDITION,
+        showContactInfo: listing.showContactInfo ?? false,
       })
 
       if (listing.images && listing.images.length > 0) {
@@ -212,6 +215,7 @@ const CreateListing = () => {
         if (!value.trim()) return "Choose how you prefer to be contacted."
         return ""
       },
+      showContactInfo: () => "",
       active: () => "",
     }),
     [categories]
@@ -303,6 +307,24 @@ const CreateListing = () => {
       setIsSubmitting(true)
 
       try {
+         if (values.showContactInfo) {
+          if (!values.preferredContactMethod) {
+            setSubmitError("Select a preferred contact method before displaying your contact info.")
+            setIsSubmitting(false)
+            return
+          }
+          if (values.preferredContactMethod === "Phone" && !user?.phoneNumber) {
+            setSubmitError("You have enabled phone display but no phone number exists on your account. Update your profile first.")
+            setIsSubmitting(false)
+            return
+          }
+          if (values.preferredContactMethod === "Email" && !user?.email) {
+            setSubmitError("You have enabled email display but no email exists on your account. Update your profile first.")
+            setIsSubmitting(false)
+            return
+          }
+        }
+
         const newImages = await readFilesAsDataUrls(photoFiles.slice(0, MAX_PHOTOS))
         const existingImages = photos
           .filter((photo) => photo.id.startsWith("existing-"))
@@ -321,6 +343,7 @@ const CreateListing = () => {
           availability: values.availability.trim(),
           preferredContactMethod: values.preferredContactMethod.trim(),
           condition: values.condition,
+          showContactInfo: values.showContactInfo,
         }
 
         let listing
@@ -609,6 +632,23 @@ const CreateListing = () => {
               <span className="text-xs font-normal text-red-600">{errors.preferredContactMethod}</span>
             ) : null}
           </label>
+
+           <ToggleSwitch
+            label="Display contact info on this listing"
+            name="showContactInfo"
+            description="When enabled, buyers will see the contact info that matches your selected preferred contact method (your account email or phone). Use with care — this will make that info visible to anyone viewing the listing."
+            hint={values.showContactInfo ? "Your contact info will be shown to interested buyers." : "Your contact info will remain private."}
+            checked={values.showContactInfo}
+            onChange={(checked) => updateValue("showContactInfo", checked)}
+          />
+
+          {/* Warn when seller enables display but no contact info exists */}
+          {values.showContactInfo && values.preferredContactMethod === "Phone" && !user?.phoneNumber ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              You don't have a phone number on your account. Update your profile to display a phone number.
+            </div>
+          ) : null}
+
           <ToggleSwitch
             label="Active listing"
             name="active"

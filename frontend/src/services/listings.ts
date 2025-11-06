@@ -44,6 +44,7 @@ export type Listing = {
   availability: string | null
   preferredContactMethod: string | null
   condition: ListingCondition
+  showContactInfo?: boolean
 }
 
 export type OfferStatus = 'pending' | 'accepted' | 'declined'
@@ -154,6 +155,7 @@ export type ListingPayload = {
   availability: string
   preferredContactMethod: string
   condition?: ListingCondition
+  showContactInfo?: boolean
 }
 
 const normalizeListingPayload = (payload: ListingPayload) => {

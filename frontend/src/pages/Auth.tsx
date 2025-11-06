@@ -121,16 +121,7 @@ const confirmPasswordValidator = (value: string, values: { password: string }) =
 }
 
 const COUNTRY_OPTIONS = [
-  { code: "+1", label: "United States / Canada" },
-  { code: "+44", label: "United Kingdom" },
-  { code: "+33", label: "France" },
-  { code: "+49", label: "Germany" },
-  { code: "+34", label: "Spain" },
-  { code: "+39", label: "Italy" },
-  { code: "+61", label: "Australia" },
-  { code: "+81", label: "Japan" },
-  { code: "+91", label: "India" },
-  { code: "+234", label: "Nigeria" },
+  { code: "+49", label: "Germany" }, 
 ] as const
 
 const buildPhoneNumberValidator = (countryCode: string) => {
