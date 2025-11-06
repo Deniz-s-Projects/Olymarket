@@ -1,5 +1,4 @@
 import { apiClient } from '../lib/apiClient'
-import type { ListingPublicContact } from '../utils/listingContact'
 import type { PublicUser } from '../types/users'
 
 export type ListingCategory = {
@@ -50,7 +49,6 @@ export type Listing = {
   savesCount?: number
   availability: string | null
   preferredContactMethod: string | null
-  publicContact?: ListingPublicContact
   condition: ListingCondition
   showContactInfo: boolean
   publicContactInfo?: ListingPublicContactInfo | null

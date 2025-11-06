@@ -1,5 +1,3 @@
-import type { ListingPublicContact } from '../utils/listingContact'
-
 export interface ProfileAccountInfo {
   name?: string
   email?: string
@@ -36,8 +34,6 @@ export interface ProfileListingSummary {
   thumbnailUrl?: string
   availability?: string
   preferredContactMethod?: string
-  publicContact?: ListingPublicContact
-  showContactInfo?: boolean
 }
 
 export interface ProfileListingActionLinks {

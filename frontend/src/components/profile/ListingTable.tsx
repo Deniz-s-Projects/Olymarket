@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getListingPublicContactLabel } from '../../utils/listingContact'
 import type {
   ProfileListingStatusAction,
   ProfileListingWithActions,
@@ -174,7 +173,6 @@ const ListingTable = ({
                   ? `Expires on ${formatDate(listing.expiresAt)}`
                   : null
                 : null
-              const contactLabel = getListingPublicContactLabel(listing)
 
               return (
                 <article
@@ -216,10 +214,10 @@ const ListingTable = ({
                         <dd className="text-slate-700">{listing.availability}</dd>
                       </div>
                     ) : null}
-                    {contactLabel ? (
+                    {listing.preferredContactMethod ? (
                       <div className="col-span-2">
-                        <dt className="font-semibold text-slate-500">Contact</dt>
-                        <dd className="text-slate-700">{contactLabel}</dd>
+                        <dt className="font-semibold text-slate-500">Preferred contact</dt>
+                        <dd className="text-slate-700">{listing.preferredContactMethod}</dd>
                       </div>
                     ) : null}
                   </dl>

@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import javascriptObfuscator from 'vite-plugin-javascript-obfuscator'
+import javascriptObfuscator from 'vite-plugin-javascript-obfuscator';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
+  plugins:
+  [
     react(),
     javascriptObfuscator({
       // Apply this plugin only on 'build'
@@ -39,65 +40,65 @@ export default defineConfig({
 
         // Makes it harder to use the debugger
         debugProtection: true,
-      },
+        },
     }),
   ],
   server: {
-    host: '0.0.0.0', // This exposes the server to your network
-    port: 5173, // (Optional) Explicitly set the port
-    allowedHosts: ['olymarket.net'],
-    proxy: {
-      '/profile': {
+      host: '0.0.0.0', // This exposes the server to your network
+      port: 5173,      // (Optional) Explicitly set the port
+      allowedHosts: ['olymarket.net'],
+     proxy: {
+       '/profile': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/categories': {
+       '/categories': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/groups': {
+       '/groups': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/offers': {
+       '/offers': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/community-discussions': {
+       '/community-discussions': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/admin': {
+       '/admin': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/conversations': {
+       '/conversations': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/reports': {
+       '/reports': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/analytics': {
+       '/analytics': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/announcements': {
+       '/announcements': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
       },
-      '/wanted-listings': {
+       '/wanted-listings': {
         target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false, // set false only if tunnel uses a self-signed cert
