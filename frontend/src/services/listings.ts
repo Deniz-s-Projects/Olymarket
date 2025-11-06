@@ -24,6 +24,12 @@ export type ListingStatusUpdate = Exclude<ListingStatus, 'expired'>
 export const LISTING_CONDITIONS = ['new', 'good', 'used_but_works', 'fixer_upper'] as const
 export type ListingCondition = (typeof LISTING_CONDITIONS)[number]
 
+export type ListingPublicContactInfo = {
+  method: string
+  label: string
+  value?: string | null
+}
+
 export type Listing = {
   id: string
   title: string
@@ -46,7 +52,8 @@ export type Listing = {
   preferredContactMethod: string | null
   publicContact?: ListingPublicContact
   condition: ListingCondition
-  showContactInfo?: boolean
+  showContactInfo: boolean
+  publicContactInfo?: ListingPublicContactInfo | null
 }
 
 export type OfferStatus = 'pending' | 'accepted' | 'declined'

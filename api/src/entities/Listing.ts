@@ -38,6 +38,9 @@ export class Listing extends BaseModel {
   @Column({ name: "preferred_contact_method", type: "text", nullable: true })
   preferredContactMethod!: string | null;
 
+  @Column({ name: "show_contact_info", type: "boolean", default: false })
+  showContactInfo!: boolean;
+
   @Column({
     type: "enum",
     enum: ["new", "good", "used_but_works", "fixer_upper"],

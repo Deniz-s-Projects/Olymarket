@@ -260,6 +260,7 @@ router.post(
       images: Array.isArray(req.body.images) ? req.body.images : [],
       availability: availability || null,
       preferredContactMethod: preferredContactMethod || null,
+      showContactInfo: req.body.showContactInfo ?? false,
       condition,
       moderationStatus: "approved",
     });
@@ -409,6 +410,9 @@ router.put(
     listing.category = category;
     listing.availability = availability || null;
     listing.preferredContactMethod = preferredContactMethod || null;
+    if (typeof req.body.showContactInfo === "boolean") {
+      listing.showContactInfo = req.body.showContactInfo;
+    }
     if (typeof req.body.condition !== "undefined" && isListingCondition(req.body.condition)) {
       listing.condition = req.body.condition;
     }

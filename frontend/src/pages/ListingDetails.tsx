@@ -24,6 +24,7 @@ import OfferTimeline from '../components/offers/OfferTimeline'
 import { shareListing } from '../lib/shareListing'
 import { LISTING_CONDITION_CONFIG, DEFAULT_LISTING_CONDITION } from '../constants/listingConditions'
 import PickupLocationsMap from '../components/PickupLocationsMap'
+import { deriveListingContactSummary } from '../utils/listingContact'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -188,6 +189,10 @@ const ListingDetails = () => {
     void refreshOffers()
   }, [refreshOffers])
   const soldAtLabel = useMemo(() => formatDate(listing?.soldAt ?? undefined), [listing?.soldAt])
+  const contactSummary = useMemo(
+    () => (listing ? deriveListingContactSummary(listing) : null),
+    [listing]
+  )
   // Hooks must be called unconditionally: compute gallery before any early returns
   const gallery = useMemo(() => {
     const imageList = listing?.images ?? []
@@ -1098,6 +1103,25 @@ const ListingDetails = () => {
                 <div className="text-xs text-slate-500">Verified partner</div>
               </div>
             </div>
+            {contactSummary ? (
+              <div
+                className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
+                role="note"
+                aria-live="polite"
+              >
+                <p className="font-semibold text-slate-700">
+                  Preferred contact:{' '}
+                  <span className="font-normal text-slate-800">{contactSummary.methodLabel}</span>
+                </p>
+                {contactSummary.value ? (
+                  <p className="mt-1 break-words text-slate-700" aria-label={`Contact detail: ${contactSummary.value}`}>
+                    {contactSummary.value}
+                  </p>
+                ) : contactSummary.fallbackMessage ? (
+                  <p className="mt-1 text-slate-600">{contactSummary.fallbackMessage}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow">

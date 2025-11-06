@@ -20,6 +20,10 @@ export class ListingDto {
   isActive?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  showContactInfo?: boolean;
+
+  @IsOptional()
   @IsIn(["active", "draft", "sold"])
   status?: "active" | "draft" | "sold";
 
