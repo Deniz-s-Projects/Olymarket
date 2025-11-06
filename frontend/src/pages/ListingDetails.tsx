@@ -1131,7 +1131,7 @@ const ListingDetails = () => {
                   </>
                 ) : (
                   <div className="mt-2 text-sm text-slate-500">
-                    Contact details are hidden. Use "Contact seller" to message them through Olymarket.
+                    Seller wishes to hide contact details such as email/phone number. Use "Contact seller" to message them through Olymarket.
                   </div>
                 )}
               </div>
