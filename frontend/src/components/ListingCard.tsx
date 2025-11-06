@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { Listing } from '../services/listings'
+import { getListingPublicContactLabel } from '../utils/listingContact'
 import { LISTING_CONDITION_CONFIG, DEFAULT_LISTING_CONDITION } from '../constants/listingConditions'
 
 type ListingWithMedia = Listing & { imageUrl?: string | null }
@@ -69,14 +70,13 @@ const ListingCard: FC<ListingCardProps> = ({ listing }) => {
     createdAt,
     images,
     availability,
-    preferredContactMethod,
     condition,
   } = listing
   const imageUrl = images?.[0] ?? ('imageUrl' in listing ? listing.imageUrl : null)
   const categoryLabel = category?.name ?? 'Uncategorized'
   const ownerName = owner?.name ?? 'Marketplace partner'
   const availabilityLabel = availability?.trim() ?? ''
-  const contactLabel = preferredContactMethod?.trim() ?? ''
+  const contactLabel = getListingPublicContactLabel(listing)
   const conditionDetails =
     LISTING_CONDITION_CONFIG[condition] ?? LISTING_CONDITION_CONFIG[DEFAULT_LISTING_CONDITION]
 
