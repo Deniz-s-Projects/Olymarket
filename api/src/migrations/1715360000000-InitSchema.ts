@@ -34,6 +34,7 @@ export class InitSchema1715360000000 implements MigrationInterface {
         "description" text NOT NULL,
         "price" numeric(10,2) NOT NULL,
         "is_active" boolean NOT NULL DEFAULT true,
+        "show_contact_info" boolean NOT NULL DEFAULT true,
         "owner_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
         "category_id" uuid NULL REFERENCES "listing_categories"("id") ON DELETE SET NULL,
         "created_at" TIMESTAMP NOT NULL DEFAULT now(),
