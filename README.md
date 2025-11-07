@@ -81,10 +81,14 @@ Follow these steps to get a development environment up and running locally.
 6.  **Run the frontend (optional):**
     ```bash
     cd ../frontend
+    cp .env.example .env
     npm install
     npm run start
     ```
-    The frontend development server remains available at `http://localhost:3000`.
+    Update the generated `.env` file so `VITE_API_BASE_URL` points to your API instance and
+    `VITE_API_KEY` matches the backend `API_KEY`. The frontend automatically attaches this value
+    as the `x-api-key` header on every request. The development server remains available at
+    `http://localhost:3000`.
 
 ---
 

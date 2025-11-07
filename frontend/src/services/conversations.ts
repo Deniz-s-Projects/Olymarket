@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../lib/apiClient'
+import { applyApiKeyHeader } from '../lib/apiKey'
 import type { PublicUser } from '../types/users'
 
 export class ApiError extends Error {
@@ -79,6 +80,7 @@ interface ConversationMessagePayload {
 
 const buildHeaders = (token?: string, base?: HeadersInit): Headers => {
   const headers = new Headers(base)
+  applyApiKeyHeader(headers)
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)

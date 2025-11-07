@@ -1,4 +1,5 @@
 import { AUTH_TOKEN_STORAGE_KEY } from '../constants/auth'
+import { applyApiKeyHeader } from './apiKey'
 import { emitUnauthorized } from './authEvents'
 
 const normalizeBaseUrl = (value: string) => value.replace(/\/$/, '')
@@ -80,6 +81,7 @@ export async function apiClient<T>(path: string, options: ApiRequestOptions = {}
   const url = buildUrl(path, params)
 
   const headers = new Headers(customHeaders)
+  applyApiKeyHeader(headers)
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json')
   }
