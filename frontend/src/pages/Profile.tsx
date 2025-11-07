@@ -8,12 +8,14 @@ import ProfileListingsTab from '../components/profile/ProfileListingsTab'
 import ProfileTabs, { type ProfileTabConfig } from '../components/profile/ProfileTabs'
 import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
+import HealthTrackingPanel from '../components/profile/HealthTrackingPanel'
 import AnnouncementsBoard from '../components/announcements/AnnouncementsBoard'
 import { FEATURE_REQUEST_EMAIL, GENERAL_FEEDBACK_EMAIL } from '../constants/support'
 import { useAuth } from '../context/useAuth'
 import { useNotifications } from '../context/useNotifications'
 import useProfile from '../hooks/useProfile'
-import useAnnouncements from '../hooks/useAnnouncements' 
+import useAnnouncements from '../hooks/useAnnouncements'
+import useHealthTracking from '../hooks/useHealthTracking'
 import { updateListingStatus, unsaveListing } from '../services/listings' 
 import type { ProfileAccountInfo, ProfileListingStatusAction } from '../types/profile' 
 import { ApiError } from '../lib/apiClient'
@@ -24,6 +26,7 @@ const PROFILE_TABS: ProfileTabConfig[] = [
   { id: 'saved', label: 'Saved Items' },
   { id: 'preferences', label: 'Preferences' },
   { id: 'reputation', label: 'Reputation' },
+  { id: 'health', label: 'Health Tracking' },
 ]
 
 const Profile = () => {
@@ -59,6 +62,12 @@ const Profile = () => {
     communityNewsEnabled: communityNewsEnabledFromFeed,
     refetch: refetchCommunityAnnouncements,
   } = useAnnouncements({ enabled: activeTab === 'preferences' })
+  const {
+    summary: healthTrackingSummary,
+    isLoading: isLoadingHealthTracking,
+    error: healthTrackingError,
+    addIntake,
+  } = useHealthTracking()
 
   const communityNewsPreferenceToggle = useMemo(
     () => preferences.find((toggle) => toggle.id === 'communityNews'),
@@ -264,6 +273,15 @@ const Profile = () => {
         )
       case 'reputation':
         return <ReputationPanel metrics={metrics} isLoading={isLoading} />
+      case 'health':
+        return (
+          <HealthTrackingPanel
+            summary={healthTrackingSummary}
+            isLoading={isLoadingHealthTracking}
+            error={healthTrackingError}
+            onAddIntake={addIntake}
+          />
+        )
       case 'overview':
       default:
         return (
