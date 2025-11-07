@@ -1,5 +1,4 @@
 import { apiClient } from "../lib/apiClient"
-import { applyApiKeyHeader } from "../lib/apiKey"
 import type {
   AuthResponse,
   AuthCredentials,
@@ -101,14 +100,11 @@ const handleResponse = async (response: Response): Promise<AuthResponse> => {
 }
 
 export const register = async (payload: RegisterPayload): Promise<AuthResponse> => {
-  const headers = new Headers({
-    "Content-Type": "application/json",
-  })
-  applyApiKeyHeader(headers)
-
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(payload),
   })
 
@@ -116,14 +112,11 @@ export const register = async (payload: RegisterPayload): Promise<AuthResponse> 
 }
 
 export const login = async (payload: AuthCredentials): Promise<AuthResponse> => {
-  const headers = new Headers({
-    "Content-Type": "application/json",
-  })
-  applyApiKeyHeader(headers)
-
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(payload),
   })
 
