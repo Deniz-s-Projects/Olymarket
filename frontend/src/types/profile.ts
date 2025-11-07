@@ -100,3 +100,14 @@ export interface ProfilePreferenceToggle {
 }
 
 export type ProfilePreferenceUpdateInput = Partial<Record<ProfilePreferenceKey, boolean>>
+
+export interface HealthTrackingHistoryEntry {
+  date: string
+  total: number
+}
+
+export interface HealthTrackingSummary {
+  goal: number
+  todayTotal: number
+  weeklyHistory: HealthTrackingHistoryEntry[]
+}
