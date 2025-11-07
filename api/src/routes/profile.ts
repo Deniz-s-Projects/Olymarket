@@ -4,6 +4,7 @@ import { User } from "../entities/User";
 import { Listing } from "../entities/Listing";
 import { Offer } from "../entities/Offer";
 import { SavedListing } from "../entities/SavedListing";
+import { UserHydrationEntry } from "../entities/UserHydrationEntry";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import { UserPreference } from "../entities/UserPreference";
 
@@ -74,7 +75,80 @@ const ensureUserPreferences = async (userId: string) => {
   return preferences;
 };
 
+const HYDRATION_GOAL_ML = 3000;
+
+const buildHydrationSummary = async (userId: string) => {
+  const entryRepository = AppDataSource.getRepository(UserHydrationEntry);
+
+  const now = new Date();
+  const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const historyStart = new Date(startOfToday);
+  historyStart.setUTCDate(historyStart.getUTCDate() - 6);
+
+  const historyRows = await entryRepository
+    .createQueryBuilder("entry")
+    .select("DATE(entry.recorded_at)", "day")
+    .addSelect("SUM(entry.amount_ml)", "total")
+    .where("entry.user_id = :userId", { userId })
+    .andWhere("entry.recorded_at >= :start", { start: historyStart.toISOString() })
+    .groupBy("DATE(entry.recorded_at)")
+    .orderBy("DATE(entry.recorded_at)", "ASC")
+    .getRawMany<{ day: string | Date; total: string }>();
+
+  const totalsByDay = new Map<string, number>();
+  for (const row of historyRows) {
+    const rawDay = row.day instanceof Date ? row.day.toISOString() : String(row.day);
+    const isoDay = rawDay.slice(0, 10);
+    totalsByDay.set(isoDay, Number(row.total));
+  }
+
+  const history = [] as { date: string; total: number }[];
+  for (let i = 0; i < 7; i++) {
+    const current = new Date(historyStart.getTime() + i * 24 * 60 * 60 * 1000);
+    const isoDate = current.toISOString().slice(0, 10);
+    history.push({ date: isoDate, total: totalsByDay.get(isoDate) ?? 0 });
+  }
+
+  const todayIso = startOfToday.toISOString().slice(0, 10);
+  const todayTotal = totalsByDay.get(todayIso) ?? 0;
+
+  return {
+    goal: HYDRATION_GOAL_ML,
+    todayTotal,
+    history,
+  };
+};
+
 const router = Router();
+
+router.get("/health-tracking", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const summary = await buildHydrationSummary(req.user!.id);
+  return res.json(summary);
+});
+
+router.post(
+  "/health-tracking/intake",
+  authMiddleware,
+  async (req: AuthenticatedRequest, res) => {
+    const amount = Number(req.body?.amount);
+
+    if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).json({ message: "Amount must be a positive integer in milliliters" });
+    }
+
+    const entryRepository = AppDataSource.getRepository(UserHydrationEntry);
+    const entry = entryRepository.create({
+      user: { id: req.user!.id } as User,
+      amountMl: amount,
+    });
+
+    await entryRepository.save(entry);
+
+    const summary = await buildHydrationSummary(req.user!.id);
+
+    return res.status(201).json(summary);
+  }
+);
 
 router.get("/account", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userRepository = AppDataSource.getRepository(User);
