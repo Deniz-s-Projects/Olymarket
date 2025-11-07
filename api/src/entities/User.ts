@@ -8,6 +8,7 @@ import { GroupMember } from "./GroupMember";
 import { Offer } from "./Offer";
 import { UserPreference } from "./UserPreference";
 import { WantedListing } from "./WantedListing";
+import { UserHydrationEntry } from "./UserHydrationEntry";
 
 @Entity({ name: "users" })
 @Unique(["email"])
@@ -74,4 +75,7 @@ export class User extends BaseModel {
 
   @OneToMany(() => WantedListing, (wantedListing) => wantedListing.fulfillingSeller)
   fulfilledWantedRequests!: WantedListing[];
+
+  @OneToMany(() => UserHydrationEntry, (entry) => entry.user)
+  hydrationEntries!: UserHydrationEntry[];
 }
