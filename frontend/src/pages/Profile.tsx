@@ -6,6 +6,7 @@ import ProfileHeader from '../components/profile/ProfileHeader'
 import ProfileOverviewTab from '../components/profile/ProfileOverviewTab'
 import ProfileListingsTab from '../components/profile/ProfileListingsTab'
 import ProfileTabs, { type ProfileTabConfig } from '../components/profile/ProfileTabs'
+import HealthTrackingPanel from '../components/profile/HealthTrackingPanel'
 import ReputationPanel from '../components/profile/ReputationPanel'
 import SavedItemsCard from '../components/profile/SavedItemsCard'
 import AnnouncementsBoard from '../components/announcements/AnnouncementsBoard'
@@ -13,7 +14,8 @@ import { FEATURE_REQUEST_EMAIL, GENERAL_FEEDBACK_EMAIL } from '../constants/supp
 import { useAuth } from '../context/useAuth'
 import { useNotifications } from '../context/useNotifications'
 import useProfile from '../hooks/useProfile'
-import useAnnouncements from '../hooks/useAnnouncements' 
+import useAnnouncements from '../hooks/useAnnouncements'
+import useHealthTracking from '../hooks/useHealthTracking'
 import { updateListingStatus, unsaveListing } from '../services/listings' 
 import type { ProfileAccountInfo, ProfileListingStatusAction } from '../types/profile' 
 import { ApiError } from '../lib/apiClient'
@@ -23,6 +25,7 @@ const PROFILE_TABS: ProfileTabConfig[] = [
   { id: 'listings', label: 'Listings' },
   { id: 'saved', label: 'Saved Items' },
   { id: 'preferences', label: 'Preferences' },
+  { id: 'health', label: 'Health Tracking' },
   { id: 'reputation', label: 'Reputation' },
 ]
 
@@ -59,6 +62,16 @@ const Profile = () => {
     communityNewsEnabled: communityNewsEnabledFromFeed,
     refetch: refetchCommunityAnnouncements,
   } = useAnnouncements({ enabled: activeTab === 'preferences' })
+  const {
+    summary: healthSummary,
+    isLoading: isLoadingHealthSummary,
+    isError: isHealthSummaryError,
+    error: healthSummaryError,
+    refetch: refetchHealthSummary,
+    addIntake: addHealthIntake,
+    isAddingIntake,
+    addIntakeError,
+  } = useHealthTracking({ enabled: Boolean(user) && activeTab === 'health' })
 
   const communityNewsPreferenceToggle = useMemo(
     () => preferences.find((toggle) => toggle.id === 'communityNews'),
@@ -261,6 +274,23 @@ const Profile = () => {
               showSubscriptionHint
             />
           </div>
+        )
+      case 'health':
+        return (
+          <HealthTrackingPanel
+            goal={healthSummary.goal}
+            total={healthSummary.total}
+            history={healthSummary.history}
+            isLoading={isLoadingHealthSummary}
+            isError={isHealthSummaryError}
+            errorMessage={healthSummaryError?.message ?? null}
+            addIntakeError={addIntakeError}
+            onRetry={() => {
+              void refetchHealthSummary()
+            }}
+            onAddIntake={addHealthIntake}
+            isAddingIntake={isAddingIntake}
+          />
         )
       case 'reputation':
         return <ReputationPanel metrics={metrics} isLoading={isLoading} />
