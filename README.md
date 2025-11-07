@@ -64,7 +64,8 @@ Follow these steps to get a development environment up and running locally.
     ```bash
     cp api/.env.example api/.env
     ```
-    Adjust the values as needed. The defaults match the Docker database service.
+    Adjust the values as needed. The defaults match the Docker database service. Ensure you provide a secure value for `API_KEY`,
+    which will be required by every request to the backend.
 4.  **Install dependencies and run migrations:**
     ```bash
     cd api
@@ -76,6 +77,7 @@ Follow these steps to get a development environment up and running locally.
     npm run dev
     ```
     The API will listen on `http://localhost:4000`.
+    All requests must now include an `x-api-key` header whose value matches the configured `API_KEY`.
 6.  **Run the frontend (optional):**
     ```bash
     cd ../frontend

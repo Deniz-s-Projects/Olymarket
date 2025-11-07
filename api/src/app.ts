@@ -13,12 +13,15 @@ import wantedListingRoutes from "./routes/wanted-listings";
 import analyticsRoutes from "./routes/analytics";
 import announcementRoutes from "./routes/announcements";
 import communityDiscussionRoutes from "./routes/community-discussions";
+import { apiKeyMiddleware } from "./middleware/apiKey";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+
+app.use(apiKeyMiddleware);
 
 app.use("/auth", authRoutes);
 app.use("/listings", listingRoutes);
