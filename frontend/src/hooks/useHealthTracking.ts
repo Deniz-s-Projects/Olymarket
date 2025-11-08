@@ -91,34 +91,35 @@ export const useHealthTracking = (): UseHealthTrackingState => {
         throw unauthorizedError
       }
 
-      const previousSummary = summaryRef.current
-      let optimisticSummary = previousSummary
-
-      if (previousSummary) {
-        const todayKey = getTodayKey()
-        const weeklyHistory = previousSummary.weeklyHistory ?? []
-        const hasTodayEntry = weeklyHistory.some(
-          (entry) => entry.date === todayKey,
-        )
-
-        const updatedHistory = hasTodayEntry
-          ? weeklyHistory.map((entry) =>
-              entry.date === todayKey
-                ? { ...entry, total: entry.total + amount }
-                : entry,
-            )
-          : [{ date: todayKey, total: amount }, ...weeklyHistory]
-
-        optimisticSummary = {
-          ...previousSummary,
-          todayTotal: previousSummary.todayTotal + amount,
-          weeklyHistory: updatedHistory,
-        }
-
-        setSummary(optimisticSummary)
-        summaryRef.current = optimisticSummary
+      // validate input
+      if (typeof amount !== 'number' || !isFinite(amount) || amount <= 0) {
+        const inputError = new Error('Amount must be a positive number.')
+        setError(inputError)
+        throw inputError
       }
 
+      const previousSummary = summaryRef.current
+
+      const todayKey = getTodayKey()
+      const prevHistory = previousSummary?.weeklyHistory ?? []
+
+      const hasTodayEntry = prevHistory.some((entry) => entry.date === todayKey)
+
+      const updatedHistory = hasTodayEntry
+        ? prevHistory.map((entry) =>
+            entry.date === todayKey ? { ...entry, total: entry.total + amount } : entry,
+          )
+        : [{ date: todayKey, total: amount }, ...prevHistory]
+
+      const optimisticSummary = {
+        ...(previousSummary ?? {}),
+        todayTotal: (previousSummary?.todayTotal ?? 0) + amount,
+        weeklyHistory: updatedHistory,
+      } as HealthTrackingSummary
+
+      // apply optimistic update
+      setSummary(optimisticSummary)
+      summaryRef.current = optimisticSummary
       setError(null)
 
       try {
@@ -128,6 +129,8 @@ export const useHealthTracking = (): UseHealthTrackingState => {
       } catch (caughtError) {
         const normalizedError = normalizeError(caughtError, LOG_ERROR_MESSAGE)
         setError(normalizedError)
+
+        // revert to previous state (or null)
         if (previousSummary) {
           setSummary(previousSummary)
           summaryRef.current = previousSummary
@@ -135,6 +138,7 @@ export const useHealthTracking = (): UseHealthTrackingState => {
           setSummary(null)
           summaryRef.current = null
         }
+
         throw normalizedError
       }
     },
