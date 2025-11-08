@@ -96,17 +96,18 @@ export const useHealthTracking = (): UseHealthTrackingState => {
 
       if (previousSummary) {
         const todayKey = getTodayKey()
-        const hasTodayEntry = previousSummary.weeklyHistory.some(
+        const weeklyHistory = previousSummary.weeklyHistory ?? []
+        const hasTodayEntry = weeklyHistory.some(
           (entry) => entry.date === todayKey,
         )
 
         const updatedHistory = hasTodayEntry
-          ? previousSummary.weeklyHistory.map((entry) =>
+          ? weeklyHistory.map((entry) =>
               entry.date === todayKey
                 ? { ...entry, total: entry.total + amount }
                 : entry,
             )
-          : [{ date: todayKey, total: amount }, ...previousSummary.weeklyHistory]
+          : [{ date: todayKey, total: amount }, ...weeklyHistory]
 
         optimisticSummary = {
           ...previousSummary,
