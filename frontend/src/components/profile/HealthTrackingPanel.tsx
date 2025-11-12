@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 import type { HealthTrackingSummary } from '../../types/profile'
 
@@ -23,21 +23,71 @@ type HealthTrackingPanelProps = {
 
 const HealthTrackingPanel = ({ summary, isLoading = false, error = null, onAddIntake }: HealthTrackingPanelProps) => {
   const [pendingAmount, setPendingAmount] = useState<number | null>(null)
-  const goal = summary?.goal ?? 3000
-  const todayTotal = summary?.todayTotal ?? 0
+  // Local optimistic copy of summary so UI updates immediately on button click
+  const [localSummary, setLocalSummary] = useState<HealthTrackingSummary | null>(summary ?? null)
+
+  // Keep local summary in sync when parent updates the prop.
+  // Merge instead of replace so optimistic increases aren't lost.
+  useEffect(() => {
+    setLocalSummary((prev) => {
+      if (!summary) {
+        // If parent cleared summary, keep optimistic prev if present
+        return prev ?? null
+      }
+
+      if (!prev) {
+        return summary
+      }
+
+      // Prefer the larger todayTotal to preserve optimistic increments
+      const mergedToday = Math.max(prev.todayTotal ?? 0, summary.todayTotal ?? 0)
+
+      // Merge weeklyHistory by day (use date.toDateString() as key), prefer larger total per day
+      const map = new Map<string, { date: string; total: number }>()
+
+      const pushToMap = (entry: { date: string; total: number } | undefined) => {
+        if (!entry) return
+        let key: string
+        try {
+          key = new Date(entry.date).toDateString()
+        } catch {
+          key = entry.date
+        }
+        const existing = map.get(key)
+        if (!existing) {
+          map.set(key, { date: entry.date, total: entry.total ?? 0 })
+        } else {
+          // keep the larger total to preserve optimistic increases
+          existing.total = Math.max(existing.total ?? 0, entry.total ?? 0)
+          // keep an ISO-ish date string (prefer summary's date if it matches)
+          existing.date = existing.date || entry.date
+        }
+      }
+
+      ;(prev.weeklyHistory ?? []).forEach((e) => pushToMap(e))
+      ;(summary.weeklyHistory ?? []).forEach((e) => pushToMap(e))
+
+      const mergedWeek = Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
+
+      return { ...summary, todayTotal: mergedToday, weeklyHistory: mergedWeek }
+    })
+  }, [summary])
+
+  const goal = localSummary?.goal ?? 3000
+  const todayTotal = localSummary?.todayTotal ?? 0
+
   const progress = goal > 0 ? Math.min(todayTotal / goal, 1) : 0
   const progressDegrees = Math.round(progress * 360)
   const progressPercent = Math.round(progress * 100)
 
+  // Recompute history when the local (optimistic) summary changes so the UI updates immediately
   const history = useMemo(() => {
-    if (!summary?.weeklyHistory || summary.weeklyHistory.length === 0) {
-      return []
-    }
+    const source = localSummary?.weeklyHistory ?? []
+    if (source.length === 0) return []
 
-    const sorted = [...summary.weeklyHistory].sort((a, b) => a.date.localeCompare(b.date))
-
+    const sorted = [...source].sort((a, b) => a.date.localeCompare(b.date))
     return sorted.slice(-7)
-  }, [summary])
+  }, [localSummary])
 
   const maxHistoryTotal = useMemo(() => {
     if (history.length === 0) {
@@ -50,6 +100,32 @@ const HealthTrackingPanel = ({ summary, isLoading = false, error = null, onAddIn
   const handleAddIntake = async (amount: number) => {
     try {
       setPendingAmount(amount)
+      // Optimistically update local summary so the wheel and bars reflect change immediately
+      setLocalSummary((prev) => {
+        const today = new Date()
+        const todayKey = today.toDateString()
+        const base: HealthTrackingSummary = prev ?? { goal: 3000, todayTotal: 0, weeklyHistory: [] }
+
+        const newTodayTotal = (base.todayTotal ?? 0) + amount
+        const week = Array.isArray(base.weeklyHistory) ? [...base.weeklyHistory] : []
+
+        const idx = week.findIndex((e) => {
+          try {
+            return new Date(e.date).toDateString() === todayKey
+          } catch {
+            return false
+          }
+        })
+
+        if (idx >= 0) {
+          week[idx] = { ...week[idx], total: (week[idx].total ?? 0) + amount }
+        } else {
+          week.push({ date: new Date().toISOString(), total: amount })
+        }
+
+        return { ...base, todayTotal: newTodayTotal, weeklyHistory: week }
+      })
+
       await onAddIntake(amount)
     } finally {
       setPendingAmount(null)

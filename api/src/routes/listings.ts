@@ -91,6 +91,14 @@ const parseStringParam = (value: unknown): string | undefined => {
   return undefined;
 };
 
+// Add UUID validation helper to avoid passing invalid uuids to Postgres
+const isValidUuid = (value: unknown): boolean => {
+  if (typeof value !== "string") return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  );
+};
+
 const buildListingsQuery = (
   req: Request,
   filters: ListingQueryFilters = {},
@@ -111,7 +119,11 @@ const buildListingsQuery = (
   if (categorySlug) {
     query.andWhere("category.slug = :categorySlug", { categorySlug });
   } else if (categoryId) {
-    query.andWhere("category.id = :categoryId", { categoryId });
+    // Only apply category.id filter when the provided value is a valid UUID.
+    // Prevents QueryFailedError when passing strings like "new".
+    if (isValidUuid(categoryId)) {
+      query.andWhere("category.id = :categoryId", { categoryId });
+    }
   } else if (categoryName) {
     query.andWhere("LOWER(category.name) = :categoryName", { categoryName: categoryName.toLowerCase() });
   }
@@ -280,6 +292,10 @@ router.get("/search/query", async (req, res) => {
 });
 
 router.get("/:id", async (req, res) => {
+  // Guard against non-UUID ids (e.g. frontend paths like /listings/new)
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const listingRepository = AppDataSource.getRepository(Listing);
   const listing = await listingRepository.findOne({
     where: { id: req.params.id },
@@ -307,6 +323,9 @@ const serializeComment = (comment: ListingComment) => ({
 });
 
 router.get("/:id/comments", async (req, res) => {
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const commentRepository = AppDataSource.getRepository(ListingComment);
   const comments = await commentRepository.find({
     where: { listing: { id: req.params.id } },
@@ -318,6 +337,9 @@ router.get("/:id/comments", async (req, res) => {
 });
 
 router.post("/:id/comments", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const listingRepository = AppDataSource.getRepository(Listing);
   const listing = await listingRepository.findOne({ where: { id: req.params.id } });
 
@@ -361,6 +383,9 @@ router.put(
   authMiddleware,
   validationMiddleware(ListingDto),
   async (req: AuthenticatedRequest, res) => {
+    if (!isValidUuid(req.params.id)) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
     const listingRepository = AppDataSource.getRepository(Listing);
     const categoryRepository = AppDataSource.getRepository(ListingCategory);
     const listing = await listingRepository.findOne({
@@ -426,6 +451,9 @@ router.put(
 );
 
 router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const listingRepository = AppDataSource.getRepository(Listing);
   const listing = await listingRepository.findOne({
     where: { id: req.params.id },
@@ -459,6 +487,9 @@ router.patch("/:id/status", authMiddleware, async (req: AuthenticatedRequest, re
 });
 
 router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const listingRepository = AppDataSource.getRepository(Listing);
   const listing = await listingRepository.findOne({
     where: { id: req.params.id },
@@ -476,6 +507,9 @@ router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res) => 
 
 // Check if a listing is saved by the current user
 router.get("/:id/saved", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const savedListingRepository = AppDataSource.getRepository(SavedListing);
   const saved = await savedListingRepository.findOne({
     where: {
@@ -488,6 +522,9 @@ router.get("/:id/saved", authMiddleware, async (req: AuthenticatedRequest, res) 
 
 // Save a listing
 router.post("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const listingRepository = AppDataSource.getRepository(Listing);
   const savedListingRepository = AppDataSource.getRepository(SavedListing);
 
@@ -535,6 +572,9 @@ router.post("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) 
 
 // Unsave a listing
 router.delete("/:id/save", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  if (!isValidUuid(req.params.id)) {
+    return res.status(404).json({ message: "Listing not found" });
+  }
   const listingRepository = AppDataSource.getRepository(Listing);
   const savedListingRepository = AppDataSource.getRepository(SavedListing);
 
