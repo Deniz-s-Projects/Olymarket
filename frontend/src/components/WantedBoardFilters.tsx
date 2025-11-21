@@ -8,10 +8,10 @@ type WantedBoardFiltersProps = {
   onCategoryChange: (value: string | null) => void
   status: WantedListingStatus | 'all'
   onStatusChange: (value: WantedListingStatus | 'all') => void
-  minBudget: string
-  maxBudget: string
-  onMinBudgetChange: (value: string) => void
-  onMaxBudgetChange: (value: string) => void
+  minPrice: string
+  maxPrice: string
+  onMinPriceChange: (value: string) => void
+  onMaxPriceChange: (value: string) => void
   onReset: () => void
 }
 
@@ -31,24 +31,24 @@ const WantedBoardFilters = ({
   onCategoryChange,
   status,
   onStatusChange,
-  minBudget,
-  maxBudget,
-  onMinBudgetChange,
-  onMaxBudgetChange,
+  minPrice,
+  maxPrice,
+  onMinPriceChange,
+  onMaxPriceChange,
   onReset,
 }: WantedBoardFiltersProps) => {
   return (
     <aside className="space-y-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
       <div className="space-y-3">
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">Search requests</span>
+          <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">Search offers</span>
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-2.5 text-slate-400">🔎</span>
             <input
               type="search"
               value={searchTerm}
               onChange={(event) => onSearchTermChange(event.target.value)}
-              placeholder="Looking for accommodation, services..."
+              placeholder="Find rooms by location, price, or host"
               className="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -102,27 +102,27 @@ const WantedBoardFilters = ({
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Budget range</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Monthly price range</h3>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
-              Min budget
+              Minimum
               <input
                 type="number"
                 min={0}
                 step={1}
-                value={minBudget}
-                onChange={(event) => onMinBudgetChange(event.target.value)}
+                value={minPrice}
+                onChange={(event) => onMinPriceChange(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold text-slate-500">
-              Max budget
+              Maximum
               <input
                 type="number"
                 min={0}
                 step={1}
-                value={maxBudget}
-                onChange={(event) => onMaxBudgetChange(event.target.value)}
+                value={maxPrice}
+                onChange={(event) => onMaxPriceChange(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </label>

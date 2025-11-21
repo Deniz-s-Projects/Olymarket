@@ -80,15 +80,17 @@ const buildWantedListingsQuery = (
     query.andWhere("wanted.status = :status", { status });
   }
 
-  const minBudget = parseNumberParam(req.query.minBudget);
-  if (typeof minBudget === "number") {
-    query.andWhere("wanted.budget >= :minBudget", { minBudget });
+  const minPrice = parseNumberParam(req.query.minPrice);
+  if (typeof minPrice === "number") {
+    query.andWhere("wanted.budget >= :minPrice", { minPrice });
   }
 
-  const maxBudget = parseNumberParam(req.query.maxBudget);
-  if (typeof maxBudget === "number") {
-    query.andWhere("wanted.budget <= :maxBudget", { maxBudget });
+  const maxPrice = parseNumberParam(req.query.maxPrice);
+  if (typeof maxPrice === "number") {
+    query.andWhere("wanted.budget <= :maxPrice", { maxPrice });
   }
+
+  query.andWhere("(wanted.expires_at IS NULL OR wanted.expires_at > NOW())");
 
   const rawPage = parseNumberParam(req.query.page);
   const page = rawPage && rawPage > 0 ? Math.floor(rawPage) : 1;
@@ -158,11 +160,26 @@ router.post(
 
     const title = req.body.title.trim();
     const details = typeof req.body.details === "string" ? req.body.details.trim() : "";
+    const monthlyPrice = req.body.monthlyPrice;
+    const address = req.body.address.trim();
+    const contactInfo = req.body.contactInfo.trim();
+    const expiresAt = new Date(req.body.expiresAt);
+
+    if (Number.isNaN(expiresAt.getTime())) {
+      return res.status(400).json({ message: "Invalid expiration date" });
+    }
+
+    if (expiresAt.getTime() <= Date.now()) {
+      return res.status(400).json({ message: "Expiration date must be in the future" });
+    }
 
     const wanted = repository.create({
       title,
       details: details || null,
-      budget: req.body.budget,
+      monthlyPrice,
+      address,
+      contactInfo,
+      expiresAt,
       buyer: req.user!,
       category,
       status: "open",
@@ -228,8 +245,30 @@ router.put(
       record.details = trimmedDetails || null;
     }
 
-    if (typeof req.body.budget === "string") {
-      record.budget = req.body.budget;
+    if (typeof req.body.monthlyPrice === "string") {
+      record.monthlyPrice = req.body.monthlyPrice;
+    }
+
+    if (typeof req.body.address === "string") {
+      record.address = req.body.address.trim();
+    }
+
+    if (typeof req.body.contactInfo === "string") {
+      record.contactInfo = req.body.contactInfo.trim();
+    }
+
+    if (typeof req.body.expiresAt === "string") {
+      const expiresAt = new Date(req.body.expiresAt);
+
+      if (Number.isNaN(expiresAt.getTime())) {
+        return res.status(400).json({ message: "Invalid expiration date" });
+      }
+
+      if (expiresAt.getTime() <= Date.now()) {
+        return res.status(400).json({ message: "Expiration date must be in the future" });
+      }
+
+      record.expiresAt = expiresAt;
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, "categoryId")) {

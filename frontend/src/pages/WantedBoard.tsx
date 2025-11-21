@@ -1,18 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import RoomOfferCard from '../components/RoomOfferCard'
 import WantedBoardFilters from '../components/WantedBoardFilters'
-import WantedRequestCard from '../components/WantedRequestCard'
 import { useWantedListings, type WantedListingsFilters } from '../hooks/useWantedListings'
 import { fetchListingCategories } from '../services/listings'
-import {
-  respondToWantedListing,
-  type RespondToWantedListingPayload,
-  type WantedListingStatus,
-} from '../services/wantedListings'
+import { createWantedListing, type WantedListingStatus } from '../services/wantedListings'
 import { useAuth } from '../context/useAuth'
 
-const parseBudgetInput = (value: string): number | null => {
+const parsePriceInput = (value: string): number | null => {
   if (!value || value.trim().length === 0) {
     return null
   }
@@ -29,14 +25,18 @@ const WantedBoard = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<WantedListingStatus | 'all'>('open')
-  const [minBudget, setMinBudget] = useState('')
-  const [maxBudget, setMaxBudget] = useState('')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
-  const [feedback, setFeedback] = useState<{
-    type: 'success' | 'error'
-    message: string
-  } | null>(null)
-  const [respondingId, setRespondingId] = useState<string | null>(null)
+  const [formFeedback, setFormFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [formIsSubmitting, setFormIsSubmitting] = useState(false)
+
+  const [offerTitle, setOfferTitle] = useState('')
+  const [offerPrice, setOfferPrice] = useState('')
+  const [offerAddress, setOfferAddress] = useState('')
+  const [offerContact, setOfferContact] = useState('')
+  const [offerExpiry, setOfferExpiry] = useState('')
+  const [offerDetails, setOfferDetails] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -51,7 +51,7 @@ const WantedBoard = () => {
         const unique = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b))
         setAvailableCategories(unique)
       } catch (caughtError) {
-        console.error('Unable to load categories for buyer requests', caughtError)
+        console.error('Unable to load categories for room offers', caughtError)
       }
     }
 
@@ -63,13 +63,13 @@ const WantedBoard = () => {
   }, [])
 
   useEffect(() => {
-    if (!feedback) {
+    if (!formFeedback) {
       return
     }
 
-    const timeoutId = window.setTimeout(() => setFeedback(null), 5000)
+    const timeoutId = window.setTimeout(() => setFormFeedback(null), 5000)
     return () => window.clearTimeout(timeoutId)
-  }, [feedback])
+  }, [formFeedback])
 
   const filters = useMemo(() => {
     const filter: WantedListingsFilters = {
@@ -81,18 +81,18 @@ const WantedBoard = () => {
       filter.status = statusFilter
     }
 
-    const min = parseBudgetInput(minBudget)
+    const min = parsePriceInput(minPrice)
     if (min !== null) {
-      filter.minBudget = min
+      filter.minPrice = min
     }
 
-    const max = parseBudgetInput(maxBudget)
+    const max = parsePriceInput(maxPrice)
     if (max !== null) {
-      filter.maxBudget = max
+      filter.maxPrice = max
     }
 
     return filter
-  }, [maxBudget, minBudget, searchTerm, selectedCategory, statusFilter])
+  }, [maxPrice, minPrice, searchTerm, selectedCategory, statusFilter])
 
   const { requests, isLoading, isFetchingMore, isError, error, hasMore, total, fetchNextPage, refetch } =
     useWantedListings(filters)
@@ -110,55 +110,66 @@ const WantedBoard = () => {
     setSearchTerm('')
     setSelectedCategory(null)
     setStatusFilter('open')
-    setMinBudget('')
-    setMaxBudget('')
+    setMinPrice('')
+    setMaxPrice('')
   }
 
-  const handleRespond = useCallback(
-    async (id: string, payload: RespondToWantedListingPayload) => {
-      if (!token) {
-        navigate('/auth', {
-          state: {
-            from: '/wanted',
-            message: 'Please sign in to respond to buyer requests.',
-          },
-        })
-        throw new Error('Please sign in to respond to buyer requests.')
-      }
+  const handleSubmitOffer = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
-      setRespondingId(id)
-      setFeedback(null)
+    if (!token) {
+      navigate('/auth', {
+        state: {
+          from: '/wanted',
+          message: 'Please sign in to post a room offer.',
+        },
+      })
+      return
+    }
 
-      try {
-        const response = await respondToWantedListing(id, payload)
-        setFeedback({
-          type: 'success',
-          message: response.conversation
-            ? 'We opened a conversation in your inbox so you can coordinate the details.'
-            : 'Response sent to the buyer.',
-        })
-        await refetch()
-      } catch (caughtError) {
-        const normalizedError =
-          caughtError instanceof Error
-            ? caughtError
-            : new Error('Unable to send your response. Please try again later.')
-        setFeedback({ type: 'error', message: normalizedError.message })
-        throw normalizedError
-      } finally {
-        setRespondingId(null)
-      }
-    },
-    [navigate, refetch, token],
-  )
+    setFormIsSubmitting(true)
+    setFormFeedback(null)
+
+    try {
+      const expiresAt = new Date(offerExpiry)
+
+      await createWantedListing({
+        title: offerTitle,
+        details: offerDetails || undefined,
+        monthlyPrice: offerPrice,
+        address: offerAddress,
+        contactInfo: offerContact,
+        expiresAt: expiresAt.toISOString(),
+      })
+
+      setFormFeedback({ type: 'success', message: 'Room offer posted. We added it to the list below.' })
+      setOfferTitle('')
+      setOfferDetails('')
+      setOfferPrice('')
+      setOfferAddress('')
+      setOfferContact('')
+      setOfferExpiry('')
+      await refetch()
+    } catch (caughtError) {
+      const normalizedError =
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Unable to save your room offer. Please try again later.'
+      setFormFeedback({ type: 'error', message: normalizedError })
+    } finally {
+      setFormIsSubmitting(false)
+    }
+  }
 
   const headerMessage = isLoading
-    ? 'Fetching active buyer requests...'
+    ? 'Fetching active room offers...'
     : isError
-      ? 'We were unable to load buyer requests. Please try again.'
+      ? 'We were unable to load room offers. Please try again.'
       : total === 0
-        ? 'No buyer requests match your filters yet.'
-        : `${total} open request${total === 1 ? '' : 's'} ready for responses.`
+        ? 'No room offers match your filters yet.'
+        : `${total} offer${total === 1 ? '' : 's'} available right now.`
+
+  const today = new Date().toISOString().split('T')[0]
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 lg:px-8">
@@ -167,19 +178,19 @@ const WantedBoard = () => {
         <div className="relative grid gap-6 p-10 sm:p-12 md:grid-cols-[1.1fr_0.9fr] md:items-center">
           <div className="space-y-5">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em]">
-              Buyer Match Board
+              Room Offers
             </span>
             <h1 className="text-3xl font-semibold leading-tight sm:text-4xl md:text-5xl">
-              Connect with buyers looking for your expertise
+              Share open rooms with the Olymarket community
             </h1>
             <p className="max-w-xl text-base text-white/90 sm:text-lg">
-              Browse active requests from residents, clubs, and partners searching for items. Offer prices
-              that fit their needs and start a conversation instantly.
+              Post your room availability with pricing, address details, and direct contact info so residents can reach you
+              quickly.
             </p>
             <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
-              <span>• Respond directly with offers</span>
-              <span>• Convert matches into conversations</span>
-              <span>• Build relationships across the community</span>
+              <span>• Highlight availability windows</span>
+              <span>• Keep pricing transparent</span>
+              <span>• Connect directly with members</span>
             </div>
           </div>
           <div className="hidden md:block">
@@ -189,19 +200,19 @@ const WantedBoard = () => {
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     1
                   </span>
-                  Discover needs from verified buyers in real time.
+                  Add your room details, contact info, and the last day the offer is available.
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     2
                   </span>
-                  Share proposals, pricing, or introductions with a single response.
+                  Residents can reach out directly using your preferred contact method.
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     3
                   </span>
-                  Turn a match into a conversation and close the loop faster.
+                  Update or close the offer anytime from your profile if it fills.
                 </li>
               </ul>
             </div>
@@ -209,42 +220,141 @@ const WantedBoard = () => {
         </div>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
-        <WantedBoardFilters
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
-          categoryOptions={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          status={statusFilter}
-          onStatusChange={setStatusFilter}
-          minBudget={minBudget}
-          maxBudget={maxBudget}
-          onMinBudgetChange={setMinBudget}
-          onMaxBudgetChange={setMaxBudget}
-          onReset={handleResetFilters}
-        />
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
+        <strong className="font-semibold">Please note:</strong> Olymarket facilitates the exchange, but STWM has the final say on
+        whether the subcontract of the room is valid.
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-[300px_1fr] lg:items-start">
+        <div className="space-y-6">
+          <section className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Post a room offer</p>
+                <h2 className="text-lg font-semibold text-slate-900">Share availability</h2>
+              </div>
+              {!token ? <span className="text-xs text-slate-500">Sign in to post</span> : null}
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSubmitOffer}>
+              <label className="flex flex-col gap-2 text-sm">
+                <span className="font-semibold text-slate-700">Title</span>
+                <input
+                  value={offerTitle}
+                  onChange={(event) => setOfferTitle(event.target.value)}
+                  required
+                  placeholder="Cozy room near campus"
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-2 text-sm">
+                  <span className="font-semibold text-slate-700">Monthly price</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={offerPrice}
+                    onChange={(event) => setOfferPrice(event.target.value)}
+                    required
+                    placeholder="550"
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2 text-sm">
+                  <span className="font-semibold text-slate-700">Offer valid until</span>
+                  <input
+                    type="date"
+                    min={today}
+                    value={offerExpiry}
+                    onChange={(event) => setOfferExpiry(event.target.value)}
+                    required
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </label>
+              </div>
+
+              <label className="flex flex-col gap-2 text-sm">
+                <span className="font-semibold text-slate-700">Address</span>
+                <input
+                  value={offerAddress}
+                  onChange={(event) => setOfferAddress(event.target.value)}
+                  required
+                  placeholder="123 Market St, Olympia"
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm">
+                <span className="font-semibold text-slate-700">Contact info</span>
+                <input
+                  value={offerContact}
+                  onChange={(event) => setOfferContact(event.target.value)}
+                  required
+                  placeholder="Email, phone, or messaging handle"
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm">
+                <span className="font-semibold text-slate-700">Description</span>
+                <textarea
+                  value={offerDetails}
+                  onChange={(event) => setOfferDetails(event.target.value)}
+                  rows={3}
+                  placeholder="Share move-in dates, utilities, house rules, and anything else residents should know."
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </label>
+
+              {formFeedback ? (
+                <p className={formFeedback.type === 'success' ? 'text-sm text-emerald-600' : 'text-sm text-red-600'}>
+                  {formFeedback.message}
+                </p>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={formIsSubmitting}
+                className="btn-primary inline-flex w-full items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/60 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {formIsSubmitting ? 'Posting...' : 'Publish offer'}
+              </button>
+            </form>
+          </section>
+
+          <WantedBoardFilters
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            categoryOptions={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            status={statusFilter}
+            onStatusChange={setStatusFilter}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            onMinPriceChange={setMinPrice}
+            onMaxPriceChange={setMaxPrice}
+            onReset={handleResetFilters}
+          />
+        </div>
 
         <section className="space-y-6">
           <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900">Active buyer requests</h2>
+              <h2 className="text-2xl font-semibold text-slate-900">Available room offers</h2>
               <p className="text-sm text-slate-500">{headerMessage}</p>
             </div>
           </header>
-
-          <div aria-live="polite" className="min-h-[1.5rem] text-sm">
-            {feedback ? (
-              <span className={feedback.type === 'success' ? 'text-emerald-600' : 'text-red-600'}>{feedback.message}</span>
-            ) : null}
-          </div>
 
           {isError ? (
             <div className="card flex flex-col gap-4 p-8">
               <div className="flex items-center gap-3 text-slate-900">
                 <span className="text-2xl">⚠️</span>
                 <div>
-                  <h3 className="text-lg font-semibold">We couldn't load buyer requests</h3>
+                  <h3 className="text-lg font-semibold">We couldn't load room offers</h3>
                   <p className="text-sm text-slate-600">{error?.message ?? 'Please refresh the page or try again shortly.'}</p>
                 </div>
               </div>
@@ -278,11 +388,11 @@ const WantedBoard = () => {
 
           {!isLoading && !isError && requests.length === 0 ? (
             <div className="card flex flex-col items-center gap-4 p-10 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">🛎️</div>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">🏠</div>
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-slate-900">No buyer requests fit your filters yet</h3>
+                <h3 className="text-xl font-semibold text-slate-900">No room offers fit your filters yet</h3>
                 <p className="text-sm text-slate-600">
-                  Try adjusting your filters or check back soon—new requests arrive throughout the day.
+                  Try adjusting your filters or check back soon—new offers arrive throughout the day.
                 </p>
               </div>
               <button
@@ -298,13 +408,7 @@ const WantedBoard = () => {
           {!isLoading && !isError && requests.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2">
               {requests.map((request) => (
-                <WantedRequestCard
-                  key={request.id}
-                  request={request}
-                  isResponding={respondingId === request.id}
-                  onRespond={handleRespond}
-                  currentUserId={user?.id}
-                />
+                <RoomOfferCard key={request.id} offer={request} isCurrentUser={user?.id === request.buyer.id} />
               ))}
             </div>
           ) : null}
@@ -317,7 +421,7 @@ const WantedBoard = () => {
                 disabled={isFetchingMore}
                 className="inline-flex items-center rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isFetchingMore ? 'Loading more requests…' : 'Load more requests'}
+                {isFetchingMore ? 'Loading more offers…' : 'Load more offers'}
               </button>
             </div>
           ) : null}
