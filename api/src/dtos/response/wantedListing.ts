@@ -24,7 +24,10 @@ export type WantedListingResponseDto = {
   id: string;
   title: string;
   details: string | null;
-  budget: string;
+  monthlyPrice: string;
+  address: string;
+  contactInfo: string;
+  expiresAt: string | null;
   status: WantedListing["status"];
   createdAt: string;
   updatedAt: string;
@@ -57,7 +60,10 @@ export const mapWantedListingToResponse = (
   id: wanted.id,
   title: wanted.title,
   details: wanted.details,
-  budget: wanted.budget,
+  monthlyPrice: wanted.monthlyPrice,
+  address: wanted.address,
+  contactInfo: wanted.contactInfo,
+  expiresAt: wanted.expiresAt ? wanted.expiresAt.toISOString() : null,
   status: wanted.status,
   createdAt: wanted.createdAt.toISOString(),
   updatedAt: wanted.updatedAt.toISOString(),

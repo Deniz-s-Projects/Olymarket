@@ -14,8 +14,14 @@ export class WantedListing extends BaseModel {
   @Column({ type: "text", nullable: true })
   details!: string | null;
 
-  @Column({ type: "numeric", precision: 10, scale: 2 })
-  budget!: string;
+  @Column({ type: "numeric", precision: 10, scale: 2, name: "budget" })
+  monthlyPrice!: string;
+
+  @Column({ length: 255, default: "" })
+  address!: string;
+
+  @Column({ type: "text", default: "", name: "contact_info" })
+  contactInfo!: string;
 
   @Column({
     type: "enum",
@@ -23,6 +29,9 @@ export class WantedListing extends BaseModel {
     default: "open",
   })
   status!: WantedListingStatus;
+
+  @Column({ name: "expires_at", type: "timestamp", nullable: true })
+  expiresAt!: Date | null;
 
   @ManyToOne(() => User, (user) => user.wantedListings, { eager: true })
   @JoinColumn({ name: "buyer_id" })

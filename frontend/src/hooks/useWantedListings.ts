@@ -14,8 +14,8 @@ type WantedListingsFilters = {
   searchTerm?: string
   category?: string | null
   status?: WantedListingStatus | 'all'
-  minBudget?: number | null
-  maxBudget?: number | null
+  minPrice?: number | null
+  maxPrice?: number | null
 }
 
 type UseWantedListingsOptions = {
@@ -58,12 +58,12 @@ const buildQueryParams = (
     query.status = filters.status
   }
 
-  if (typeof filters.minBudget === 'number' && Number.isFinite(filters.minBudget)) {
-    query.minBudget = filters.minBudget
+  if (typeof filters.minPrice === 'number' && Number.isFinite(filters.minPrice)) {
+    query.minPrice = filters.minPrice
   }
 
-  if (typeof filters.maxBudget === 'number' && Number.isFinite(filters.maxBudget)) {
-    query.maxBudget = filters.maxBudget
+  if (typeof filters.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
+    query.maxPrice = filters.maxPrice
   }
 
   return query
@@ -128,7 +128,7 @@ export const useWantedListings = (
           const normalizedError =
             caughtError instanceof Error
               ? caughtError
-              : new Error('Something went wrong while fetching buyer requests.')
+              : new Error('Something went wrong while fetching room offers.')
           setError(normalizedError)
         }
       } finally {

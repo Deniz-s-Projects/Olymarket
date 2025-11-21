@@ -26,7 +26,10 @@ export type WantedListing = {
   id: string
   title: string
   details: string | null
-  budget: string
+  monthlyPrice: string
+  address: string
+  contactInfo: string
+  expiresAt: string | null
   status: WantedListingStatus
   createdAt: string
   updatedAt: string
@@ -54,14 +57,17 @@ export type WantedListingsQueryParams = {
   q?: string
   category?: string
   status?: WantedListingStatus
-  minBudget?: number
-  maxBudget?: number
+  minPrice?: number
+  maxPrice?: number
 }
 
 export type WantedListingPayload = {
   title: string
   details?: string
-  budget: string
+  monthlyPrice: string
+  address: string
+  contactInfo: string
+  expiresAt: string
   categoryId?: string
 }
 

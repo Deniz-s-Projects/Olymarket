@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsDateString,
   IsIn,
   IsNumberString,
   IsOptional,
@@ -26,7 +27,18 @@ export class WantedListingCreateDto {
   details?: string;
 
   @IsNumberString()
-  budget!: string;
+  monthlyPrice!: string;
+
+  @IsString()
+  @MaxLength(255)
+  address!: string;
+
+  @IsString()
+  @MaxLength(300)
+  contactInfo!: string;
+
+  @IsDateString()
+  expiresAt!: string;
 
   @IsOptional()
   @IsString()
@@ -46,7 +58,21 @@ export class WantedListingUpdateDto {
 
   @IsOptional()
   @IsNumberString()
-  budget?: string;
+  monthlyPrice?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  contactInfo?: string;
+
+  @IsOptional()
+  @IsDateString()
+  expiresAt?: string;
 
   @IsOptional()
   @IsString()
