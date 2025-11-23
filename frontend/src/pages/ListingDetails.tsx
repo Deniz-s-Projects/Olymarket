@@ -252,8 +252,14 @@ const ListingDetails = () => {
   const isSold = listing.status === 'sold'
   const conditionDetails =
     LISTING_CONDITION_CONFIG[condition] ?? LISTING_CONDITION_CONFIG[DEFAULT_LISTING_CONDITION]
-  const noticeText = listing.adminNotice?.trim() ?? ''
-  const noticeSeverity = (listing.adminNoticeSeverity ?? 'info') as keyof typeof NOTICE_STYLES
+  const rawAdminNotice =
+    listing.adminNotice ?? (listing as { admin_notice?: string | null }).admin_notice ?? null
+  const noticeText = rawAdminNotice?.trim() ?? ''
+  const noticeSeverity = (
+    listing.adminNoticeSeverity ??
+    (listing as { admin_notice_severity?: keyof typeof NOTICE_STYLES | null }).admin_notice_severity ??
+    'info'
+  ) as keyof typeof NOTICE_STYLES
   const noticeStyle = NOTICE_STYLES[noticeSeverity] ?? NOTICE_STYLES.info
 
   const handleContactSeller = async () => {
