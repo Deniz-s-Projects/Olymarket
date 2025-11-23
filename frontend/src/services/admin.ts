@@ -8,6 +8,8 @@ export type AdminListing = Listing & {
   moderationNotes: string | null
   reviewedAt: string | null
   reviewer: ListingOwner | null
+  adminNotice: string | null
+  adminNoticeSeverity: 'info' | 'warning' | 'danger'
 }
 
 // Admin listings response
@@ -28,6 +30,8 @@ export type AdminListingUpdatePayload = {
   categoryId?: string
   moderationStatus?: 'pending' | 'approved' | 'rejected'
   moderationNotes?: string
+  adminNotice?: string | null
+  adminNoticeSeverity?: 'info' | 'warning' | 'danger'
 }
 
 // User management types

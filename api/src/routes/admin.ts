@@ -244,6 +244,15 @@ router.patch(
       listing.moderationNotes = req.body.moderationNotes;
     }
 
+    if (typeof req.body.adminNotice !== "undefined") {
+      const trimmed = typeof req.body.adminNotice === "string" ? req.body.adminNotice.trim() : "";
+      listing.adminNotice = trimmed.length > 0 ? trimmed : null;
+    }
+
+    if (typeof req.body.adminNoticeSeverity === "string") {
+      listing.adminNoticeSeverity = req.body.adminNoticeSeverity as Listing["adminNoticeSeverity"];
+    }
+
     const saved = await listingRepository.save(listing);
     return res.json(saved);
   }

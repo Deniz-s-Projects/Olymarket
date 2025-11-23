@@ -1062,6 +1062,10 @@ const EditListingModal = ({
   const [status, setStatus] = useState(listing.status)
   const [moderationStatus, setModerationStatus] = useState(listing.moderationStatus)
   const [moderationNotes, setModerationNotes] = useState(listing.moderationNotes || '')
+  const [adminNotice, setAdminNotice] = useState(listing.adminNotice || '')
+  const [adminNoticeSeverity, setAdminNoticeSeverity] = useState<
+    AdminListing['adminNoticeSeverity']
+  >(listing.adminNoticeSeverity || 'info')
 
   useEffect(() => {
     if (!categoryId && categories.length > 0) {
@@ -1083,6 +1087,8 @@ const EditListingModal = ({
       status,
       moderationStatus,
       moderationNotes: moderationNotes || undefined,
+      adminNotice: adminNotice.trim() ? adminNotice.trim() : null,
+      adminNoticeSeverity,
     })
   }
 
@@ -1181,6 +1187,36 @@ const EditListingModal = ({
               placeholder="Optional notes about this listing's moderation"
             />
           </label>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+              <span>Listing Notice</span>
+              <textarea
+                value={adminNotice}
+                onChange={(e) => setAdminNotice(e.target.value)}
+                className="rounded-md border border-slate-300 px-3 py-2"
+                rows={3}
+                placeholder="Optional notice displayed on the listing"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+              <span>Notice Severity</span>
+              <select
+                value={adminNoticeSeverity}
+                onChange={(e) =>
+                  setAdminNoticeSeverity(e.target.value as AdminListing['adminNoticeSeverity'])
+                }
+                className="rounded-md border border-slate-300 px-3 py-2"
+              >
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="danger">Danger</option>
+              </select>
+              <span className="text-xs font-normal text-slate-500">
+                Controls the color of the notice box on the listing page.
+              </span>
+            </label>
+          </div>
 
           <div className="flex justify-end gap-2">
             <button
