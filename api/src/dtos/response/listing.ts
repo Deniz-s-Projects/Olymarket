@@ -39,6 +39,8 @@ export type ListingResponseDto = {
   condition: Listing["condition"];
   moderationStatus: Listing["moderationStatus"];
   moderationNotes: string | null;
+  adminNotice: string | null;
+  adminNoticeSeverity: Listing["adminNoticeSeverity"];
 };
 
 const buildPublicContactInfo = (listing: Listing): ListingPublicContactInfoDto | null => {
@@ -103,4 +105,6 @@ export const mapListingToResponse = (listing: Listing): ListingResponseDto => ({
   condition: listing.condition,
   moderationStatus: listing.moderationStatus,
   moderationNotes: listing.moderationNotes,
+  adminNotice: listing.adminNotice,
+  adminNoticeSeverity: listing.adminNoticeSeverity,
 });

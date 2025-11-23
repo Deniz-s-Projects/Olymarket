@@ -44,6 +44,14 @@ export class AdminListingUpdateDto {
   @IsOptional()
   @IsString()
   moderationNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  adminNotice?: string;
+
+  @IsOptional()
+  @IsIn(["info", "warning", "danger"])
+  adminNoticeSeverity?: "info" | "warning" | "danger";
 }
 
 export class AdminCreateUserDto {

@@ -54,6 +54,8 @@ export type Listing = {
   condition: ListingCondition
   showContactInfo: boolean
   publicContactInfo?: ListingPublicContactInfo | null
+  adminNotice?: string | null
+  adminNoticeSeverity?: 'info' | 'warning' | 'danger'
 }
 
 export type OfferStatus = 'pending' | 'accepted' | 'declined'

@@ -46,6 +46,27 @@ const formatDate = (value?: string) => {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed)
 }
 
+const NOTICE_STYLES: Record<
+  'info' | 'warning' | 'danger',
+  { container: string; label: string; icon: string }
+> = {
+  info: {
+    container: 'border-blue-200 bg-blue-50 text-blue-800',
+    label: 'Information',
+    icon: 'ℹ️',
+  },
+  warning: {
+    container: 'border-amber-200 bg-amber-50 text-amber-800',
+    label: 'Warning',
+    icon: '⚠️',
+  },
+  danger: {
+    container: 'border-red-200 bg-red-50 text-red-800',
+    label: 'Important notice',
+    icon: '⛔',
+  },
+}
+
 const ListingDetails = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -231,6 +252,9 @@ const ListingDetails = () => {
   const isSold = listing.status === 'sold'
   const conditionDetails =
     LISTING_CONDITION_CONFIG[condition] ?? LISTING_CONDITION_CONFIG[DEFAULT_LISTING_CONDITION]
+  const noticeText = listing.adminNotice?.trim() ?? ''
+  const noticeSeverity = (listing.adminNoticeSeverity ?? 'info') as keyof typeof NOTICE_STYLES
+  const noticeStyle = NOTICE_STYLES[noticeSeverity] ?? NOTICE_STYLES.info
 
   const handleContactSeller = async () => {
     if (!token) {
@@ -600,6 +624,23 @@ const ListingDetails = () => {
               ) : null}
             </div>
             <h1 className="mt-3 text-2xl font-semibold text-slate-900 sm:text-3xl">{title}</h1>
+            {noticeText ? (
+              <div
+                className={`mt-4 rounded-xl border px-4 py-3 text-sm shadow-sm ${noticeStyle.container}`}
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-lg" aria-hidden="true">
+                    {noticeStyle.icon}
+                  </span>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide">{noticeStyle.label}</p>
+                    <p className="text-sm whitespace-pre-line">{noticeText}</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <p className="mt-3 whitespace-pre-line text-slate-700">{description}</p>
           </article>
 

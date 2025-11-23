@@ -59,6 +59,17 @@ export class Listing extends BaseModel {
   @Column({ name: "moderation_notes", type: "text", nullable: true })
   moderationNotes!: string | null;
 
+  @Column({ name: "admin_notice", type: "text", nullable: true })
+  adminNotice!: string | null;
+
+  @Column({
+    name: "admin_notice_severity",
+    type: "enum",
+    enum: ["info", "warning", "danger"],
+    default: "info",
+  })
+  adminNoticeSeverity!: "info" | "warning" | "danger";
+
   @Column({ name: "reviewed_at", type: "timestamp", nullable: true })
   reviewedAt!: Date | null;
 
