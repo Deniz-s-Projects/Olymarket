@@ -47,7 +47,7 @@ const INITIAL_VALUES: ListingFormValues = {
   preferredContactMethod: "",
   active: true,
   condition: DEFAULT_LISTING_CONDITION,
-  showContactInfo: false,
+  showContactInfo: true,
 }
 
 const DEFAULT_CONTACT_METHOD_OPTIONS = ["Email", "Phone", "In-app messaging"]
@@ -636,8 +636,8 @@ const CreateListing = () => {
            <ToggleSwitch
             label="Display contact info on this listing"
             name="showContactInfo"
-            description="When enabled, buyers will see your preferred contact method."
-            hint={values.showContactInfo ? "Your contact info will be shown to interested buyers." : "Your contact info will remain private."}
+            description="When enabled, buyers will see your preferred contact method. We strongly suggest leaving this on!"
+            hint={values.showContactInfo ? "Your prefered contact will be shown to interested buyers." : "Your contact info will remain private. This will make it harder to sell your listing."}
             checked={values.showContactInfo}
             onChange={(checked) => updateValue("showContactInfo", checked)}
           />
