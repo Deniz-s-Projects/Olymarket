@@ -275,7 +275,7 @@ const Marketplace = () => {
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     3
                   </span>
-                  Smooth user experience vibe-coded with Artificial Intelligence.
+                  No ads, No trackers, No third-party cookies.
                 </li>
               </ul>
             </div>
