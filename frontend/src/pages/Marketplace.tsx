@@ -275,7 +275,7 @@ const Marketplace = () => {
                   <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
                     3
                   </span>
-                  No ads, No trackers, No third-party cookies.
+                  No ads, No trackers, No third-party cookies. Provided to OlyDorf residents for free.
                 </li>
               </ul>
             </div>
